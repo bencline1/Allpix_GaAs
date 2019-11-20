@@ -88,10 +88,10 @@ namespace allpix {
          * @param initial_time Initial time passed before propagation starts in local time coordinates
          * @param random_generator Reference to the random number engine to be used
          * @param output_plot_points Reference to vector to hold points for line graph output plots
-         * @return Tuple with the point where the deposit ended after propagation, the time the propagation took and a flag
+         * @return Tuple with the point where the deposit ended after propagation, the time the propagation took, the gain accumulated, and a flag
          * whether it has recombined
          */
-        std::tuple<ROOT::Math::XYZPoint, double, bool> propagate(const ROOT::Math::XYZPoint& pos,
+        std::tuple<ROOT::Math::XYZPoint, double, double, bool> propagate(const ROOT::Math::XYZPoint& pos,
                                                                  const CarrierType& type,
                                                                  const double initial_time,
                                                                  RandomNumberGenerator& random_generator,
@@ -101,7 +101,7 @@ namespace allpix {
         double temperature_{}, timestep_min_{}, timestep_max_{}, timestep_start_{}, integration_time_{},
             target_spatial_precision_{}, output_plots_step_{};
         bool output_plots_{}, output_linegraphs_{}, output_animations_{}, output_plots_lines_at_implants_{};
-        bool propagate_electrons_{}, propagate_holes_{};
+        bool ignore_multiplication_{}, propagate_electrons_{}, propagate_holes_{};
         unsigned int charge_per_step_{};
 
         // Models for electron and hole mobility and lifetime

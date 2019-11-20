@@ -623,7 +623,7 @@ void GenericPropagationModule::run(Event* event) {
             }
 
             // Propagate a single charge deposit
-            auto [final_position, time, alive] = propagate(
+            auto [final_position, time, gain, alive] = propagate(
                 initial_position, deposit.getType(), deposit.getLocalTime(), event->getRandomEngine(), output_plot_points);
 
             if(!alive) {
@@ -641,7 +641,7 @@ void GenericPropagationModule::run(Event* event) {
             PropagatedCharge propagated_charge(final_position,
                                                global_position,
                                                deposit.getType(),
-                                               charge_per_step,
+                                               static_cast<unsigned int>(charge_per_step * gain),
                                                deposit.getLocalTime() + time,
                                                deposit.getGlobalTime() + time,
                                                &deposit);
@@ -690,7 +690,7 @@ void GenericPropagationModule::run(Event* event) {
  * velocity at every point with help of the electric field map of the detector. An Runge-Kutta integration is applied in
  * multiple steps, adding a random diffusion to the propagating charge every step.
  */
-std::tuple<ROOT::Math::XYZPoint, double, bool>
+std::tuple<ROOT::Math::XYZPoint, double, double, bool>
 GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
                                     const CarrierType& type,
                                     const double initial_time,
@@ -698,6 +698,9 @@ GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
                                     OutputPlotPoints& output_plot_points) const {
     // Create a runge kutta solver using the electric field as step function
     Eigen::Vector3d position(pos.x(), pos.y(), pos.z());
+
+    // Initialise gain
+    double gain = 1;
 
     // Define a function to compute the diffusion
     auto carrier_diffusion = [&](double efield_mag, double doping_concentration, double timestep) -> Eigen::Vector3d {
@@ -716,31 +719,36 @@ GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
     // Define a function to compute the charge carrier multiplcation
     auto carrier_multiplication = [&](double efield_mag, double step_length) -> double {
 
+        // 1 V/um = 10 kV/cm = 1e4 V/cm = 1e3 V/mm = 1e-3 MV/mm
+        double threshold_field_ = 1e-2; // in MV mm^-1, corresponds to 100 kV cm^-1
+
         // experimental parameters from Massey model
-        double a_n = 4.43e5; // in cm^-1
-        double a_p = 1.13e6; // in cm^-1
-        double c_n = 9.66e5; // in V cm^-1
-        double c_p = 1.71e6; // in V cm^-1
-        double d_n = 4.99e2; // in V cm^-1 K^-1
-        double d_p = 1.09e3; // in V cm^-1 K^-1
+        double a_n = 4.43e4; // in mm^-1
+        double a_p = 1.13e5; // in mm^-1
+        double c_n = 9.66e-2; // in MV mm^-1
+        double c_p = 1.71e-1; // in MV mm^-1
+        double d_n = 4.99e-5; // in MV mm^-1 K^-1
+        double d_p = 1.09e-4; // in MV mm^-1 K^-1
 
         // ionisation coefficient for electrons
         double b_n = c_n + d_n * temperature_;
-        double alpha_ = a_n * std::exp(-(b_n/efield_mag))
+        double alpha_ = a_n * std::exp(-(b_n/efield_mag));
 
         // ionisation coefficient for holes
         double b_p = c_p + d_p * temperature_;
-        double beta_ = a_n * std::exp(-(b_n/efield_mag))
+        double beta_ = a_p * std::exp(-(b_p/efield_mag));
 
-        // Compute the multiplication
-        double multiplication = 0;
-        if (propagate_electrons_){
-            multiplication += std:;exp(step_length / alpha_);
+        // Compute the gain
+        double gain = 1;
+        if (efield_mag > threshold_field_){
+            if (propagate_electrons_){
+                gain *= std::exp(step_length * alpha_);
+            }
+            else if (propagate_holes_){
+                gain *= std::exp(step_length * beta_);
+            }
         }
-        if (propagate_holes_){
-            multiplication += std:;exp(step_length / beta_);
-        }
-        return multiplication;
+        return gain;
     };
 
     // Survival probability of this charge carrier package, evaluated at every step
@@ -832,6 +840,12 @@ GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
                    << (is_alive ? "" : ", recombined");
         // Adapt step size to match target precision
         double uncertainty = step.error.norm();
+        double step_length = step.value.norm();
+
+        // Apply multiplication step, fully determistic from local efield and step length
+        if (!ignore_multiplication_){
+            gain = carrier_multiplication(std::sqrt(efield.Mag2()), step_length);
+        }
 
         // Update step length histogram
         if(output_plots_) {
@@ -890,7 +904,7 @@ GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
     }
 
     // Return the final position of the propagated charge
-    return std::make_tuple(static_cast<ROOT::Math::XYZPoint>(position), initial_time + time, is_alive);
+    return std::make_tuple(static_cast<ROOT::Math::XYZPoint>(position), initial_time + time, std::floor(gain), is_alive);
 }
 
 void GenericPropagationModule::finalize() {
