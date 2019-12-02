@@ -2,7 +2,7 @@
 **Maintainer**: Koen Wolters (<koen.wolters@cern.ch>), Simon Spannagel (<simon.spannagel@cern.ch>)  
 **Status**: Functional  
 **Input**: DepositedCharge  
-**Output**: PropagatedCharge
+**Output**: PropagatedCharge  
 
 ### Description
 Simulates the propagation of electrons and/or holes through the sensitive sensor volume of the detector. It allows to propagate sets of charge carriers together in order to speed up the simulation while maintaining the required accuracy. The propagation process for these sets is fully independent and no interaction is simulated. The maximum size of the set of propagated charges and thus the accuracy of the propagation can be controlled.
