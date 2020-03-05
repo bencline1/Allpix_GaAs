@@ -760,7 +760,8 @@ GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
     size_t next_idx = 0;
     bool is_alive = true;
     while(detector_->getModel()->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(position)) &&
-          (initial_time + runge_kutta.getTime()) < integration_time_ && is_alive) {
+          (initial_time + runge_kutta.getTime()) < integration_time_ && 
+          !detector_->getModel()->isWithinImplant(static_cast<ROOT::Math::XYZPoint>(position)) && is_alive) {
         // Update output plots if necessary (depending on the plot step)
         if(output_linegraphs_) {
             auto time_idx = static_cast<size_t>(runge_kutta.getTime() / output_plots_step_);
@@ -828,7 +829,7 @@ GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
         runge_kutta.setTimeStep(timestep);
     }
 
-    // Find proper final position in the sensor
+    // Find proper final position in the sensor - but only correct if we left the sensor volume, not if within implants
     auto time = runge_kutta.getTime();
     if(!detector_->getModel()->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(position))) {
         auto check_position = position;
