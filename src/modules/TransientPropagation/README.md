@@ -8,6 +8,7 @@
 Simulates the transport of electrons and holes through the sensitive sensor volume of the detector. It allows to propagate sets of charge carriers together in order to speed up the simulation while maintaining the required accuracy. The propagation process for these sets is fully independent and no interaction is simulated. The maximum size of the set of propagated charges and thus the accuracy of the propagation can be controlled.
 
 The propagation consists of a combination of drift and diffusion simulation. The drift is calculated using the charge carrier velocity derived from the charge carrier mobility and the magnetic field via a calculation of the Lorentz drift. The mobility model can be chosen using the `mobility_model` parameter, and a list of available models can be found in the user manual.
+Impact ionisation is implemented via the Massey model [@massey] but is switched off by default.
 
 A fourth-order Runge-Kutta-Fehlberg method [@fehlberg] is used to integrate the particle motion through the electric and magnetic fields. After every Runge-Kutta step, the diffusion is accounted for by applying an offset drawn from a Gaussian distribution calculated from the Einstein relation
 
@@ -38,6 +39,8 @@ The module can produces a variety of plots such as total integrated charge plots
 * `induction_matrix`: Size of the pixel sub-matrix for which the induced charge is calculated, provided as number of pixels in x and y. The numbers have to be odd and default to `3, 3`. It should be noted that the time required for simulating a single event depends almost linearly on the number of pixels the induced charge is calculated for. Usually, a 3x3 grid (9 pixels) should suffice since the weighting potential at a distance of more than one pixel pitch normally is small enough to be neglected while time simulation time is almost tripled.
 * `ignore_magnetic_field`: The magnetic field, if present, is ignored for this module. Defaults to false.
 * `output_plots` : Determines if simple output plots should be generated for a monitoring of the simulation flow. Disabled by default.
+* `enable_charge_multiplication`: Enables charge multiplication. Defaults to false.
+* `charge_multiplication_threshold`: Threshold field below which charge multiplication is ignored to speed up the propagation. Defaults to 1e-2 MV mm^-1 (corresponds to 100 kV cm^-1).
 
 
 ### Usage
@@ -55,3 +58,4 @@ timestep = 0.02ns
 [@haug]: https://doi.org/10.1016/0038-1098(78)90646-4
 [@shockley]: https://doi.org/10.1063/1.1710367
 [@ramo]: https://doi.org/10.1109/JRPROC.1939.228757
+[@massey]: https://ieeexplore.ieee.org/document/1677871

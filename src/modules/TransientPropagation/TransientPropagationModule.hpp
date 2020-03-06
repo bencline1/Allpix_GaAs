@@ -82,7 +82,7 @@ namespace allpix {
          * @return          Tuple of the point where the deposit ended after propagation, the time the propagation took and a
          * flag whether it is still alive or has recombined
          */
-        std::tuple<ROOT::Math::XYZPoint, double, bool> propagate(Event* event,
+        std::tuple<ROOT::Math::XYZPoint, double, double, bool> propagate(Event* event,
                                                                  const ROOT::Math::XYZPoint& pos,
                                                                  const CarrierType& type,
                                                                  const unsigned int charge,
@@ -90,8 +90,8 @@ namespace allpix {
                                                                  std::map<Pixel::Index, Pulse>& pixel_map);
 
         // Local copies of configuration parameters to avoid costly lookup:
-        double temperature_{}, timestep_{}, integration_time_{};
-        bool output_plots_{};
+        double temperature_{}, timestep_{}, integration_time_{}, threshold_field_{};
+        bool output_plots_{}, enable_multiplication_{};
         ROOT::Math::DisplacementVector2D<ROOT::Math::Cartesian2D<int>> matrix_;
         unsigned int charge_per_step_{};
 
