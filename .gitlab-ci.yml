@@ -240,6 +240,18 @@ examples:
     script:
         - ctest -R examples/ --no-compress-output --test-action Test
 
+tools:
+    extends: .test
+    dependencies:
+        - cmp:cc7-gcc
+    image: gitlab-registry.cern.ch/sft/docker/centos7:latest
+    before_script:
+        - source .gitlab/ci/init_x86_64.sh
+        - source .gitlab/ci/load_deps.sh
+    script:
+        - cd build/
+        - ctest -R tools --output-on-failure -j4
+
 # LXPLUS
 mod:lxplus-gcc:
     extends:
