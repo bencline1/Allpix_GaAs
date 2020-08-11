@@ -56,6 +56,9 @@ CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.cmake.h" "${CMAKE_CURRE
 INCLUDE(cmake/CPackConfig.cmake)
 INCLUDE(CPack)
 
+# Enable testing
+ENABLE_TESTING()
+
 ###############################################
 # Setup the environment for the documentation #
 ###############################################
