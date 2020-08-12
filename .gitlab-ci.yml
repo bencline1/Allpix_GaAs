@@ -372,6 +372,24 @@ perf:cc7-gcc:
         - source .gitlab/ci/init_x86_64.sh
         - source .gitlab/ci/load_deps.sh
 
+perf:vtune:
+    extends: .testperf
+    dependencies:
+        - cmp:cc7-gcc
+    image: gitlab-registry.cern.ch/sft/docker/centos7:latest
+    before_script:
+        - source .gitlab/ci/init_x86_64.sh
+        - source .gitlab/ci/load_deps.sh
+        - source /cvmfs/projects.cern.ch/intelsw/psxe/linux/all-setup.sh
+    script:
+        - cd build/
+        - vtune -collect hotspots -app-working-dir ./ -- ../bin/allpix -c ../examples/corryvreckan_writer/corryvreckan_writer.conf
+        - vtune -report summary -format=html > hotspots_summary.html
+    artifacts:
+        paths:
+            - build/hotspots_summary.html
+        expire_in: 24 hour
+
 
 #############################
 # Documentation Compilation #
