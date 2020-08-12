@@ -373,7 +373,7 @@ perf:cc7-gcc:
         - source .gitlab/ci/load_deps.sh
 
 perf:vtune:
-    extends: .testperf
+    stage: performance
     dependencies:
         - cmp:cc7-gcc
     image: gitlab-registry.cern.ch/sft/docker/centos7:latest
