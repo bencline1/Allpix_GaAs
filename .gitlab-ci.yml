@@ -385,9 +385,13 @@ perf:vtune:
         - cd build/
         - vtune -collect hotspots -app-working-dir ./ -- ../bin/allpix -c ../examples/corryvreckan_writer/corryvreckan_writer.conf
         - vtune -report summary -format=html > hotspots_summary.html
+        - vtune -report top-down -format=html > hotspots_tree.html
+        - tar -c r00* > vtune_result.tar
     artifacts:
         paths:
             - build/hotspots_summary.html
+            - build/hotspots_tree.html
+            - build/vtune_result.tar
         expire_in: 24 hour
 
 
