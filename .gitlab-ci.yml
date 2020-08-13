@@ -285,7 +285,7 @@ test:mac1015-clang:core:
     retry: 1
     only:
         variables:
-            - $APSQ_CI_PERF
+            - $APSQ_CI_PERFORMANCE
 
 # CentOS7
 
@@ -320,7 +320,7 @@ perf:cc7-gcc:
     only:
         variables:
             - $APSQ_CI_MAC
-            - $APSQ_CI_PERF
+            - $APSQ_CI_PERFORMANCE
 
 
 #############################
