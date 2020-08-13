@@ -43,7 +43,6 @@ int main(int argc, char** argv) {
     }
 
     try {
-
         // Add stream and set default logging level
         allpix::Log::addStream(std::cout);
         allpix::register_units();
@@ -246,11 +245,11 @@ int main(int argc, char** argv) {
         elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
         LOG(STATUS) << "Generation completed in " << elapsed_seconds << " seconds.";
 
-    } catch(std::exception& e) {
-        LOG(FATAL) << "Failed to generate weighting potential: " << e.what();
-        allpix::Log::finish();
-        return 1;
+    } catch(std::runtime_error& e) {
+        LOG(FATAL) << "Failed to generate weighting potential:\n" << e.what();
+        return_code = 1;
     }
+
     allpix::Log::finish();
-    return 0;
+    return return_code;
 }
