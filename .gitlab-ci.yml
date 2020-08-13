@@ -114,7 +114,7 @@ cmp:mac1015-clang:
         - export COMPILER_TYPE="llvm"
         - source .gitlab/ci/init_x86_64.sh
 
-fmt:cc7-llvm-format:
+fmt:formatting:
     extends: .format
     dependencies:
         - cmp:cc7-llvm
@@ -123,7 +123,7 @@ fmt:cc7-llvm-format:
         - cd build/
         - ninja check-format
 
-fmt:cc7-llvm-lint:
+fmt:linting:
     extends: .format
     dependencies:
         - cmp:cc7-llvm
@@ -166,10 +166,12 @@ fmt:coverity:
     image: gitlab-registry.cern.ch/sft/docker/centos7:latest
     dependencies: []
     only:
-        - coverity
-        - schedules
-    variables:
-        SCHEDULE_TAG: "coverity"
+        refs:
+            - coverity
+            - schedules
+        variables:
+            - $SCHEDULE_TAG == "coverity"
+            - $COVERITY_SCAN_TOKEN
     script:
         - wget --quiet https://scan.coverity.com/download/linux64 --post-data "token=$COVERITY_SCAN_TOKEN&project=$COVERITY_SCAN_PROJECT_NAME" -O /tmp/cov-analysis-linux64.tgz
         - mkdir build
@@ -179,9 +181,7 @@ fmt:coverity:
         - cov-analysis-linux64-*/bin/cov-build --dir cov-int make
         - tar cfz cov-int.tar.gz cov-int
         - curl --form token=$COVERITY_SCAN_TOKEN --form email=$GITLAB_USER_EMAIL --form file=@cov-int.tar.gz --form version="`git describe --tags`" --form description="`git describe --tags` / $CI_COMMIT_TITLE / $CI_COMMIT_REF_NAME:$CI_PIPELINE_ID " https://scan.coverity.com/builds?project=$COVERITY_SCAN_PROJECT_NAME
-    only:
-        variables:
-            - $COVERITY_SCAN_TOKEN
+
 
 ##############
 # Unit tests #
@@ -207,7 +207,7 @@ fmt:coverity:
 
 # Test if examples still execute fine:
 
-examples:
+test:examples:
     extends: .test
     dependencies:
         - cmp:cc7-gcc
@@ -219,45 +219,7 @@ examples:
         - cd build/
         - ctest -R examples --output-on-failure -j4
 
-# SLC 6
-
-mod:slc6-gcc:
-    extends: .testmod
-    dependencies:
-        - cmp:slc6-gcc
-    image: gitlab-registry.cern.ch/sft/docker/slc6:latest
-    before_script:
-        - source .gitlab/ci/init_x86_64.sh
-        - source .gitlab/ci/load_deps.sh
-
-core:slc6-gcc:
-    extends: .testcore
-    dependencies:
-        - cmp:slc6-gcc
-    image: gitlab-registry.cern.ch/sft/docker/slc6:latest
-    before_script:
-        - source .gitlab/ci/init_x86_64.sh
-        - source .gitlab/ci/load_deps.sh
-
-mod:lxplus-gcc:
-    extends: .testmod
-    dependencies:
-        - cmp:lxplus-gcc
-    image: gitlab-registry.cern.ch/sft/docker/centos7:latest
-    before_script:
-        - source etc/scripts/setup_lxplus.sh
-
-core:lxplus-gcc:
-    extends: .testcore
-    dependencies:
-        - cmp:lxplus-gcc
-    image: gitlab-registry.cern.ch/sft/docker/centos7:latest
-    before_script:
-        - source etc/scripts/setup_lxplus.sh
-
-# CentOS 7
-
-core:cc7-docker:
+test:core:
     extends: .testcore
     dependencies:
         - cmp:cc7-docker
@@ -267,7 +229,7 @@ core:cc7-docker:
     before_script:
         - source scl_source enable devtoolset-7 || echo " "
 
-mod:cc7-gcc:
+test:modules:
     extends: .testmod
     dependencies:
         - cmp:cc7-gcc
@@ -275,40 +237,10 @@ mod:cc7-gcc:
     before_script:
         - source .gitlab/ci/init_x86_64.sh
         - source .gitlab/ci/load_deps.sh
-
-core:cc7-gcc:
-    extends: .testcore
-    dependencies:
-        - cmp:cc7-gcc
-    image: gitlab-registry.cern.ch/sft/docker/centos7:latest
-    before_script:
-        - source .gitlab/ci/init_x86_64.sh
-        - source .gitlab/ci/load_deps.sh
-
-mod:cc7-llvm:
-    extends: .testmod
-    dependencies:
-        - cmp:cc7-llvm
-    image: gitlab-registry.cern.ch/sft/docker/centos7:latest
-    before_script:
-        - export COMPILER_TYPE="llvm"
-        - source .gitlab/ci/init_x86_64.sh
-        - source .gitlab/ci/load_deps.sh
-
-core:cc7-llvm:
-    extends: .testcore
-    dependencies:
-        - cmp:cc7-llvm
-    image: gitlab-registry.cern.ch/sft/docker/centos7:latest
-    before_script:
-        - export COMPILER_TYPE="llvm"
-        - source .gitlab/ci/init_x86_64.sh
-        - source .gitlab/ci/load_deps.sh
-
 
 # Mac OS X
 
-mod:mac1015-clang:
+test:mac1015-clang:modules:
     extends: .testmod
     tags:
         - mac
@@ -321,7 +253,7 @@ mod:mac1015-clang:
         variables:
             - $APSQ_CI_MAC
 
-core:mac1015-clang:
+test:mac1015-clang:core:
     extends: .testcore
     tags:
         - mac
@@ -406,7 +338,7 @@ perf:cc7-gcc:
 
 
 # Compile Doxygen reference
-cmp:doxygen:
+doc:doxygen:
     extends: .doc
     image: gitlab-registry.cern.ch/sft/docker/centos7:latest
     dependencies: []
@@ -421,7 +353,7 @@ cmp:doxygen:
         - mv reference/html ../public/reference
 
 # Compile LaTeX user manual:
-cmp:usermanual:
+doc:usermanual:
     extends: .doc
     image: gitlab-registry.cern.ch/clicdp/publications/templates/custom_ci_worker:fedora-latex-latest
     dependencies: []
@@ -491,7 +423,7 @@ pkg:cc7-gcc:
 
 # Automatically deploy documentation to the website
 # Deployment job only executed for new tag pushs, not for every commit.
-deploy-documentation:
+deploy:documentation:
     stage: deployment
     tags:
       - docker
@@ -504,8 +436,8 @@ deploy-documentation:
         variables:
             - $APSQ_CI_DEPLOY
     dependencies:
-        - cmp:usermanual
-        - cmp:doxygen
+        - doc:usermanual
+        - doc:doxygen
     # Docker image with tools to deploy to EOS
     image: gitlab-registry.cern.ch/ci-tools/ci-web-deployer:latest
     script:
@@ -514,7 +446,7 @@ deploy-documentation:
     before_script: []
     after_script: []
 
-deploy-eos:
+deploy:eos:
     stage: deployment
     tags:
       - docker
@@ -537,7 +469,7 @@ deploy-eos:
     before_script: []
     after_script: []
 
-deploy-cvmfs:
+deploy:cvmfs:
     stage: deployment
     dependencies:
         - pkg:cc7-gcc
@@ -558,7 +490,7 @@ deploy-cvmfs:
         - rm -f allpix-squared-*.tar.gz
     retry: 1
 
-deploy-docker-latest:
+deploy:docker-latest:
     stage: deployment
     tags:
         - docker-image-build
@@ -573,7 +505,7 @@ deploy-docker-latest:
     variables:
         TO: gitlab-registry.cern.ch/allpix-squared/allpix-squared
 
-deploy-docker-tag:
+deploy:docker-tag:
     stage: deployment
     tags:
         - docker-image-build
