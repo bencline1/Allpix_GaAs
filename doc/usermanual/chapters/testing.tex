@@ -100,6 +100,15 @@ It is configured via the \file{.gitlab-ci.yml} file in the repository's root dir
   \label{fig:ci}
 \end{figure}
 
+Since some jobs require special infrastructure like dedicated machines for performance testing or running MacOS, these parts of the CI pipeline are optional and need to be enabled explicitly via GitLab's environment variables. The following variables are defined:
+
+\begin{itemize}
+  \item \parameter{APSQ_CI_MAC}: Jobs which require a MacOS operating system will only run if this variable is defined. Jobs require GitLab CI runners with the tag \parameter{mac}.
+  \item \parameter{APSQ_CI_PERFORMANCE}: Jobs which require dedicated machines without virtualization to run performance tests in a reproducible way. Jobs require GitLab CI runners with the tag \parameter{benchmark}.
+  \item \parameter{APSQ_CI_DOCKER}: Jobs which build and deploy Docker images to the central project Docker image repository as described in Section~\ref{sec:build-docker}. These jobs can only be executed in the main project repository.
+  \item \parameter{APSQ_CI_DEPLOY}: Jobs which deploy artifacts to different locations such as the CERN CVMFS file system or the project's CERN EOS space. This comprises nightly builds, tagged versions and the user manual served on the website as described in Section~\ref{sec:deployment}. These jobs can only be executed in the main project repository.
+\end{itemize}
+
 The \textbf{compilation} stage builds the framework from the source on different platforms.
 Currently, builds are performed on Scientific Linux 6, CentOS7, and Mac OS X.
 On Linux type platforms, the framework is compiled with recent versions of GCC and Clang, while the latest AppleClang is used on Mac OS X.
@@ -143,6 +152,7 @@ Finally, the \textbf{deployment} stage is only executed for new tags in the repo
 Whenever a tag is pushed, this stages receives the build artifacts of previous stages and publishes them to the \apsq project website through the EOS file system~\cite{eos}. More detailed information on deployments is provided in the following.
 
 \section{Automatic Deployment}
+\label{sec:deployment}
 
 The CI is configured to automatically deploy new versions of \apsq and its user manual and code reference to different places to make them available to users.
 This section briefly describes the different deployment end-points currently configured and in use.
