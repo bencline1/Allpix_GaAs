@@ -97,7 +97,9 @@ cmp:mac1015-clang:
         - cmake -GNinja -DCMAKE_CXX_FLAGS="-Werror" -DBUILD_LCIOWriter=ON -DCMAKE_BUILD_TYPE=RELEASE -DLCIO_DIR=$LCIO_DIR -DCMAKE_USE_RELATIVE_PATHS=TRUE ..
         - ninja -k0
         - ninja install
-
+    only:
+        variables:
+            - $APSQ_CI_MAC
 
 ############################
 # Format and Lint Checking #
@@ -177,6 +179,9 @@ fmt:coverity:
         - cov-analysis-linux64-*/bin/cov-build --dir cov-int make
         - tar cfz cov-int.tar.gz cov-int
         - curl --form token=$COVERITY_SCAN_TOKEN --form email=$GITLAB_USER_EMAIL --form file=@cov-int.tar.gz --form version="`git describe --tags`" --form description="`git describe --tags` / $CI_COMMIT_TITLE / $CI_COMMIT_REF_NAME:$CI_PIPELINE_ID " https://scan.coverity.com/builds?project=$COVERITY_SCAN_PROJECT_NAME
+    only:
+        variables:
+            - $COVERITY_SCAN_TOKEN
 
 ##############
 # Unit tests #
@@ -312,6 +317,9 @@ mod:mac1015-clang:
     before_script:
         - source .gitlab/ci/init_x86_64.sh
         - source .gitlab/ci/load_deps.sh
+    only:
+        variables:
+            - $APSQ_CI_MAC
 
 core:mac1015-clang:
     extends: .testcore
@@ -322,6 +330,9 @@ core:mac1015-clang:
     before_script:
         - source .gitlab/ci/init_x86_64.sh
         - source .gitlab/ci/load_deps.sh
+    only:
+        variables:
+            - $APSQ_CI_MAC
 
 
 #####################
@@ -340,6 +351,9 @@ core:mac1015-clang:
         - ctest -R test_performance --output-on-failure
     allow_failure: true
     retry: 1
+    only:
+        variables:
+            - $APSQ_CI_PERF
 
 # CentOS7
 
@@ -371,6 +385,10 @@ perf:cc7-gcc:
     before_script:
         - source .gitlab/ci/init_x86_64.sh
         - source .gitlab/ci/load_deps.sh
+    only:
+        variables:
+            - $APSQ_CI_MAC
+            - $APSQ_CI_PERF
 
 
 #############################
@@ -481,7 +499,10 @@ deploy-documentation:
         GIT_STRATEGY: none
     # Only run for new tags:
     only:
-        - tags
+        refs:
+            - tags
+        variables:
+            - $APSQ_CI_DEPLOY
     dependencies:
         - cmp:usermanual
         - cmp:doxygen
@@ -499,10 +520,12 @@ deploy-eos:
       - docker
     variables:
         GIT_STRATEGY: none
-    # Only run for new tags:
     only:
-        - tags
-        - schedules # Only execute this on scheduled "nightly" pipelines
+        refs:
+            - tags # Only run for new tags
+            - schedules # Only execute this on scheduled "nightly" pipelines
+        variables:
+            - $APSQ_CI_DEPLOY
     dependencies:
         - pkg:cc7-gcc
         - pkg:slc6-gcc
@@ -522,8 +545,11 @@ deploy-cvmfs:
     tags:
         - cvmfs-deploy
     only:
-        - tags
-        - schedules # Only execute this on scheduled "nightly" pipelines
+        refs:
+            - tags # Only run for new tags
+            - schedules # Only execute this on scheduled "nightly" pipelines
+        variables:
+            - $APSQ_CI_DEPLOY
     script:
         - ./.gitlab/ci/download_artifacts.py $API_TOKEN $CI_PROJECT_ID $CI_PIPELINE_ID
         - export RUNNER_LOCATION=$(pwd)
@@ -538,7 +564,10 @@ deploy-docker-latest:
         - docker-image-build
     dependencies: []
     only:
-        - schedules # Only execute this on scheduled "nightly" pipelines
+        refs:
+            - schedules # Only execute this on scheduled "nightly" pipelines
+        variables:
+            - $APSQ_CI_DOCKER
     script:
         - "echo" # unused but this line is required by GitLab CI
     variables:
@@ -550,7 +579,10 @@ deploy-docker-tag:
         - docker-image-build
     dependencies: []
     only:
-        - tags
+        refs:
+            - tags # Only run for new tags
+        variables:
+            - $APSQ_CI_DOCKER
     script:
         - "echo" # unused but this line is required by GitLab CI
     variables:
