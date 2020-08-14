@@ -325,6 +325,7 @@ See Section~\ref{sec:module_instantiation} for details.
 Refer to Section~\ref{sec:detector_models} for more information.
 \item \parameter{experimental_multithreading}: Enable \textbf{experimental} multi-threading for the framework. This can speed up simulations of multiple detectors significantly. More information about multi-threading can be found in Section~\ref{sec:multithreading}.
 \item \parameter{workers}: Specify the number of workers to use in total, should be strictly larger than zero. Only used if \parameter{experimental_multithreading} is set to true. Defaults to the number of native threads available on the system if this can be determined, otherwise one thread is used.
+\item \parameter{progress_bar}: Enable or disable the display of a progress bar during the event loop. Defaults to \parameter{true}.
 \end{itemize}
 
 \section{The \textit{allpix} Executable}

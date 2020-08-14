@@ -579,6 +579,9 @@ void ModuleManager::init() {
 void ModuleManager::run() {
     Configuration& global_config = conf_manager_->getGlobalConfiguration();
 
+    global_config.setDefault("progress_bar", true);
+    bool progress_bar = global_config.get<bool>("progress_bar");
+
     global_config.setDefault("experimental_multithreading", false);
     unsigned int threads_num;
 
@@ -689,7 +692,11 @@ void ModuleManager::run() {
             }
         }
 
-        LOG_PROGRESS_BAR(STATUS, "EVENT_LOOP", i + 1, number_of_events);
+        if(progress_bar) {
+            LOG_PROGRESS_BAR(STATUS, "EVENT_LOOP", i + 1, number_of_events);
+        } else {
+            LOG_PROGRESS(STATUS, "EVENT_LOOP") << "Running event " << (i + 1) << " of " << number_of_events;
+        }
 
         // Finish executing the last remaining tasks
         thread_pool->execute_all();
