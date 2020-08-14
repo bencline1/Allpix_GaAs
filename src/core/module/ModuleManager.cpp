@@ -624,8 +624,6 @@ void ModuleManager::run() {
             break;
         }
 
-        LOG_PROGRESS(STATUS, "EVENT_LOOP") << "Running event " << (i + 1) << " of " << number_of_events;
-
         // Get object count for linking objects in current event
         auto save_id = TProcessID::GetObjectCount();
 
@@ -690,6 +688,8 @@ void ModuleManager::run() {
                 execute_module();
             }
         }
+
+        LOG_PROGRESS_BAR(STATUS, "EVENT_LOOP", i + 1, number_of_events);
 
         // Finish executing the last remaining tasks
         thread_pool->execute_all();
