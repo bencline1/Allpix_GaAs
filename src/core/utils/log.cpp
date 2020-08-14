@@ -19,6 +19,7 @@
 #include <ostream>
 #include <regex>
 #include <string>
+#include <sys/ioctl.h>
 #include <thread>
 #include <unistd.h>
 
@@ -415,5 +416,25 @@ int DefaultLogger::get_uncaught_exceptions(bool cons = false) {
         return 0;
     }
     return static_cast<int>(std::uncaught_exception());
+#endif
+}
+
+/**
+ * Query the connected terminal for its line length
+ * @return Length of the terminal
+ */
+int DefaultLogger::query_line_length() {
+// from
+// https://www.linuxquestions.org/questions/programming-9/get-width-height-of-a-terminal-window-in-c-810739/
+#ifdef TIOCGSIZE
+    struct ttysize ts;
+    ioctl(STDIN_FILENO, TIOCGSIZE, &ts);
+    return ts.ts_cols;
+#elif defined(TIOCGWINSZ)
+    struct winsize ts;
+    ioctl(STDIN_FILENO, TIOCGWINSZ, &ts);
+    return ts.ws_col;
+#else
+    return 50; // fallback
 #endif
 }
