@@ -247,6 +247,44 @@ std::ostringstream& DefaultLogger::getProcessStream(
     return stream;
 }
 
+/**
+ * This method is typically automatically called by the \ref LOG_PROGRESS_BAR macro. An empty identifier is the same as
+ * underscore.
+ */
+void DefaultLogger::drawProgressBar(std::string identifier,
+                                    LogLevel level,
+                                    uint64_t current,
+                                    uint64_t total,
+                                    const std::string& file,
+                                    const std::string& function,
+                                    uint32_t line) {
+    // Get a progress stream, set indicator to "#" to indicate progress bar (is overwritten)
+    std::ostringstream& stream = getProcessStream(identifier, level, file, function, line);
+
+    std::string events = " " + std::to_string(current) + " / " + std::to_string(total) + " ";
+    static std::array<std::string, 8> partial_block{
+        " ", "\u258F", "\u258E", "\u258D", "\u258C", "\u258B", "\u258A", "\u2589"};
+
+    auto width = static_cast<uint64_t>(query_line_length() - stream.tellp());
+    auto completed = (width * current) / total;
+    auto pending = completed - 1;
+
+    auto remainder = (8 * current * width / total) % 8;
+
+    stream << " " << std::setw(3) << std::setfill(' ') << (100 * current) / total << "% ";
+
+    if(events.length() <= pending) {
+        stream << "\x1B[7m" << std::string(completed, ' ') << "\x1B[0m";
+        stream << partial_block.at(remainder) << events;
+        stream << std::string(pending - events.length(), ' ');
+    } else {
+        stream << "\x1B[7m" << std::string(completed - events.length(), ' ');
+        stream << events << "\x1B[0m" << partial_block.at(remainder);
+        stream << std::string(pending, ' ');
+    }
+    stream << '|';
+}
+
 // Getter and setters for the reporting level
 LogLevel& DefaultLogger::get_reporting_level() {
     thread_local LogLevel reporting_level = LogLevel::NONE;

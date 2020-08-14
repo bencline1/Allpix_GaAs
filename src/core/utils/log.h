@@ -107,6 +107,22 @@ namespace allpix {
                                              uint32_t line = 0);
 
         /**
+         * @brief Gives a process stream which updates the same line as long as it is the same
+         * @param identifier Name to indicate the line, used to distinguish when to update or write new line
+         * @param level Logging level
+         * @param file The file name of the file containing the log message
+         * @param function The function containing the log message
+         * @param line The line number of the log message
+         */
+        void drawProgressBar(std::string identifier,
+                             LogLevel level = LogLevel::INFO,
+                             uint64_t current = 0,
+                             uint64_t total = 0,
+                             const std::string& file = "",
+                             const std::string& function = "",
+                             uint32_t line = 0);
+
+        /**
          * @brief Finish the logging ensuring proper termination of all streams
          */
         static void finish();
@@ -265,6 +281,16 @@ namespace allpix {
     if(allpix::LogLevel::level <= allpix::Log::getReportingLevel() && !allpix::Log::getStreams().empty())                   \
     allpix::Log().getProcessStream(                                                                                         \
         identifier, allpix::LogLevel::level, __FILE_NAME__, std::string(static_cast<const char*>(__func__)), __LINE__)
+
+#define LOG_PROGRESS_BAR(level, identifier, current, total)                                                                 \
+    if(allpix::LogLevel::level <= allpix::Log::getReportingLevel() && !allpix::Log::getStreams().empty())                   \
+    allpix::Log().drawProgressBar(identifier,                                                                               \
+                                  allpix::LogLevel::level,                                                                  \
+                                  current,                                                                                  \
+                                  total,                                                                                    \
+                                  __FILE_NAME__,                                                                            \
+                                  std::string(static_cast<const char*>(__func__)),                                          \
+                                  __LINE__)
 
 /**
  * @brief Create a logging stream if the reporting level is high enough and this message has not yet been logged
