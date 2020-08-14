@@ -461,7 +461,7 @@ int DefaultLogger::get_uncaught_exceptions(bool cons = false) {
  * Query the connected terminal for its line length
  * @return Length of the terminal
  */
-int DefaultLogger::query_line_length() {
+unsigned int DefaultLogger::query_line_length() {
 // from
 // https://www.linuxquestions.org/questions/programming-9/get-width-height-of-a-terminal-window-in-c-810739/
 #ifdef TIOCGSIZE

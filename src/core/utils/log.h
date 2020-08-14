@@ -224,7 +224,7 @@ namespace allpix {
          * @brief Query the line length of the current terminal
          * @return Line length of the terminal if available, 50 otherwise
          */
-        static int query_line_length();
+        static unsigned int query_line_length();
 
         // Output stream
         std::ostringstream os;
