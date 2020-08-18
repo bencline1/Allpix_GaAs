@@ -53,8 +53,11 @@ TransientPropagationModule::TransientPropagationModule(Configuration& config,
     config_.setDefault<bool>("output_plots", false);
     config_.setDefault<XYVectorInt>("induction_matrix", XYVectorInt(3, 3));
     config_.setDefault<bool>("ignore_magnetic_field", false);
-    config_.setDefault<bool>("enable_charge_multiplication", false);
-    config_.setDefault<double>("charge_multiplication_threshold", 1e-2);
+	
+    // Set defaults for charge carrier multiplication
+	config_.setDefault<bool>("enable_charge_multiplication", false);
+	config_.setDefault<double>("charge_multiplication_threshold", 1e-2);
+    config_.setDefault<std::string>("charge_multiplication_model", "massey");
 
     // Copy some variables from configuration to avoid lookups:
     temperature_ = config_.get<double>("temperature");
@@ -65,6 +68,7 @@ TransientPropagationModule::TransientPropagationModule(Configuration& config,
     auger_coeff_ = config_.get<double>("auger_coefficient");
     enable_multiplication_ = config_.get<bool>("enable_charge_multiplication");
     threshold_field_ = config_.get<double>("charge_multiplication_threshold");
+    multiplication_model_ = config_.get<std::string>("charge_multiplication_model");
 
     if(matrix_.x() % 2 == 0 || matrix_.y() % 2 == 0) {
         throw InvalidValueError(config_, "induction_matrix", "Odd number of pixels in x and y required.");
@@ -77,6 +81,13 @@ TransientPropagationModule::TransientPropagationModule(Configuration& config,
     // http://www.ioffe.ru/SVA/NSM/Semicond/Si/electric.html) FIXME
     electron_Hall_ = 1.15;
     hole_Hall_ = 0.9;
+
+    // Parameter for Overstraeten-de Man charge multiplication
+    // comment: in the TCAD manual, T0 is never stated for the van Overstraeten-de Man model
+    // it is given as 300K for the Okuto-Crowell model and is assumed to be also 300K here                                                                  
+    optical_hbarOmega_ = Units::get(0.063e6, "eV");
+    gamma_Overstraeten_ = std::tanh(optical_hbarOmega_ / (2. * boltzmann_kT_ * 300. / temperature_)) /
+      std::tanh(optical_hbarOmega_ / (2. * boltzmann_kT_));
 }
 
 void TransientPropagationModule::initialize() {
@@ -230,7 +241,7 @@ void TransientPropagationModule::run(Event* event) {
             }
 
             if(output_plots_) {
-                drift_time_histo_->Fill(static_cast<double>(Units::convert(time, "ns")), charge_per_step);
+                drift_time_histo_->Fill(static_cast<double>(Units::convert(time, "ns")), static_cast<unsigned int>(charge_per_step * gain));
             }
         }
     }
@@ -280,6 +291,18 @@ TransientPropagationModule::propagate(Event* event,
 
     // Define a function to compute the charge carrier multiplcation
     auto carrier_multiplication = [&](double efield_mag, double step_length) -> double {
+        
+        // experimental parameters from van Overstraeten – de Man model
+        double a_n_low = 7.03e4;        // in mm^-1
+        double a_n_high = 7.03e4;       // in mm^-1
+        double a_p_low = 1.582e5;       // in mm^-1
+        double a_p_high = 6.71e4;       // in mm^-1
+        double b_n_low = 1.231e-1;       // in MV mm^-1
+        double b_n_high = 1.231e-1;      // in MV mm^-1
+        double b_p_low = 2.036e-1;       // in MV mm^-1
+        double b_p_high = 1.693e-1;      // in MV mm^-1
+        double e_zero = 4.0e-2;          // in MV mm^-1
+        
         // experimental parameters from Massey model
         double a_n = 4.43e4;  // in mm^-1
         double a_p = 1.13e5;  // in mm^-1
@@ -290,16 +313,40 @@ TransientPropagationModule::propagate(Event* event,
 
         // Compute the gain
         if(abs(efield_mag) > threshold_field_) {
-
-            // ionisation coefficient for electrons
-            double b_n = c_n + d_n * temperature_;
-            double alpha_ = a_n * std::exp(-(b_n / efield_mag));
-
-            // ionisation coefficient for holes
-            double b_p = c_p + d_p * temperature_;
-            double beta_ = a_p * std::exp(-(b_p / efield_mag));
-
-            return std::exp(step_length * (type == CarrierType::ELECTRON ? alpha_ : beta_));
+            
+            if (multiplication_model_ == "massey") {
+                
+                // ionisation coefficient for electrons
+                double b_n = c_n + d_n * temperature_;
+                double alpha_ = a_n * std::exp(-(b_n / efield_mag));
+                
+                // ionisation coefficient for holes
+                double b_p = c_p + d_p * temperature_;
+                double beta_ = a_p * std::exp(-(b_p / efield_mag));
+                
+                return std::exp(step_length * (type == CarrierType::ELECTRON ? alpha_ : beta_));
+            }
+            
+            else if (multiplication_model_ == "overstraeten") {
+                
+	            // ionisation coefficient for electrons
+                if (std::abs(efield_mag) > e_zero) {
+                    double alpha_ = gamma_Overstraeten_ * a_n_high * std::exp( - (gamma_Overstraeten_ * b_n_high / efield_mag));
+                    double beta_ = gamma_Overstraeten_ * a_p_high * std::exp( - (gamma_Overstraeten_ * b_p_high / efield_mag));
+                    return std::exp(step_length * (type == CarrierType::ELECTRON ? alpha_ : beta_));
+                }
+                
+                // ionisation coefficient for holes
+                else {
+                    double alpha_ = gamma_Overstraeten_ * a_n_low * std::exp( - (gamma_Overstraeten_ * b_n_low / efield_mag));
+                    double beta_ = gamma_Overstraeten_ * a_p_low * std::exp( - (gamma_Overstraeten_ * b_p_low / efield_mag));
+                    return std::exp(step_length * (type == CarrierType::ELECTRON ? alpha_ : beta_));
+                }
+            }
+            
+            else {
+                throw ModuleError("Charge multiplication is enabled but no valid model is set. Possible values are 'massey' and 'overstraeten'.");
+            }
         } else {
             return 1.0;
         }
@@ -379,6 +426,10 @@ TransientPropagationModule::propagate(Event* event,
         double step_length = step.value.norm();
         if(enable_multiplication_) {
             gain *= carrier_multiplication(std::sqrt(efield.Mag2()), step_length);
+            
+            LOG(DEBUG) << "Calculated gain of " << gain 
+                       << " for field of " << Units::convert(std::sqrt(efield.Mag2()) , "kV/cm") << " kV/cm"
+                       << " and step of " << Units::convert(step_length, "um") << " um.";
         }
 
         // Update step length histogram
@@ -454,7 +505,7 @@ TransientPropagationModule::propagate(Event* event,
                     detector_->getWeightingPotential(static_cast<ROOT::Math::XYZPoint>(last_position), pixel_index);
 
                 // Induced charge on electrode is q_int = q * (phi(x1) - phi(x0))
-                auto induced = charge * (ramo - last_ramo) * static_cast<std::underlying_type<CarrierType>::type>(type);
+                auto induced = charge * gain * (ramo - last_ramo) * static_cast<std::underlying_type<CarrierType>::type>(type);
                 LOG(TRACE) << "Pixel " << pixel_index << " dPhi = " << (ramo - last_ramo) << ", induced " << type
                            << " q = " << Units::display(induced, "e");
 

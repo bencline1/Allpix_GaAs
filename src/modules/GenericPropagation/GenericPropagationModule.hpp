@@ -103,6 +103,7 @@ namespace allpix {
         bool output_plots_{}, output_linegraphs_{}, output_animations_{}, output_plots_lines_at_implants_{};
         bool enable_multiplication_{}, propagate_electrons_{}, propagate_holes_{};
         unsigned int charge_per_step_{};
+        std::string multiplication_model_{};
 
         // Models for electron and hole mobility and lifetime
         Mobility mobility_;
@@ -114,6 +115,10 @@ namespace allpix {
         // Predefined values for electron/hole velocity calculation in magnetic fields
         double electron_Hall_;
         double hole_Hall_;
+
+        // Predefined values for charge multiplication
+        double optical_hbarOmega_;
+        double gamma_Overstraeten_;
 
         // Magnetic field
         bool has_magnetic_field_;
