@@ -253,6 +253,7 @@ std::ostringstream& DefaultLogger::getProcessStream(
  */
 void DefaultLogger::drawProgressBar(std::string identifier,
                                     LogLevel level,
+                                    bool draw_bar,
                                     uint64_t current,
                                     uint64_t total,
                                     const std::string& file,
@@ -260,29 +261,35 @@ void DefaultLogger::drawProgressBar(std::string identifier,
                                     uint32_t line) {
     // Get a progress stream, set indicator to "#" to indicate progress bar (is overwritten)
     std::ostringstream& stream = getProcessStream(identifier, level, file, function, line);
-    stream << " " << std::setw(3) << std::setfill(' ') << (100 * current) / total << "% ";
 
-    std::string events = " " + std::to_string(current) + " / " + std::to_string(total) + " ";
-    static std::array<std::string, 8> partial_block{
-        " ", "\u258F", "\u258E", "\u258D", "\u258C", "\u258B", "\u258A", "\u2589"};
+    // FIXME need to implement fallback for is_terminal(stream) == false;
+    if(draw_bar) {
+        stream << " " << std::setw(3) << std::setfill(' ') << (100 * current) / total << "% ";
 
-    auto width = query_line_length() - indent_count_ - 10;
-    auto completed = (width * current) / total;
-    auto pending = (completed >= width ? 0ul : width - completed - 1);
-    auto remainder = (8 * current * width / total) % 8;
+        std::string events = " " + std::to_string(current) + " / " + std::to_string(total) + " ";
+        static std::array<std::string, 8> partial_block{
+            " ", "\u258F", "\u258E", "\u258D", "\u258C", "\u258B", "\u258A", "\u2589"};
 
-    if(events.length() < pending) {
-        stream << "\x1B[7m" << std::string(completed, ' ') << "\x1B[0m";
-        stream << partial_block.at(remainder) << events;
-        stream << std::string(pending - events.length(), ' ');
-    } else if(events.length() < completed) {
-        stream << "\x1B[7m" << std::string(completed - events.length(), ' ');
-        stream << events << "\x1B[0m" << partial_block.at(remainder);
-        stream << std::string(pending, ' ');
+        auto width = query_line_length() - indent_count_ - 10;
+        auto completed = (width * current) / total;
+        auto pending = (completed >= width ? 0ul : width - completed - 1);
+        auto remainder = (8 * current * width / total) % 8;
+
+        if(events.length() < pending) {
+            stream << "\x1B[7m" << std::string(completed, ' ') << "\x1B[0m";
+            stream << partial_block.at(remainder) << events;
+            stream << std::string(pending - events.length(), ' ');
+        } else if(events.length() < completed) {
+            stream << "\x1B[7m" << std::string(completed - events.length(), ' ');
+            stream << events << "\x1B[0m" << partial_block.at(remainder);
+            stream << std::string(pending, ' ');
+        } else {
+            stream << "\x1B[7m" << std::string(completed, ' ');
+            stream << "\x1B[0m" << partial_block.at(remainder);
+            stream << std::string(pending, ' ');
+        }
     } else {
-        stream << "\x1B[7m" << std::string(completed, ' ');
-        stream << "\x1B[0m" << partial_block.at(remainder);
-        stream << std::string(pending, ' ');
+        stream << "Running event " << current << " of " << total;
     }
 }
 

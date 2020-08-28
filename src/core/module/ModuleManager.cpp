@@ -692,11 +692,7 @@ void ModuleManager::run() {
             }
         }
 
-        if(progress_bar) {
-            LOG_PROGRESS_BAR(STATUS, "EVENT_LOOP", i + 1, number_of_events);
-        } else {
-            LOG_PROGRESS(STATUS, "EVENT_LOOP") << "Running event " << (i + 1) << " of " << number_of_events;
-        }
+        LOG_PROGRESS_BAR(STATUS, "EVENT_LOOP", progress_bar, i + 1, number_of_events);
 
         // Finish executing the last remaining tasks
         thread_pool->execute_all();
