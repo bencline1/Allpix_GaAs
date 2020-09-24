@@ -558,6 +558,13 @@ void GenericPropagationModule::initialize() {
                                   100,
                                   0,
                                   1);
+        if(enable_multiplication_) {
+            gain_histo_ = CreateHistogram<TH1D>("gain_histo",
+                                                "Gain per charge carrier group after propagation;gain;number of groups transported",
+                                                500,
+                                                1,
+                                                25);
+        }
     }
 
     // Prepare mobility model
@@ -943,6 +950,10 @@ GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
         }
     }
 
+    if(output_plots_ && enable_multiplication_) {
+        gain_histo_->Fill(gain);
+    }
+
     if(!is_alive) {
         LOG(DEBUG) << "Charge carrier recombined after " << Units::display(last_time, {"ns"});
     }
@@ -957,7 +968,9 @@ void GenericPropagationModule::finalize() {
         drift_time_histo_->Write();
         uncertainty_histo_->Write();
         group_size_histo_->Write();
-        recombine_histo_->Write();
+        if(enable_multiplication_) {
+            gain_histo_->Write();
+        }
     }
 
     long double average_time = static_cast<long double>(total_time_picoseconds_) / 1e3 /

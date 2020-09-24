@@ -133,6 +133,7 @@ namespace allpix {
         Histogram<TH1D> uncertainty_histo_;
         Histogram<TH1D> group_size_histo_;
         Histogram<TH1D> recombine_histo_;
+        Histogram<TH1D> gain_histo_;
         std::mutex stats_mutex_;
     };
 
