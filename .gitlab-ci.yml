@@ -410,11 +410,11 @@ cmp:manual:
     script:
         - source .gitlab/ci/init_x86_64.sh
         - source .gitlab/ci/load_deps.sh
-        - mkdir -p public/usermanual
+        - mkdir -p public
         - mkdir build
         - cd build
         - cmake -DBUILD_DOCS_ONLY=ON ..
-        - mv usermanual/mkdocs/* ../public
+        - mv mkdocs/* ../public
     artifacts:
         paths:
             - public
