@@ -418,7 +418,8 @@ cmp:manual:
     artifacts:
         paths:
             - public
-        expire_in: never
+        expire_in: 43yrs
+        # "never" is only avalaible from 13.3 on
 
 # Compile LaTeX user manual:
 cmp:usermanual:
