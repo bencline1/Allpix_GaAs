@@ -192,7 +192,10 @@ FOREACH(subdir ${subdirs})
         FILE(READ ${CMAKE_BINARY_DIR}/mkdocs/modules/${subdir}.md markdown_file)
         # Chang GitLab-flavord markdown syntax to MkDocs formula style:
         string(REGEX REPLACE "(\\$`|`\\$)+" "\$" markdown_file "${markdown_file}")
-        FILE(WRITE ${CMAKE_BINARY_DIR}/mkdocs/modules/${subdir}.md "${markdown_file}")
+        # Add Markdown header:
+        FILE(WRITE ${CMAKE_BINARY_DIR}/mkdocs/modules/${subdir}.md "---\ntemplate: overrides/main.html\ntitle: \"${subdir}\"\n---\n")
+        # Write out updated file
+        FILE(APPEND ${CMAKE_BINARY_DIR}/mkdocs/modules/${subdir}.md "${markdown_file}")
         SET(module_md_files ${module_md_files} ${CMAKE_BINARY_DIR}/mkdocs/modules/${subdir}.md)
     ENDIF()
 ENDFOREACH()
