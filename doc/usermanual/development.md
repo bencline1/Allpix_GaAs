@@ -1,4 +1,4 @@
-Module & Detector Development {#ch:development}
+Module & Detector Development
 =============================
 
 This chapter provides a few brief recipes for developing new simulation
@@ -162,7 +162,7 @@ library_directories = "~/allpix-modules/build", "/opt/apsq-modules"
 The relevant parameter is described in detail in
 Section [Framework parameters](getting_started.md#framework-parameters).
 
-Implementing a New Module {#sec:building_new_module}
+Implementing a New Module
 -------------------------
 
 Owing to its modular structure, the functionality of the Allpix² can
@@ -220,7 +220,7 @@ to the main repository after is has been validated. It is strongly
 encouraged to send a merge-request through the mechanism provided by the
 software repository @ap2-repo.
 
-### Files of a Module {#sec:module_files}
+### Files of a Module
 
 Every module directory should at minimum contain the following documents
 (with `ModuleName` replaced by the name of the module):
@@ -352,7 +352,7 @@ and also its more detailed Doxygen documentation. Methods should only be
 declared in the header and defined in the source file in order to keep
 the interface clean.
 
-### Module structure {#sec:module_structure}
+### Module structure
 
 All modules must inherit from the `Module` base class, which can be
 found in *src/core/module/Module.hpp*. The module base class provides
@@ -409,7 +409,7 @@ or other modules in the framework using the `getConfigManager()` call.
 This allows to retrieve and e.g. store the configuration actually used
 for the simulation alongside the data.
 
-Adding a New Detector Model {#sec:adding_detector_model}
+Adding a New Detector Model
 ---------------------------
 
 Custom detector models based on the detector classes provided with

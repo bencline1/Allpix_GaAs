@@ -1,7 +1,7 @@
-Objects {#ch:objects}
+Objects
 =======
 
-Object Types {#sec:objtypes}
+Object Types 
 ------------
 
 Allpix² provides a set of objects which can be used to transfer data
@@ -82,7 +82,7 @@ the type of the digitizer used. Examples of the signal information is
 the ’true’ information of a binary readout chip, the number of ADC
 counts or the ToT (time-over-threshold).
 
-Object History {#sec:objhistory}
+Object History 
 --------------
 
 Objects may carry information about the objects which were used to

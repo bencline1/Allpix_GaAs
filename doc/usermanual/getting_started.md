@@ -1,4 +1,4 @@
-Getting Started {#ch:gettingstarted}
+Getting Started
 ===============
 
 This Getting Started guide is written with a default installation in
@@ -9,7 +9,7 @@ running any Allpix² simulation, ROOT and (in most cases) Geant4 should
 be initialized. Refer to Section [sec:initialize~d~ependencies] for
 instructions on how to load these libraries.
 
-Configuration Files {#sec:configuration_files}
+Configuration Files 
 -------------------
 
 The framework is configured with simple human-readable configuration
@@ -52,7 +52,7 @@ In the following paragraphs, the available types and the unit system are
 explained and an introduction to the different configuration files is
 given.
 
-### Parsing types and units {#sec:config_values}
+### Parsing types and units 
 
 The Allpix² framework supports the use of a variety of types for all
 configuration values. The module specifies how the value type should be
@@ -164,7 +164,7 @@ my_switch = true
 my_other_switch = 0
 ```
 
-### Main configuration {#sec:main_config}
+### Main configuration 
 
 The main configuration consists of a set of sections specifying the
 modules used. All modules are executed in the `linear` order in which
@@ -258,7 +258,7 @@ configuration file with valid configuration is presented, as opposed to
 the above examples with hypothetical module names for illustrative
 purpose.
 
-### Detector configuration {#sec:detector_config}
+### Detector configuration 
 
 The detector configuration consists of a set of sections describing the
 detectors in the setup. Each section starts with a header describing the
@@ -318,7 +318,7 @@ Figure [fig:telescope] shows a visualization of the setup described in
 the file. This configuration is used in the rest of this chapter for
 explaining concepts.
 
-#### Passive material configuration {#sec:passive_material_config}
+#### Passive material configuration
 
 Descriptions of passive materials can be added to the detector setup via
 a set of sections, with a syntax similar to the detector configuration.
@@ -372,7 +372,7 @@ described in the file.
 ![Visualization of a set of passive materials showing different
 configuration options.](../assets/images/telescope.png)
 
-Framework parameters {#sec:framework_parameters}
+Framework parameters 
 --------------------
 
 The Allpix² framework provides a set of global parameters which control
@@ -461,7 +461,7 @@ and alter its behavior:
     on the system if this can be determined, otherwise one thread is
     used.
 
-The *allpix* Executable {#sec:allpix_executable}
+The *allpix* Executable 
 -----------------------
 
 The `allpix` executable functions as the interface between the user and
@@ -568,7 +568,7 @@ the following signals:
     of all generated data. This signal should only be used when graceful
     termination is for any reason not possible.
 
-Setting up the Simulation Chain {#sec:setting_up_simulation_chain}
+Setting up the Simulation Chain 
 -------------------------------
 
 In the following, the framework parameters are used to set up a fully
@@ -697,7 +697,7 @@ driver = "VRML2FILE"
 More information about all possible configuration parameters can be
 found in the module documentation in Chapter [Modules](modules.md).
 
-##### Electric Fields {#sec:module_electric_field}
+##### Electric Fields 
 
 By default, detectors do not have an electric field associated with
 them, and no bias voltage is applied. A field can be added to each
@@ -746,7 +746,7 @@ model = "mesh"
 file_name = "example_electric_field.init"
 ```
 
-##### Magnetic Fields {#sec:module_magnetic_field}
+##### Magnetic Fields 
 
 For simulating the detector response in the presence of a magnetic field
 with Allpix², a constant, global magnetic field can be defined. By
@@ -772,7 +772,7 @@ the available propagation modules.
 
 Currently, only constant magnetic fields can be applied.
 
-Logging and Verbosity Levels {#sec:logging_verbosity}
+Logging and Verbosity Levels 
 ----------------------------
 
 Allpix² is designed to identify mistakes and implementation errors as
@@ -849,7 +849,7 @@ More details about the logging system and the procedure for reporting
 errors in the code can be found in Sections [sec:logger]
 and [sec:error~r~eporting~e~xceptions].
 
-Storing Output Data {#sec:storing_output_data}
+Storing Output Data 
 -------------------
 
 Storing the simulation output to persistent storage is of primary

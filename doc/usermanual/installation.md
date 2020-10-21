@@ -1,4 +1,4 @@
-Installation {#ch:installation}
+Installation
 ============
 
 This section aims to provide details and instructions on how to build
@@ -8,7 +8,7 @@ various options to customize the installation of Allpix². This chapter
 contains details on the standard installation process and information
 about custom build configurations.
 
-Supported Operating Systems {#sec:os}
+Supported Operating Systems 
 ---------------------------
 
 Allpix² is designed to run without issues on either a recent Linux
@@ -17,7 +17,7 @@ project ensures correct building and functioning of the software
 framework on CentOS 7 (with GCC and LLVM), SLC 6 (with GCC only) and Mac
 OS Mojave (OS X 10.14, with AppleClang).
 
-Prerequisites {#sec:prerequisites}
+Prerequisites 
 -------------
 
 If the framework is to be compiled and executed on CERN’s LXPLUS
@@ -80,7 +80,7 @@ cloned as follows:
     $ git clone https://gitlab.cern.ch/allpix-squared/allpix-squared
     $ cd allpix-squared
 
-Initializing the dependencies {#sec:initialize_dependencies}
+Initializing the dependencies
 -----------------------------
 
 Before continuing with the build, the necessary setup scripts for ROOT
@@ -100,7 +100,7 @@ directory):
 
     $ source etc/scripts/setup_lxplus.sh
 
-Configuration via CMake {#sec:cmake_config}
+Configuration via CMake
 -----------------------
 
 Allpix² uses the CMake build system to configure, build and install the
@@ -189,7 +189,7 @@ the allpix binary with the example configuration using
 `bin/allpix -c examples/example.conf` should pass the test without
 problems if a standard installation is used.
 
-Docker images {#sec:docker}
+Docker images 
 -------------
 
 Docker images are provided for the framework to allow anyone to run

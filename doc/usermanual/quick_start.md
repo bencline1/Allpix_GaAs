@@ -1,4 +1,4 @@
-Quick Start {#ch:quickstart}
+Quick Start
 ===========
 
 This chapter serves as a swift introduction to Allpix² for users who

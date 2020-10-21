@@ -1,4 +1,4 @@
-Development Tools & Continuous Integration {#ch:testing}
+Development Tools & Continuous Integration
 ==========================================
 
 The following chapter will introduce a few tools included in the
@@ -13,7 +13,7 @@ Section [sec:ci] briefly introduces the CI, and Section [sec:tests]
 provides an overview of the currently implemented framework, module, and
 performance test scenarios.
 
-Additional Targets {#sec:targets}
+Additional Targets
 ------------------
 
 A set of testing targets in addition to the standard compilation targets
@@ -67,7 +67,7 @@ are provided:
 :   creates a binary release tarball as described in
     Section [sec:packaging].
 
-Packaging {#sec:packaging}
+Packaging 
 ---------
 
 Allpix² comes with a basic configuration to generate tarballs from the
@@ -144,7 +144,7 @@ adding the following line to the setup file:
 
     export LD_LIBRARY_PATH="<library directory>:$LD_LIBRARY_PATH"
 
-Continuous Integration {#sec:ci}
+Continuous Integration
 ----------------------
 
 Quality and compatibility of the Allpix² framework is ensured by an
@@ -234,7 +234,7 @@ creation of tags is protected. Only users with `Maintainer` privileges
 can push new tags to the repository. For new tagged versions, all
 deployment targets are executed.
 
-### Software deployment to CVMFS {#sec:cvmfs}
+### Software deployment to CVMFS
 
 The software is automatically deployed to CERN’s VM file system
 (CVMFS) @cvmfs for every new tag. In addition, the `master` branch is
@@ -293,7 +293,7 @@ requires the secret project variables `EOSACCOUNTUSERNAME` and
 `EOSACCOUNTPASSWORD` to be set via the GitLab web interface. Currently,
 this uses the credentials of the service account user `ap2`.
 
-Building Docker images {#sec:build-docker}
+Building Docker images 
 ----------------------
 
 New Allpix² Docker images are automatically created and deployed by the
@@ -356,7 +356,7 @@ to the project’s Docker registry.
 A short summary of potential use cases for Docker images is provided in
 Section [sec:docker].
 
-Tests {#sec:tests}
+Tests 
 -----
 
 The build system of the framework provides a set of automated tests

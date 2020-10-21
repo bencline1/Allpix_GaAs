@@ -1,4 +1,4 @@
-Introduction {#ch:introduction}
+Introduction
 ============
 
 Allpix² is a generic simulation framework for silicon tracker and vertex

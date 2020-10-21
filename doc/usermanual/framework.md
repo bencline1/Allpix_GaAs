@@ -1,4 +1,4 @@
-Structure & Components of the Framework {#ch:framework}
+Structure & Components of the Framework
 =======================================
 
 This chapter details the technical implementation of the Allpix²
@@ -53,7 +53,7 @@ chapter closes with a description of the available framework tools in
 Section [sec:logging~u~tilities]. Some code will be provided in the
 text, but readers not interested may skip the technical details.
 
-Architecture of the Core {#sec:arch}
+Architecture of the Core
 ------------------------
 
 The core is constructed as a light-weight framework which provides
@@ -102,7 +102,7 @@ general utilities. The systems provided are:
     and debug. A few notes about the use and structure of exceptions are
     provided in Section [sec:error~r~eporting~e~xceptions].
 
-Configuration and Parameters {#sec:config_parameters}
+Configuration and Parameters
 ----------------------------
 
 Individual modules as well as the framework itself are configured
@@ -111,7 +111,7 @@ Explanations on how to use the various configuration files together with
 several examples have been provided in
 Section [sec:configuration~f~iles].
 
-### File format {#sec:config_file_format}
+### File format
 
 Throughout the framework, a simplified version of TOML @tomlgit is used
 as standard format for configuration files. The format is defined as
@@ -183,7 +183,7 @@ follows:
 9.  All key-value pairs defined before the first section header are part
     of a zero-length empty section header.
 
-### Accessing parameters {#sec:accessing_parameters}
+### Accessing parameters
 
 Values are accessed via the configuration object. In the following
 example, the key is a string called `key`, the object is named `config`
@@ -230,7 +230,7 @@ is a comparatively heavy operation. For performance-critical sections of
 the code, one should consider fetching the configuration value once and
 caching it in a local variable.
 
-Modules and the Module Manager {#sec:module_manager}
+Modules and the Module Manager
 ------------------------------
 
 Allpix² is a modular framework and one of the core ideas is to partition
@@ -253,7 +253,7 @@ name and the supported configuration parameters. For more details about
 the instantiation logic for the different types of modules, see
 Section [sec:module~i~nstantiation].
 
-### Module instantiation {#sec:module_instantiation}
+### Module instantiation
 
 Modules are dynamically loaded and instantiated by the Module Manager.
 They are constructed, initialized, executed and finalized in the linear
@@ -312,7 +312,7 @@ instantiation with the highest priority is kept. If multiple
 instantiations with the same unique name and the same priority exist, an
 exception is raised.
 
-### Parallel execution of modules {#sec:multithreading}
+### Parallel execution of modules
 
 The framework has experimental support for running several modules in
 parallel. This feature is disabled for new modules by default, and has
@@ -348,7 +348,7 @@ properly bind ROOT histograms to their directory before the
 Detector and DetectorModel is always valid between various threads. In
 addition, sending and receiving messages is thread-safe.
 
-Geometry and Detectors {#sec:models_geometry}
+Geometry and Detectors
 ----------------------
 
 Simulations are frequently performed for a set of different detectors
@@ -433,7 +433,7 @@ Each detector has a set of properties attached to it:
 The detector configuration is provided in the detector configuration
 file as explained in Section [sec:detector~c~onfig].
 
-### Coordinate systems {#sec:coordinate_systems}
+### Coordinate systems
 
 Local coordinate systems for each detector and a global frame of
 reference for the full setup are defined. The global coordinate system
@@ -489,7 +489,7 @@ void run(unsigned int event_id) \texttt{
 }
 ```
 
-### Detector models {#sec:detector_models}
+### Detector models
 
 Different types of detector models are available and distributed
 together with the framework: these models use the configuration format
@@ -704,7 +704,7 @@ order:
     (thus effectively */usr/local/share//models*) followed by
     */usr/share/* (effectively */usr/share//models*).
 
-Passing Objects using Messages {#sec:objects_messages}
+Passing Objects using Messages
 ------------------------------
 
 Communication between modules is performed by the exchange of messages.
@@ -825,7 +825,7 @@ avoided in almost every instance.
     }
     ```
 
-### Message flags {#sec:messageflags}
+### Message flags
 
 Flags can be added to the bind and listening methods which enable a
 particular behaviour of the framework.
@@ -847,7 +847,7 @@ particular behaviour of the framework.
     message is not considered. Thus, the `input` parameter is ignored
     and forced to the value `*`.
 
-### Persistency {#ch:objects_persistency}
+### Persistency
 
 As objects may contain information relating to other objects, in
 particular for storing their corresponding Monte Carlo history (see
@@ -861,7 +861,7 @@ simulate the effects of pile-up etc.), local copies of the data objects
 must be created. Note that at the point of creating copies the
 corresponding history will be lost.
 
-Redirect Module Inputs and Outputs {#sec:redirect_module_input_outputs}
+Redirect Module Inputs and Outputs
 ----------------------------------
 
 In the Allpix² framework, modules exchange messages typically based on
@@ -913,7 +913,7 @@ input = "low_noise"
 input = "high_noise"
 ```
 
-Logging and other Utilities {#sec:logging_utilities}
+Logging and other Utilities
 ---------------------------
 
 The Allpix² framework provides a set of utilities which improve the
@@ -929,7 +929,7 @@ utilities are used internally in the framework and are only shortly
 discussed in Section [sec:filesystem] (file system support) and
 Section [sec:string~u~tilities] (string utilities).
 
-### Logging system {#sec:logger}
+### Logging system
 
 The logging system is built to handle input/output in the same way as
 `std::cin` and `std::cout` do. This approach is both very flexible and
@@ -996,7 +996,7 @@ disabled automatically for all non-terminal outputs.
 More details about the logging levels and formats can be found in
 Section [sec:logging~v~erbosity].
 
-### Unit system {#sec:unit_system}
+### Unit system
 
 Correctly handling units and conversions is of paramount importance.
 Having a separate type for every unit would however be too cumbersome
@@ -1027,7 +1027,7 @@ Units::display(2e3, \texttt{"mm/ns", "m/ns"});
 A description of the use of units in config files within Allpix² was
 presented in Section [sec:config~v~alues].
 
-### Internal utilities {#sec:filesystem}
+### Internal utilities
 
 The **filesystem** utilities provide functions to convert relative to
 absolute canonical paths, to iterate through all files in a directory
@@ -1053,7 +1053,7 @@ Furthermore, the Allpix² tool system contains extensions to allow
 automatic conversions for ROOT and Geant4 types as explained in
 Section [sec:root~a~nd~g~eant4~u~tilities].
 
-Error Reporting and Exceptions {#sec:error_reporting_exceptions}
+Error Reporting and Exceptions
 ------------------------------
 
 Allpix² generally follows the principle of throwing exceptions in all

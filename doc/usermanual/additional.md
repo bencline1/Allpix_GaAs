@@ -1,4 +1,4 @@
-Additional Tools & Resources {#ch:additional_tools_resources}
+Additional Tools & Resources
 ============================
 
 This chapter briefly describes tools provided with the Allpix²
@@ -12,7 +12,7 @@ the `src/tools` directory. They are intended as centralized components
 which can be shared between different modules rather than independent
 tools.
 
-### ROOT and Geant4 utilities {#sec:root_and_geant4_utilities}
+### ROOT and Geant4 utilities
 
 The framework provides a set of methods to ease the integration of ROOT
 and Geant4 in the framework. An important part is the extension of the

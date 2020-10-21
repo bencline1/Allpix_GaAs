@@ -1,4 +1,4 @@
-Frequently Asked Questions {#ch:faq}
+Frequently Asked Questions
 ==========================
 
 This chapter provides answers to some of the most frequently asked
@@ -379,7 +379,7 @@ How can I produce nicely looking drift-diffusion line graphs?
     drawn.](../assets/images/linegraph_hrcmos_collected.png)
 
     With these settings, a graph of similar precision to the one
-    presented in Figure [fig:linegraph] can be produced. The required
+    presented in the figure can be produced. The required
     time stepping size and number of output plot steps varies greatly
     with the sensor and its applied electric field. The number of charge
     carriers per group can be used to vary the density of lines drawn.
