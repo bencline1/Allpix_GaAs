@@ -1,7 +1,7 @@
 Acknowledgments
 ===============
 
-has been developed and is maintained by
+Allpix² has been developed and is maintained by
 
 -   Koen Wolters, (CERN)
 
@@ -11,7 +11,8 @@ has been developed and is maintained by
 
 -   Simon Spannagel, DESY
 
-The following authors, in alphabetical order, have contributed to :
+The following authors, in alphabetical order, have contributed to
+Allpix²:
 
 -   Mohamed Moanis Ali, Free University of Bozen-Bolzano
 
@@ -31,7 +32,8 @@ The following authors, in alphabetical order, have contributed to :
 
 -   Lennart Huth, DESY
 
--   Maoqiang Jing, University of South China, Institute of High Energy Physics Beijing
+-   Maoqiang Jing, University of South China, Institute of High Energy
+    Physics Beijing
 
 -   Moritz Kiehn, Université de Genève
 
@@ -67,4 +69,5 @@ The following authors, in alphabetical order, have contributed to :
 
 -   Morag Williams, University of Glasgow
 
-The authors would also like to express their thanks to the developers of AllPix .
+The authors would also like to express their thanks to the developers of
+AllPix @ap1wiki [@ap1git].
