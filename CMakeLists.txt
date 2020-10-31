@@ -9,7 +9,7 @@ IF(COMMAND CMAKE_POLICY)
 ENDIF(COMMAND CMAKE_POLICY)
 
 # Set default version
-SET(ALLPIX_VERSION "v1.5.0")
+SET(ALLPIX_VERSION "v1.6.0")
 
 # Set default build type
 IF(NOT CMAKE_BUILD_TYPE)
@@ -204,7 +204,7 @@ ADD_RUNTIME_DEP(thisroot.sh)
 ###################################
 
 # Set the clang-format version required by the CI for correct formatting:
-SET(CLANG_FORMAT_VERSION "8")
+SET(CLANG_FORMAT_VERSION "10")
 
 # Set the source files to clang-format (FIXME: determine this better)
 FILE(GLOB_RECURSE
