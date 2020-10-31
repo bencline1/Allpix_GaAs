@@ -28,7 +28,6 @@ cmp:doxygen:
     script:
         - source .gitlab/ci/init_x86_64.sh
         - source .gitlab/ci/load_deps.sh
-        - mkdir -p public/reference
         - mkdir build
         - cd build
         - cmake -DBUILD_DOCS_ONLY=ON ..
