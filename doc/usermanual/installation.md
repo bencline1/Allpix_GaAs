@@ -62,7 +62,7 @@ the standard installation:
 
 Extra flags need to be set for building an Allpix² installation without
 these dependencies. Details about these configuration options are given
-in Section [sec:cmake~c~onfig].
+in Section [Conﬁguration via CMake](installation.md#configuration-via-cmake).
 
 Downloading the source code
 ---------------------------

@@ -354,7 +354,7 @@ to the project’s Docker registry.
                   .
 
 A short summary of potential use cases for Docker images is provided in
-Section [sec:docker].
+Section [Docker images](installation.md#docker-images).
 
 Tests 
 -----
@@ -536,7 +536,7 @@ Currently implemented tests comprise:
 
 <span>test~0~2-2~e~lectricfield~i~nit.conf</span>
 :   loads an INIT file containing a TCAD-simulated electric field
-    (cf. Section [sec:module~e~lectric~f~ield]) and applies the field to
+    (cf. Section [Electric Fields](getting_started.md#electric-fields)) and applies the field to
     the detector model. The monitored output comprises the number of
     field cells for each pixel as read and parsed from the input file.
 

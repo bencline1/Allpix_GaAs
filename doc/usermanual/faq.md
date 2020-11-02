@@ -11,13 +11,13 @@ Installation & Usage
 What is the easiest way to use Allpix² on CERN’s LXPLUS?
 :   Central installations of Allpix² on LXPLUS are provided via CVMFS
     for both supported LXPLUS operating systems, SLC6 and CERN CentOS7.
-    Please refer to Section [sec:cvmfs] for the details of how to access
+    Please refer to Section [Software deployment to CVMFS](testing.md#software-deployment-to-cvmfs) for the details of how to access
     these installations.
 
 What is the quickest way to get a local installation of Allpix²?
 :   The project provides ready-to-use Docker containers which contain
     all dependencies such as Geant4 and ROOT. Please refer to
-    Section [sec:docker] for more information on how to start and use
+    Section [Docker images](installation.md#docker-images) for more information on how to start and use
     these containers.
 
 Configuration
@@ -51,7 +51,7 @@ How do I run a module only for a specific detector type?
     depletion_voltage = -30V
     ```
 
-    Please refer to Section [sec:module~i~nstantiation] for more
+    Please refer to Section [Module instantiation](framework.md#module-instantiation) for more
     information.
 
 How can I run the exact same type of module with different settings?
@@ -92,7 +92,7 @@ How can I temporarily ignore a module during development?
 :   The section header of a particular module in the configuration file
     can be replaced by the string `Ignore`. The section and all of its
     key/value pairs are then ignored. Modules can also be excluded from
-    the compilation process as explained in Section [sec:cmake~c~onfig].
+    the compilation process as explained in Section [Conﬁguration via CMake](installation.md#configuration-via-cmake).
 
 Can I get a high verbosity level only for a specific module?
 :   Yes, it is possible to specify verbosity levels and log formats per
@@ -106,7 +106,7 @@ Can I import an electric field from TCAD and use it for simulating propagation?
     about this tool can be found in
     Section [sec:tcad~e~lectric~f~ield~c~onverter], instructions to
     import the generated field are provided in
-    Section [sec:module~e~lectric~f~ield].
+    Section [Electric Fields](getting_started.md#electric-fields).
 
 Detector Models
 ---------------
@@ -137,7 +137,7 @@ How do I access the history of a particular object?
     holding the referenced object should be loaded and pointing to the
     same event entry as the object that requests the reference. If the
     referenced object can not be loaded, an exception is thrown by the
-    retrieving method. Please refer to Section [sec:objhistory] for more
+    retrieving method. Please refer to Section [Object History](objects.md#object-history) for more
     information.
 
 How do I access the Monte Carlo truth of a specific PixelHit?
@@ -148,7 +148,7 @@ How do I access the Monte Carlo truth of a specific PixelHit?
     directly for every new object created. This allows to retain the
     information without the necessity to keep the full object history
     including all intermediate steps in memory. Please refer to
-    Section [sec:objhistory] for more information.
+    Section [Object History](objects.md#object-history) for more information.
 
 How do I find out, which Monte Carlo particles are primary particles and which have been generated in the sensor?
 :   The Monte Carlo truth information is stored per-sensor as MCParticle
@@ -316,7 +316,7 @@ How do I calculate an efficiency in a module?
     detection efficiencies in Allpix², this could be the Monte Carlo
     truth information available via the `MCParticle` objects. Since the
     framework only runs modules, if all input message requirements are
-    satisfied, the message flags described in Section [sec:messageflags]
+    satisfied, the message flags described in Section [Message ﬂags](framework.md#message-flags)
     have to be set up accordingly. For the hit efficiency example, two
     different message types are required, and the Monte Carlo truth
     should always be required (using `MsgFlags::REQUIRED`) while the

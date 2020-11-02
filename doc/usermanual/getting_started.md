@@ -191,7 +191,7 @@ meaning in the main configuration, namely the following:
 All other section headers are used to instantiate modules of the
 respective name. Installed modules are loaded automatically. If problems
 arise please review the loading rules described in
-Section [sec:module~i~nstantiation].
+Section [Module instantiation](framework.md#module-instantiation).
 
 Modules can be specified multiple times in the configuration files,
 depending on their type and configuration. The type of the module
@@ -309,7 +309,7 @@ altering the actual detector model file.
 
 ![Visualization of a Pion passing through the telescope setup defined in
 the detector configuration file. A secondary particle is produced in the
-material of the detector in the center.](telescope.png "fig:")
+material of the detector in the center.](../assets/images/telescope.png "fig:")
 [fig:telescope]
 
 An example configuration file describing a setup with one CLICpix2
@@ -370,7 +370,7 @@ different configuration options is the following figure that shows a visualizat
 described in the file.
 
 ![Visualization of a set of passive materials showing different
-configuration options.](../assets/images/telescope.png)
+configuration options.](../assets/images/passive_materials.png)
 
 Framework parameters 
 --------------------
@@ -444,7 +444,7 @@ and alter its behavior:
 
 -   `librarydirectories`: Additional directories to search for module
     libraries, before searching the default paths. See
-    Section [sec:module~i~nstantiation] for details.
+    Section [Module instantiation](framework.md#module-instantiation) for details.
 
 -   `modelpaths`: Additional files or directories from which detector
     models should be read besides the standard search locations. Refer
@@ -869,7 +869,7 @@ Relations between objects within a single event are internally stored as
 ROOT TRefs @roottref, allowing retrieval of related objects as long as
 these are loaded in memory. An exception will be thrown when trying to
 access an object which is not in memory. Refer to
-Section [sec:objhistory] for more information about object history.
+Section [Object History](objects.md#object-history) for more information about object history.
 
 In order to save all objects of the simulation, a `ROOTObjectWriter`
 module has to be added with a `filename` parameter to specify the file

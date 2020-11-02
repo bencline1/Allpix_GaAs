@@ -251,7 +251,7 @@ modules which can be defined:
 The type of module determines the constructor used, the internal unique
 name and the supported configuration parameters. For more details about
 the instantiation logic for the different types of modules, see
-Section [sec:module~i~nstantiation].
+Section [Module instantiation](framework.md#module-instantiation).
 
 ### Module instantiation
 
@@ -428,7 +428,7 @@ Each detector has a set of properties attached to it:
 
 -   An optional **electric field** in the sensitive device. An electric
     field can be added to a detector by a special module as demonstrated
-    in Section [sec:module~e~lectric~f~ield].
+    in Section [Electric Fields](getting_started.md#electric-fields).
 
 The detector configuration is provided in the detector configuration
 file as explained in Section [sec:detector~c~onfig].
@@ -456,12 +456,19 @@ side, while the local coordinate system used to describe the individual
 sensors is located at the right.
 
 [fig:transformations]
+*Caption Coordinate transformations from global to local and revers. The first row shows the detector positions in the respective coordinate systems in top view, the second row in side view.*
+
+The global reference for time measurements is the beginning of the event, i.e. the start of the particle tracking through the setup.
+The local time reference is the time of entry of the *first* primary particle of the event into the sensor.
+This means that secondary particles created within the sensor inherit the local time reference from their parent particles in order to have a uniform time reference in the sensor.
+It should be noted that Monte Carlo particles that start the local time frame on different detectors do not necessarily have to belong to the same particle track.
+
 
 ### Changing and accessing the geometry
 
 The geometry is needed at a very early stage because it determines the
 number of detector module instantiations as explained in
-Section [sec:module~i~nstantiation]. The procedure of finding and
+Section [Module instantiation](framework.md#module-instantiation). The procedure of finding and
 loading the appropriate detector models is explained in more detail in
 Section [Detector models](framework.md#detector-models).
 
@@ -696,7 +703,7 @@ order:
 
 2.  The location where the models are installed to (refer to the
     description of the `MODELDIRECTORY` variable in
-    Section [sec:cmake~c~onfig]).
+    Section [Conﬁguration via CMake](installation.md#configuration-via-cmake)).
 
 3.  The standard data paths on the system as given by the environmental
     variable ``` XDG_DATA_DIRS} with ``\project/models'' appended.
@@ -851,7 +858,7 @@ particular behaviour of the framework.
 
 As objects may contain information relating to other objects, in
 particular for storing their corresponding Monte Carlo history (see
-Section [sec:objhistory]), objects are by default persistent until the
+Section [Object History](objects.md#object-history)), objects are by default persistent until the
 end of each event. All messages are stored as shared pointers by the
 modules which send them, and are released at the end of each event. If
 no other copies of the shared message pointer are created, then these
