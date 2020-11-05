@@ -1,5 +1,5 @@
 <div style="max-width: 1000px; margin-bottom: 10px">
-Welcome to the Doxygen code reference of the <a href="https://cern.ch/allpix-squared">Allpix<sup>2</sup></a> simulation framework. This is not an introduction to Allpix<sup>2</sup>, for this please refer to the <a href="https://cern.ch/allpix-squared/usermanual/allpix-manual.html">User manual</a>. General information about the project can be found on the <a href="https://cern.ch/allpix-squared">website</a>.
+Welcome to the Doxygen code reference of the <a href="https://cern.ch/allpix-squared">Allpix²</a> simulation framework. This is not an introduction to Allpix², for this please refer to the <a href="https://cern.ch/allpix-squared/usermanual/allpix-manual.html">User manual</a>. General information about the project can be found on the <a href="https://cern.ch/allpix-squared">website</a>.
 </div>
 
 <div style="max-width: 1000px; margin-bottom: 10px">

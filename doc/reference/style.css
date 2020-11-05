@@ -1163,7 +1163,7 @@ dl.section dd {
  
 #projectlogo img
 { 
-    width: 70px;
+    width: 60px;
     margin: 2px;
     border: 0px none;
 }
@@ -1175,14 +1175,14 @@ dl.section dd {
 
 #projectname
 {
-	font: 300% Tahoma, Arial,sans-serif;
+	font: 150% Tahoma, Arial,sans-serif;
 	margin: 0px;
 	padding: 2px 0px;
 }
     
 #projectbrief
 {
-	font: 120% Tahoma, Arial,sans-serif;
+	font: 100% Tahoma, Arial,sans-serif;
 	margin: 0px;
 	padding: 0px;
 }
@@ -1200,6 +1200,8 @@ dl.section dd {
 	margin: 0px;
 	width: 100%;
 	border-bottom: 1px solid #5373B4;
+	background-color: black;
+	color: white;
 }
 
 .image
@@ -1332,6 +1334,11 @@ tr.heading h2 {
 .ttc {
         position: absolute;
         display: none;
+}
+#nav-tree .label {
+  margin:0px;
+  padding:0px;
+  font: 14px Roboto,sans-serif;
 }
 
 #powerTip {
