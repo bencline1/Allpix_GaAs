@@ -22,7 +22,7 @@ h1.groupheader {
 }
 
 h2.groupheader {
-	border-bottom: 1px solid #879ECB;
+	border-bottom: none;
 	color: #354C7B;
 	font-size: 150%;
 	font-weight: normal;
@@ -1199,7 +1199,7 @@ dl.section dd {
 	padding: 0px;
 	margin: 0px;
 	width: 100%;
-	border-bottom: 1px solid #5373B4;
+	border-bottom: none;
 	background-color: black;
 	color: white;
 }
