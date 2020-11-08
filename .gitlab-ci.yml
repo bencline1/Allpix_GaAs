@@ -33,7 +33,7 @@ cmp:doxygen:
         - cd build
         - cmake -DBUILD_DOCS_ONLY=ON ..
         - make reference
-        - mv reference/html ../public/reference
+        - mv reference/html ../public/codereference
 
 # Prepare user manual for MkDocs publication:
 cmp:manual:
@@ -68,7 +68,6 @@ deploy-documentation:
     variables:
         GIT_STRATEGY: none
     dependencies:
-        - cmp:manual
         - cmp:doxygen
     # Docker image with tools to deploy to EOS
     image: gitlab-registry.cern.ch/ci-tools/ci-web-deployer:latest
