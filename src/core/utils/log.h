@@ -118,6 +118,7 @@ namespace allpix {
         void drawProgressBar(std::string identifier,
                              LogLevel level = LogLevel::INFO,
                              uint64_t current = 0,
+                             uint64_t buffered = 0,
                              uint64_t total = 0,
                              const std::string& file = "",
                              const std::string& function = "",
@@ -295,11 +296,12 @@ namespace allpix {
     allpix::Log().getProcessStream(                                                                                         \
         identifier, allpix::LogLevel::level, __FILE_NAME__, std::string(static_cast<const char*>(__func__)), __LINE__)
 
-#define LOG_PROGRESS_BAR(level, identifier, current, total)                                                                 \
+#define LOG_PROGRESS_BAR(level, identifier, current, buffered, total)                                                       \
     if(allpix::LogLevel::level <= allpix::Log::getReportingLevel() && !allpix::Log::getStreams().empty())                   \
     allpix::Log().drawProgressBar(identifier,                                                                               \
                                   allpix::LogLevel::level,                                                                  \
                                   current,                                                                                  \
+                                  buffered,                                                                                 \
                                   total,                                                                                    \
                                   __FILE_NAME__,                                                                            \
                                   std::string(static_cast<const char*>(__func__)),                                          \

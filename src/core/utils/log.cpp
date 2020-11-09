@@ -265,6 +265,7 @@ std::ostringstream& DefaultLogger::getProcessStream(
 void DefaultLogger::drawProgressBar(std::string identifier,
                                     LogLevel level,
                                     uint64_t current,
+                                    uint64_t buffered,
                                     uint64_t total,
                                     const std::string& file,
                                     const std::string& function,
@@ -273,28 +274,29 @@ void DefaultLogger::drawProgressBar(std::string identifier,
     std::ostringstream& stream = getProcessStream(identifier, level, file, function, line);
     stream << " " << std::setw(3) << std::setfill(' ') << (100 * current) / total << "% ";
 
-    std::string events = " " + std::to_string(current) + " / " + std::to_string(total) + " ";
-    static std::array<std::string, 8> partial_block{
-        " ", "\u258F", "\u258E", "\u258D", "\u258C", "\u258B", "\u258A", "\u2589"};
+    std::string events =
+        " " + std::to_string(buffered) + " | " + std::to_string(current) + " / " + std::to_string(total) + " ";
 
-    auto width = query_line_length() - indent_count_ - 10;
+    auto width = query_line_length() - indent_count_ - 7;
     auto completed = (width * current) / total;
-    auto pending = (completed >= width ? 0ul : width - completed - 1);
-    auto remainder = (8 * current * width / total) % 8;
+    auto buffer = (width * buffered) / total;
+    auto pending = ((completed + buffer) >= width ? 0ul : width - completed - buffer);
 
     if(events.length() < pending) {
-        stream << "\x1B[7m" << std::string(completed, ' ') << "\x1B[0m";
-        stream << partial_block.at(remainder) << events;
+        stream << "\x1B[107m" << std::string(completed, ' ');
+        stream << "\x1B[47m" << std::string(buffer, ' ');
+        stream << "\x1B[100m" << events;
         stream << std::string(pending - events.length(), ' ');
     } else if(events.length() < completed) {
-        stream << "\x1B[7m" << std::string(completed - events.length(), ' ');
-        stream << events << "\x1B[0m" << partial_block.at(remainder);
-        stream << std::string(pending, ' ');
+        stream << "\x1B[107m" << std::string(completed - events.length(), ' ') << events;
+        stream << "\x1B[47m" << std::string(buffer, ' ');
+        stream << "\x1B[100m" << std::string(pending, ' ');
     } else {
-        stream << "\x1B[7m" << std::string(completed, ' ');
-        stream << "\x1B[0m" << partial_block.at(remainder);
-        stream << std::string(pending, ' ');
+        stream << "\x1B[107m" << std::string(completed, ' ');
+        stream << "\x1B[47m" << std::string(buffer, ' ');
+        stream << "\x1B[100m" << std::string(pending, ' ');
     }
+    stream << "\x1B[0m";
 }
 
 // Getter and setters for the reporting level
