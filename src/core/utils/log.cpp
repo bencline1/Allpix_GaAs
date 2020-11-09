@@ -496,16 +496,17 @@ int DefaultLogger::get_uncaught_exceptions(bool cons = false) {
  * @return Length of the terminal
  */
 unsigned int DefaultLogger::query_line_length() {
+    static unsigned int max_length = 500;
 // from
 // https://www.linuxquestions.org/questions/programming-9/get-width-height-of-a-terminal-window-in-c-810739/
 #ifdef TIOCGSIZE
     struct ttysize ts;
     ioctl(fileno(stdout), TIOCGSIZE, &ts);
-    return ts.ts_cols;
+    return std::min(static_cast<unsigned int>(ts.ts_cols), max_length);
 #elif defined(TIOCGWINSZ)
     struct winsize ts;
     ioctl(fileno(stdout), TIOCGWINSZ, &ts);
-    return ts.ws_col;
+    return std::min(static_cast<unsigned int>(ts.ws_col), max_length);
 #else
     return 50; // fallback
 #endif
