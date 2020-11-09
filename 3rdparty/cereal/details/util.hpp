@@ -68,7 +68,7 @@ namespace cereal {
         //! Gets the demangled name of a type
         /*! @internal */
         template <class T> inline std::string demangledName() { return demangle(typeid(T).name()); }
-    }
+    } // namespace util
 } // namespace cereal
 #endif // clang or gcc branch of _MSC_VER
 #endif // CEREAL_DETAILS_UTIL_HPP_

@@ -12,6 +12,7 @@
 #include <string>
 #include <utility>
 
+#include "core/module/Event.hpp"
 #include "core/utils/log.h"
 #include "objects/PixelCharge.hpp"
 
@@ -22,9 +23,10 @@ InducedTransferModule::InducedTransferModule(Configuration& config,
                                              Messenger* messenger,
                                              const std::shared_ptr<Detector>& detector)
     : Module(config, detector), messenger_(messenger), detector_(detector) {
-    using XYVectorInt = DisplacementVector2D<Cartesian2D<int>>;
     // Enable parallelization of this module if multithreading is enabled
     enable_parallelization();
+
+    using XYVectorInt = DisplacementVector2D<Cartesian2D<int>>;
 
     // Save detector model
     model_ = detector_->getModel();
@@ -34,7 +36,7 @@ InducedTransferModule::InducedTransferModule(Configuration& config,
     matrix_ = config_.get<XYVectorInt>("induction_matrix");
 
     // Require propagated deposits for single detector
-    messenger_->bindSingle(this, &InducedTransferModule::propagated_message_, MsgFlags::REQUIRED);
+    messenger_->bindSingle<PropagatedChargeMessage>(this, MsgFlags::REQUIRED);
 }
 
 void InducedTransferModule::init() {
@@ -45,13 +47,15 @@ void InducedTransferModule::init() {
     }
 }
 
-void InducedTransferModule::run(unsigned int) {
+void InducedTransferModule::run(Event* event) {
+    auto propagated_message = messenger_->fetchMessage<PropagatedChargeMessage>(this, event);
+
     // Calculate induced charge by total motion of charge carriers
     LOG(TRACE) << "Calculating induced charge on pixels";
     bool found_electrons = false, found_holes = false;
 
     std::map<Pixel::Index, std::vector<std::pair<double, const PropagatedCharge*>>> pixel_map;
-    for(auto& propagated_charge : propagated_message_->getData()) {
+    for(const auto& propagated_charge : propagated_message->getData()) {
 
         // Make sure both electrons and holes are present in the input data
         if(propagated_charge.getType() == CarrierType::ELECTRON) {
@@ -60,7 +64,7 @@ void InducedTransferModule::run(unsigned int) {
             found_holes = true;
         }
 
-        auto deposited_charge = propagated_charge.getDepositedCharge();
+        const auto* deposited_charge = propagated_charge.getDepositedCharge();
 
         // Get start and end point by looking at deposited and propagated charge local positions
         auto position_end = propagated_charge.getLocalPosition();
@@ -72,7 +76,7 @@ void InducedTransferModule::run(unsigned int) {
         LOG(TRACE) << "Calculating induced charge from carriers below pixel "
                    << Pixel::Index(static_cast<unsigned int>(xpixel), static_cast<unsigned int>(ypixel)) << ", moved from "
                    << Units::display(position_start, {"um", "mm"}) << " to " << Units::display(position_end, {"um", "mm"})
-                   << ", " << Units::display(propagated_charge.getEventTime() - deposited_charge->getEventTime(), "ns");
+                   << ", " << Units::display(propagated_charge.getGlobalTime() - deposited_charge->getGlobalTime(), "ns");
 
         // Loop over NxN pixels:
         for(int x = xpixel - matrix_.x() / 2; x <= xpixel + matrix_.x() / 2; x++) {
@@ -88,8 +92,8 @@ void InducedTransferModule::run(unsigned int) {
                 auto ramo_start = detector_->getWeightingPotential(position_start, pixel_index);
 
                 // Induced charge on electrode is q_int = q * (phi(x1) - phi(x0))
-                auto induced = propagated_charge.getCharge() * (ramo_end - ramo_start) *
-                               (-static_cast<std::underlying_type<CarrierType>::type>(propagated_charge.getType()));
+                auto induced = static_cast<double>(propagated_charge.getSign() * propagated_charge.getCharge()) *
+                               (ramo_end - ramo_start);
                 LOG(TRACE) << "Pixel " << pixel_index << " dPhi = " << (ramo_end - ramo_start) << ", induced "
                            << propagated_charge.getType() << " q = " << Units::display(induced, "e");
 
@@ -120,11 +124,11 @@ void InducedTransferModule::run(unsigned int) {
         // Get pixel object from detector
         auto pixel = detector_->getPixel(pixel_index_charge.first.x(), pixel_index_charge.first.y());
 
-        pixel_charges.emplace_back(pixel, std::round(std::fabs(charge)), prop_charges);
+        pixel_charges.emplace_back(pixel, std::round(charge), prop_charges);
         LOG(DEBUG) << "Set of " << charge << " charges combined at " << pixel.getIndex();
     }
 
     // Dispatch message of pixel charges
     auto pixel_message = std::make_shared<PixelChargeMessage>(pixel_charges, detector_);
-    messenger_->dispatchMessage(this, pixel_message);
+    messenger_->dispatchMessage(this, pixel_message, event);
 }

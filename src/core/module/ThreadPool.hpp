@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Definition of thread pool for module multithreading
+ * @brief Definition of thread pool for concurrent events
  *
  * @copyright Copyright (c) 2017-2020 CERN and the Allpix Squared authors.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE.md".
@@ -13,29 +13,19 @@
 
 #include <algorithm>
 #include <atomic>
-#include <cstdint>
 #include <exception>
 #include <functional>
 #include <future>
-#include <map>
 #include <memory>
 #include <queue>
 #include <thread>
-#include <type_traits>
 #include <utility>
-#include <vector>
-
-#include <iostream>
 
 namespace allpix {
-    class Module;
-
     /**
-     * @brief Pool of threads where module tasks can be submitted to
+     * @brief Pool of threads where event tasks can be submitted to
      */
     class ThreadPool {
-        friend class ModuleManager;
-
     public:
         /**
          * @brief Internal thread-safe queue
@@ -45,7 +35,7 @@ namespace allpix {
             /**
              * @brief Default constructor, initializes empty queue
              */
-            SafeQueue() = default;
+            explicit SafeQueue(unsigned int max_size);
 
             /**
              * @brief Erases the queue and release waiting threads on destruction
@@ -80,6 +70,12 @@ namespace allpix {
             bool empty() const;
 
             /**
+             * @brief Return size of internal queue
+             * @return Size of the size of the internal queue
+             */
+            size_t size() const;
+
+            /**
              * @brief Invalidate the queue
              */
             void invalidate();
@@ -89,18 +85,20 @@ namespace allpix {
             mutable std::mutex mutex_;
             std::queue<T> queue_;
             std::condition_variable condition_;
+            const unsigned int max_size_;
         };
 
         /**
          * @brief Construct thread pool with provided number of threads
          * @param num_threads Number of threads in the pool
-         * @param modules List of module instantiations to create a task queue for
+         * @param max_queue_size Maximum size of the task queue
          * @param worker_init_function Function run by all the workers to initialize
-         * @warning Only module instantiations that are registered in this constructor can spawn tasks
+         * @param worker_finalize_function Function run by all the workers to cleanup
          */
         explicit ThreadPool(unsigned int num_threads,
-                            const std::vector<Module*>& modules,
-                            const std::function<void()>& worker_init_function);
+                            unsigned int max_queue_size,
+                            const std::function<void()>& worker_init_function = nullptr,
+                            const std::function<void()>& worker_finalize_function = nullptr);
 
         /// @{
         /**
@@ -111,60 +109,54 @@ namespace allpix {
         /// @}
 
         /**
-         * @brief Destroy and wait for all threads to finish on destruction
-         */
-        ~ThreadPool();
-
-        /**
-         * @brief Submit a job from a module to be run by the thread pool
-         * @param module Module the task belongs to
+         * @brief Submit a job to be run by the thread pool. In case no workers, the function will be immediately executed.
          * @param func Function to execute by the pool
          * @param args Parameters to pass to the function
          * @warning The thread submitting task should always call the \ref ThreadPool::execute method to prevent a lock when
          *          there are no threads available
          */
-        template <typename Func, typename... Args> auto submit(Module* module, Func&& func, Args&&... args);
+        template <typename Func, typename... Args> auto submit(Func&& func, Args&&... args);
 
         /**
-         * @brief Execute jobs from the module queue until all module tasks are finished or an interrupt happened
-         * @param module Module to run tasks for
-         * @return True if module task queue finished, false if stopped for other reason
+         * @brief Return the number of enqueued events
+         * @return The number of enqueued events
          */
-        bool execute(Module* module);
-
-    private:
-        /**
-         * @brief Function to run a single event for a module by the \ref ModuleManager
-         * @param module_function Function to execute (should call the run-method of the module)
-         * @warning This method can only be called by the \ref ModuleManager
-         */
-        void submit_module_function(std::function<void()> module_function);
+        size_t queueSize() const;
 
         /**
-         * @brief Execute jobs from the queue until all tasks and modules are finished or an interrupt happened
-         * @return True if module task queue finished, false if stopped for other reason
-         * @warning This method can only be called by the \ref ModuleManager
+         * @brief Check if any worker thread has thrown an exception
+         * @throw Exception thrown by worker thread, if any
          */
-        bool execute_all();
+        void checkException();
 
         /**
-         * @brief Constantly running internal function each thread uses to acquire work items from the queue.
-         * @param init_function Function to initialize the relevant thread_local variables
+         * @brief Waits for the worker threads to finish
          */
-        void worker(const std::function<void()>& init_function);
+        void wait();
 
         /**
          * @brief Invalidate all queues and joins all running threads when the pool is destroyed.
          */
         void destroy();
 
+        /**
+         * @brief Destroy and wait for all threads to finish on destruction
+         */
+        ~ThreadPool();
+
+    private:
+        /**
+         * @brief Constantly running internal function each thread uses to acquire work items from the queue.
+         * @param init_function Function to initialize the thread
+         * @param init_function Function to finalize the thread
+         */
+        void worker(const std::function<void()>& init_function, const std::function<void()>& finalize_function);
+
         using Task = std::unique_ptr<std::packaged_task<void()>>;
 
         std::atomic_bool done_{false};
 
-        SafeQueue<SafeQueue<Task>*> all_queue_;
-        SafeQueue<Task> module_queue_;
-        std::map<Module*, SafeQueue<Task>> task_queues_;
+        SafeQueue<Task> queue_;
 
         std::atomic<unsigned int> run_cnt_;
         mutable std::mutex run_mutex_;

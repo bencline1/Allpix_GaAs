@@ -19,12 +19,17 @@
 #include "core/config/Configuration.hpp"
 #include "core/geometry/DetectorModel.hpp"
 #include "core/messenger/Messenger.hpp"
+#include "core/module/Event.hpp"
 #include "core/module/Module.hpp"
 
 #include "objects/DepositedCharge.hpp"
 #include "objects/PropagatedCharge.hpp"
 
+#include "tools/ROOT.h"
+
 namespace allpix {
+    using OutputPlotPoints = std::vector<std::pair<PropagatedCharge, std::vector<ROOT::Math::XYZPoint>>>;
+
     /**
      * @ingroup Modules
      * @brief Generic module for Runge-Kutta propagation of charge deposits in the sensitive device
@@ -53,7 +58,7 @@ namespace allpix {
         /**
          * @brief Propagate all deposited charges through the sensor
          */
-        void run(unsigned int event_num) override;
+        void run(Event*) override;
 
         /**
          * @brief Write statistical summary
@@ -68,19 +73,24 @@ namespace allpix {
         /**
          * @brief Create output plots in every event
          * @param event_num Index for this event
+         * @param output_plot_points List of points cached for plotting
          */
-        void create_output_plots(unsigned int event_num);
+        void create_output_plots(uint64_t event_num, OutputPlotPoints& output_plot_points);
 
         /**
          * @brief Propagate a single set of charges through the sensor
          * @param pos Position of the deposit in the sensor
          * @param type Type of the carrier to propagate
+         * @param initial_time Initial time passed before propagation starts in local time coordinates
+         * @param random_generator Reference to the random number engine to be used
+         * @param output_plot_points Reference to vector to hold points for line graph output plots
          * @return Pair of the point where the deposit ended after propagation and the time the propagation took
          */
-        std::pair<ROOT::Math::XYZPoint, double> propagate(const ROOT::Math::XYZPoint& pos, const CarrierType& type);
-
-        // Random generator for this module
-        std::mt19937_64 random_generator_;
+        std::pair<ROOT::Math::XYZPoint, double> propagate(const ROOT::Math::XYZPoint& pos,
+                                                          const CarrierType& type,
+                                                          const double initial_time,
+                                                          RandomNumberGenerator& random_generator,
+                                                          OutputPlotPoints& output_plot_points) const;
 
         // Local copies of configuration parameters to avoid costly lookup:
         double temperature_{}, timestep_min_{}, timestep_max_{}, timestep_start_{}, integration_time_{},
@@ -106,20 +116,15 @@ namespace allpix {
         bool has_magnetic_field_;
         ROOT::Math::XYZVector magnetic_field_;
 
-        // Deposits for the bound detector in this event
-        std::shared_ptr<DepositedChargeMessage> deposits_message_;
-
         // Statistical information
         unsigned int total_propagated_charges_{};
         unsigned int total_steps_{};
         long double total_time_{};
-
-        // List of points to plot to plot for output plots
-        std::vector<std::pair<PropagatedCharge, std::vector<ROOT::Math::XYZPoint>>> output_plot_points_;
-        TH1D* step_length_histo_;
-        TH1D* drift_time_histo_;
-        TH1D* uncertainty_histo_;
-        TH1D* group_size_histo_;
+        Histogram<TH1D> step_length_histo_;
+        Histogram<TH1D> drift_time_histo_;
+        Histogram<TH1D> uncertainty_histo_;
+        Histogram<TH1D> group_size_histo_;
+        std::mutex stats_mutex_;
     };
 
 } // namespace allpix

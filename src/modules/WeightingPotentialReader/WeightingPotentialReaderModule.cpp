@@ -31,6 +31,8 @@ WeightingPotentialReaderModule::WeightingPotentialReaderModule(Configuration& co
                                                                Messenger*,
                                                                std::shared_ptr<Detector> detector)
     : Module(config, detector), detector_(std::move(detector)) {
+    // Enable parallelization of this module if multithreading is enabled
+    enable_parallelization();
 
     // NOTE Backwards-compatibility: interpret both "init" and "apf" as "mesh":
     auto model = config_.get<std::string>("model");
@@ -127,7 +129,7 @@ void WeightingPotentialReaderModule::create_output_plots() {
     double max = model->getSensorCenter().z() + model->getSensorSize().z() / 2.0;
 
     // Create 1D histograms
-    auto histogram = new TH1F("potential1d", "#phi_{w}/V_{w};z (mm);unit potential", static_cast<int>(steps), min, max);
+    auto* histogram = new TH1F("potential1d", "#phi_{w}/V_{w};z (mm);unit potential", static_cast<int>(steps), min, max);
 
     // Get the weighting potential at every index
     for(size_t j = 0; j < steps; ++j) {
@@ -140,24 +142,24 @@ void WeightingPotentialReaderModule::create_output_plots() {
     }
 
     // Create 2D histogram
-    auto histogram2Dx = new TH2F("potential_x",
-                                 "#phi_{w}/V_{w};x (mm); z (mm); unit potential",
-                                 static_cast<int>(steps),
-                                 -1.5 * model->getPixelSize().x(),
-                                 1.5 * model->getPixelSize().x(),
-                                 static_cast<int>(steps),
-                                 min,
-                                 max);
+    auto* histogram2Dx = new TH2F("potential_x",
+                                  "#phi_{w}/V_{w};x (mm); z (mm); unit potential",
+                                  static_cast<int>(steps),
+                                  -1.5 * model->getPixelSize().x(),
+                                  1.5 * model->getPixelSize().x(),
+                                  static_cast<int>(steps),
+                                  min,
+                                  max);
 
     // Create 2D histogram
-    auto histogram2Dy = new TH2F("potential_y",
-                                 "#phi_{w}/V_{w};y (mm); z (mm); unit potential",
-                                 static_cast<int>(steps),
-                                 -1.5 * model->getPixelSize().x(),
-                                 1.5 * model->getPixelSize().x(),
-                                 static_cast<int>(steps),
-                                 min,
-                                 max);
+    auto* histogram2Dy = new TH2F("potential_y",
+                                  "#phi_{w}/V_{w};y (mm); z (mm); unit potential",
+                                  static_cast<int>(steps),
+                                  -1.5 * model->getPixelSize().y(),
+                                  1.5 * model->getPixelSize().y(),
+                                  static_cast<int>(steps),
+                                  min,
+                                  max);
 
     // Get the weighting potential at every index
     for(size_t j = 0; j < steps; ++j) {
@@ -269,8 +271,8 @@ void WeightingPotentialReaderModule::check_detector_match(std::array<double, 3> 
         }
 
         // Check that the total field size is n*pitch:
-        if(std::fmod(xpixsz, model->getPixelSize().x()) > std::numeric_limits<double>::epsilon() ||
-           std::fmod(ypixsz, model->getPixelSize().y()) > std::numeric_limits<double>::epsilon()) {
+        if(std::fabs(std::remainder(xpixsz, model->getPixelSize().x())) > std::numeric_limits<double>::epsilon() ||
+           std::fabs(std::remainder(ypixsz, model->getPixelSize().y())) > std::numeric_limits<double>::epsilon()) {
             LOG(WARNING) << "Potential map size is (" << Units::display(xpixsz, {"um", "mm"}) << ","
                          << Units::display(ypixsz, {"um", "mm"}) << ") but expecting a multiple of the pixel pitch ("
                          << Units::display(model->getPixelSize().x(), {"um", "mm"}) << ", "

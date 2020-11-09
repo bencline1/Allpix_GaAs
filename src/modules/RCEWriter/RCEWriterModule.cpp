@@ -293,12 +293,15 @@ static void write_proteus_config(const std::string& device_path,
 }
 
 RCEWriterModule::RCEWriterModule(Configuration& config, Messenger* messenger, GeometryManager* geo_mgr)
-    : Module(config), geo_mgr_(geo_mgr) {
+    : BufferedModule(config), messenger_(messenger), geo_mgr_(geo_mgr) {
+    // Enable parallelization of this module if multithreading is enabled
+    enable_parallelization();
+
     assert(messenger && "messenger must be non-null");
     assert(geo_mgr && "geo_mgr must be non-null");
 
     // Bind to PixelHitMessage
-    messenger->bindMulti(this, &RCEWriterModule::pixel_hit_messages_);
+    messenger_->bindMulti<PixelHitMessage>(this, MsgFlags::REQUIRED);
 
     config_.setDefault("file_name", "rce-data.root");
     // Use default names in Proteus
@@ -358,10 +361,12 @@ void RCEWriterModule::init() {
     write_proteus_config(device_path, geometry_path, detector_names, *geo_mgr_, *getConfigManager());
 }
 
-void RCEWriterModule::run(unsigned int event_id) {
+void RCEWriterModule::run(Event* event) {
+    auto pixel_hit_messages = messenger_->fetchMultiMessage<PixelHitMessage>(this, event);
+
     // fill per-event data
     timestamp_ = 0;
-    frame_number_ = event_id;
+    frame_number_ = event->number;
     trigger_time_ = 0;
     trigger_offset_ = 0;
     trigger_info_ = 0;
@@ -375,7 +380,7 @@ void RCEWriterModule::run(unsigned int event_id) {
     }
 
     // Loop over the pixel hit messages
-    for(const auto& hit_msg : pixel_hit_messages_) {
+    for(const auto& hit_msg : pixel_hit_messages) {
         const auto& detector_name = hit_msg->getDetector()->getName();
         auto& sensor = sensors_[detector_name];
 
@@ -392,13 +397,13 @@ void RCEWriterModule::run(unsigned int event_id) {
             sensor.pix_y_[i] = static_cast<Int_t>(hit.getPixel().getIndex().y()); // NOLINT
             sensor.value_[i] = static_cast<Int_t>(hit.getSignal());               // NOLINT
             // Assumes that time is correctly digitized
-            sensor.timing_[i] = static_cast<Int_t>(hit.getTime()); // NOLINT
+            sensor.timing_[i] = static_cast<Int_t>(hit.getLocalTime()); // NOLINT
             // This contains no useful information but it expected to be present
             sensor.hit_in_cluster_[i] = 0; // NOLINT
             sensor.nhits_ += 1;
 
             LOG(TRACE) << detector_name << " x=" << hit.getPixel().getIndex().x() << " y=" << hit.getPixel().getIndex().y()
-                       << " t=" << hit.getTime() << " signal=" << hit.getSignal();
+                       << " t=" << hit.getLocalTime() << " signal=" << hit.getSignal();
         }
     }
 

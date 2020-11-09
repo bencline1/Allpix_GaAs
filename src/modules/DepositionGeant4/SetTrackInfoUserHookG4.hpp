@@ -14,11 +14,11 @@
 
 #include "G4Track.hh"
 #include "G4UserTrackingAction.hh"
-#include "core/config/Configuration.hpp"
 
 #include "TrackInfoManager.hpp"
 
 namespace allpix {
+    class DepositionGeant4Module;
     /**
      * @brief Assigns every G4Track a TrackInfoG4 which carries various information, including the custom track id
      */
@@ -28,8 +28,7 @@ namespace allpix {
          * @brief Constructor taking a TrackInfoManager*
          * @param track_info_mgr_ptr Pointer to TrackInfoManager which must be used to create the TrackInfoG4 instances
          */
-        explicit SetTrackInfoUserHookG4(TrackInfoManager* track_info_mgr_ptr, double decay_cutoff_time)
-            : track_info_mgr_ptr_(track_info_mgr_ptr), decay_cutoff_time_(decay_cutoff_time){};
+        explicit SetTrackInfoUserHookG4(DepositionGeant4Module* module) : module_(module){};
 
         /**
          * @brief Default destructor
@@ -49,9 +48,8 @@ namespace allpix {
         void PostUserTrackingAction(const G4Track* aTrack) override;
 
     private:
-        // Raw ptr to track info manager to create instances of TrackInfoG4
-        TrackInfoManager* track_info_mgr_ptr_;
-        double decay_cutoff_time_;
+        // Raw ptr to module holding track info manager to create instances of TrackInfoG4
+        DepositionGeant4Module* module_;
     };
 
 } // namespace allpix

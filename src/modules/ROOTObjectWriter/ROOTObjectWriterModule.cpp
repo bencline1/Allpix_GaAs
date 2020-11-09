@@ -15,6 +15,7 @@
 
 #include <TBranchElement.h>
 #include <TClass.h>
+#include <TProcessID.h>
 
 #include "core/config/ConfigReader.hpp"
 #include "core/utils/file.h"
@@ -27,9 +28,12 @@
 using namespace allpix;
 
 ROOTObjectWriterModule::ROOTObjectWriterModule(Configuration& config, Messenger* messenger, GeometryManager* geo_mgr)
-    : Module(config), geo_mgr_(geo_mgr) {
-    // Bind to all messages
-    messenger->registerListener(this, &ROOTObjectWriterModule::receive);
+    : BufferedModule(config), messenger_(messenger), geo_mgr_(geo_mgr) {
+    // Enable parallelization of this module if multithreading is enabled
+    enable_parallelization();
+
+    // Bind to all messages with filter
+    messenger_->registerFilter(this, &ROOTObjectWriterModule::filter);
 }
 /**
  * @note Objects cannot be stored in smart pointers due to internal ROOT logic
@@ -60,7 +64,8 @@ void ROOTObjectWriterModule::init() {
     }
 }
 
-void ROOTObjectWriterModule::receive(std::shared_ptr<BaseMessage> message, std::string message_name) { // NOLINT
+bool ROOTObjectWriterModule::filter(const std::shared_ptr<BaseMessage>& message,
+                                    const std::string& message_name) const { // NOLINT
     try {
         const BaseMessage* inst = message.get();
         std::string name_str = " without a name";
@@ -77,94 +82,129 @@ void ROOTObjectWriterModule::receive(std::shared_ptr<BaseMessage> message, std::
 
         // Read the object
         auto object_array = message->getObjectArray();
-        if(!object_array.empty()) {
-            keep_messages_.push_back(message);
+        if(object_array.empty()) {
+            return false;
+        }
+        const Object& first_object = object_array[0];
+        auto* cls = TClass::GetClass(typeid(first_object));
 
-            const Object& first_object = object_array[0];
-            std::type_index type_idx = typeid(first_object);
-
-            // Create a new branch of the correct type if this message was not received before
-            auto index_tuple = std::make_tuple(type_idx, detector_name, message_name);
-            if(write_list_.find(index_tuple) == write_list_.end()) {
-
-                auto* cls = TClass::GetClass(typeid(first_object));
-
-                // Remove the allpix prefix
-                std::string class_name = cls->GetName();
-                std::string apx_namespace = "allpix::";
-                size_t ap_idx = class_name.find(apx_namespace);
-                if(ap_idx != std::string::npos) {
-                    class_name.replace(ap_idx, apx_namespace.size(), "");
-                }
-
-                // Check if this message should be kept
-                if((!include_.empty() && include_.find(class_name) == include_.end()) ||
-                   (!exclude_.empty() && exclude_.find(class_name) != exclude_.end())) {
-                    LOG(TRACE) << "ROOT object writer ignored message with object " << allpix::demangle(typeid(*inst).name())
-                               << " because it has been excluded or not explicitly included";
-                    return;
-                }
-
-                // Add vector of objects to write to the write list
-                write_list_[index_tuple] = new std::vector<Object*>();
-                auto addr = &write_list_[index_tuple];
-
-                auto new_tree = (trees_.find(class_name) == trees_.end());
-                if(new_tree) {
-                    // Create new tree
-                    output_file_->cd();
-                    trees_.emplace(
-                        class_name,
-                        std::make_unique<TTree>(class_name.c_str(), (std::string("Tree of ") + class_name).c_str()));
-                }
-
-                std::string branch_name = detector_name.empty() ? "global" : detector_name;
-                if(!message_name.empty()) {
-                    branch_name += "_";
-                    branch_name += message_name;
-                }
-
-                trees_[class_name]->Bronch(
-                    branch_name.c_str(), (std::string("std::vector<") + cls->GetName() + "*>").c_str(), addr);
-
-                // Prefill new tree or new branch with empty records for all events that were missed since the start
-                if(last_event_ > 0) {
-                    if(new_tree) {
-                        LOG(DEBUG) << "Pre-filling new tree of " << class_name << " with " << last_event_ << " empty events";
-                        for(unsigned int i = 0; i < last_event_; ++i) {
-                            trees_[class_name]->Fill();
-                        }
-                    } else {
-                        LOG(DEBUG) << "Pre-filling new branch " << branch_name << " of " << class_name << " with "
-                                   << last_event_ << " empty events";
-                        auto* branch = trees_[class_name]->GetBranch(branch_name.c_str());
-                        for(unsigned int i = 0; i < last_event_; ++i) {
-                            branch->Fill();
-                        }
-                    }
-                }
-            }
-
-            // Fill the branch vector
-            for(Object& object : object_array) {
-                ++write_cnt_;
-                write_list_[index_tuple]->push_back(&object);
-            }
+        // Remove the allpix prefix
+        std::string class_name = cls->GetName();
+        std::string apx_namespace = "allpix::";
+        size_t ap_idx = class_name.find(apx_namespace);
+        if(ap_idx != std::string::npos) {
+            class_name.replace(ap_idx, apx_namespace.size(), "");
         }
 
+        // Check if this message should be kept
+        if((!include_.empty() && include_.find(class_name) == include_.cend()) ||
+           (!exclude_.empty() && exclude_.find(class_name) != exclude_.cend())) {
+            LOG(TRACE) << "ROOT object writer ignored message with object " << allpix::demangle(typeid(*inst).name())
+                       << " because it has been excluded or not explicitly included";
+            return false;
+        }
     } catch(MessageWithoutObjectException& e) {
         const BaseMessage* inst = message.get();
         LOG(WARNING) << "ROOT object writer cannot process message of type" << allpix::demangle(typeid(*inst).name())
                      << " with name " << message_name;
+        return false;
     }
+
+    return true;
 }
 
-void ROOTObjectWriterModule::run(unsigned int event) {
+void ROOTObjectWriterModule::run(Event* event) {
+    auto messages = messenger_->fetchFilteredMessages(this, event);
+
+    // Retrieve current object count:
+    auto object_count = TProcessID::GetObjectCount();
+
+    // Generate trees and index data
+    for(auto& pair : messages) {
+        auto& message = pair.first;
+        auto& message_name = pair.second;
+
+        // Get the detector name
+        std::string detector_name;
+        if(message->getDetector() != nullptr) {
+            detector_name = message->getDetector()->getName();
+        }
+
+        // Read the object
+        auto object_array = message->getObjectArray();
+        // object_array emptiness is checked in the filter
+        const Object& first_object = object_array[0];
+        std::type_index type_idx = typeid(first_object);
+
+        // Create a new branch of the correct type if this message was not received before
+        auto index_tuple = std::make_tuple(type_idx, detector_name, message_name);
+        if(write_list_.find(index_tuple) == write_list_.end()) {
+
+            auto* cls = TClass::GetClass(typeid(first_object));
+
+            // Remove the allpix prefix
+            std::string class_name = cls->GetName();
+            std::string apx_namespace = "allpix::";
+            size_t ap_idx = class_name.find(apx_namespace);
+            if(ap_idx != std::string::npos) {
+                class_name.replace(ap_idx, apx_namespace.size(), "");
+            }
+
+            // Add vector of objects to write to the write list
+            write_list_[index_tuple] = new std::vector<Object*>();
+            auto* addr = &write_list_[index_tuple];
+
+            auto new_tree = (trees_.find(class_name) == trees_.end());
+            if(new_tree) {
+                // Create new tree
+                output_file_->cd();
+                trees_.emplace(class_name,
+                               std::make_unique<TTree>(class_name.c_str(), (std::string("Tree of ") + class_name).c_str()));
+            }
+
+            std::string branch_name = detector_name.empty() ? "global" : detector_name;
+            if(!message_name.empty()) {
+                branch_name += "_";
+                branch_name += message_name;
+            }
+
+            trees_[class_name]->Bronch(
+                branch_name.c_str(), (std::string("std::vector<") + cls->GetName() + "*>").c_str(), addr);
+
+            // Prefill new tree or new branch with empty records for all events that were missed since the start
+            if(last_event_ > 0) {
+                if(new_tree) {
+                    LOG(DEBUG) << "Pre-filling new tree of " << class_name << " with " << last_event_ << " empty events";
+                    for(uint64_t i = 0; i < last_event_; ++i) {
+                        trees_[class_name]->Fill();
+                    }
+                } else {
+                    LOG(DEBUG) << "Pre-filling new branch " << branch_name << " of " << class_name << " with " << last_event_
+                               << " empty events";
+                    auto* branch = trees_[class_name]->GetBranch(branch_name.c_str());
+                    for(uint64_t i = 0; i < last_event_; ++i) {
+                        branch->Fill();
+                    }
+                }
+            }
+        }
+
+        // Fill the branch vector
+        for(Object& object : object_array) {
+            // Trigger the creation of TRefs for cross-object references to be able to store them to file.
+            // We can reset the TObject count after processing this event because the TRef creation is only done here locally
+            // in one worker thread instead of framew-work wide.
+            object.petrifyHistory();
+            ++write_cnt_;
+            write_list_[index_tuple]->push_back(&object);
+        }
+    }
+
     LOG(TRACE) << "Writing new objects to tree";
     output_file_->cd();
 
     // Save last event number for trees created later
-    last_event_ = event;
+    last_event_ = event->number;
 
     // Fill the tree with the current received messages
     for(auto& tree : trees_) {
@@ -175,8 +215,9 @@ void ROOTObjectWriterModule::run(unsigned int event) {
     for(auto& index_data : write_list_) {
         index_data.second->clear();
     }
-    // Clear the messages we have to keep because they contain the internal pointers
-    keep_messages_.clear();
+
+    // Reset object count:
+    TProcessID::SetObjectCount(object_count);
 }
 
 void ROOTObjectWriterModule::finalize() {
@@ -197,7 +238,7 @@ void ROOTObjectWriterModule::finalize() {
     ConfigManager* conf_manager = getConfigManager();
 
     // Save the main configuration to the output file
-    auto global_dir = config_dir->mkdir("Allpix");
+    auto* global_dir = config_dir->mkdir("Allpix");
     LOG(TRACE) << "Writing global configuration";
 
     // Loop over all values in the global configuration
@@ -214,7 +255,7 @@ void ROOTObjectWriterModule::finalize() {
             unique_name += ":";
             unique_name += identifier;
         }
-        auto section_dir = config_dir->mkdir(unique_name.c_str());
+        auto* section_dir = config_dir->mkdir(unique_name.c_str());
         LOG(TRACE) << "Writing configuration for: " << unique_name;
 
         // Loop over all values in the section
@@ -228,12 +269,12 @@ void ROOTObjectWriterModule::finalize() {
     }
 
     // Save the detectors to the output file
-    auto detectors_dir = output_file_->mkdir("detectors");
-    auto models_dir = output_file_->mkdir("models");
+    auto* detectors_dir = output_file_->mkdir("detectors");
+    auto* models_dir = output_file_->mkdir("models");
     for(auto& detector : geo_mgr_->getDetectors()) {
         detectors_dir->cd();
         LOG(TRACE) << "Writing detector configuration for: " << detector->getName();
-        auto detector_dir = detectors_dir->mkdir(detector->getName().c_str());
+        auto* detector_dir = detectors_dir->mkdir(detector->getName().c_str());
 
         auto position = detector->getPosition();
         detector_dir->WriteObject(&position, "position");
@@ -245,13 +286,13 @@ void ROOTObjectWriterModule::finalize() {
         std::string model_name = detector->getModel()->getType() + "_" + detector->getName();
         detector_dir->WriteObject(&model_name, "type");
         models_dir->cd();
-        auto model_dir = models_dir->mkdir(model_name.c_str());
+        auto* model_dir = models_dir->mkdir(model_name.c_str());
 
         // Get all sections of the model configuration (maon config plus support layers):
         auto model_configs = detector->getModel()->getConfigurations();
         std::map<std::string, int> count_configs;
         for(auto& model_config : model_configs) {
-            auto model_config_dir = model_dir;
+            auto* model_config_dir = model_dir;
             if(!model_config.getName().empty()) {
                 model_config_dir = model_dir->mkdir(
                     (model_config.getName() + "_" + std::to_string(count_configs[model_config.getName()])).c_str());

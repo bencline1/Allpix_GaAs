@@ -12,6 +12,7 @@
 #include "core/config/Configuration.hpp"
 #include "core/geometry/GeometryManager.hpp"
 #include "core/messenger/Messenger.hpp"
+#include "core/module/Event.hpp"
 #include "core/module/Module.hpp"
 
 // Local includes
@@ -33,7 +34,7 @@ namespace allpix {
      * More detailed explanation of module
      */
 
-    class CorryvreckanWriterModule : public Module {
+    class CorryvreckanWriterModule : public BufferedModule {
     public:
         /**
          * @brief Constructor for this unique module
@@ -51,7 +52,7 @@ namespace allpix {
         /**
          * @brief Take the digitised pixel hits and write them into the output file
          */
-        void run(unsigned int) override;
+        void run(Event* event) override;
 
         /**
          * @brief Write output trees to file
@@ -60,7 +61,6 @@ namespace allpix {
 
     private:
         // General module members
-        std::vector<std::shared_ptr<PixelHitMessage>> pixel_messages_; // Received pixels
         Messenger* messenger_;
         GeometryManager* geometryManager_;
 
@@ -70,6 +70,7 @@ namespace allpix {
         std::unique_ptr<TFile> output_file_; // Output file
         double time_;                        // Event time being written
         bool output_mc_truth_;               // Decision to write out MC
+        bool timing_global_;                 // Decision to write global or local timestamps
 
         std::string reference_;
         std::vector<std::string> dut_;

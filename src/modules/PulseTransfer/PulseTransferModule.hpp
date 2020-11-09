@@ -16,7 +16,11 @@
 
 #include "objects/PropagatedCharge.hpp"
 
+#include "tools/ROOT.h"
+
 #include <TH1D.h>
+#include <TH2D.h>
+#include <TProfile.h>
 
 namespace allpix {
     /**
@@ -44,7 +48,7 @@ namespace allpix {
         /**
          * @brief Combine pulses from propagated charges and transfer them to the pixels
          */
-        void run(unsigned int) override;
+        void run(Event*) override;
 
         /**
          * @brief Finalize and write optional histograms
@@ -55,12 +59,16 @@ namespace allpix {
         bool output_plots_{}, output_pulsegraphs_{};
         double timestep_{};
 
+        Messenger* messenger_;
+
+        void create_pulsegraphs(uint64_t event_num, const Pixel::Index& index, const Pulse& pulse) const;
+
         // General module members
         std::shared_ptr<Detector> detector_;
-        Messenger* messenger_;
-        std::shared_ptr<PropagatedChargeMessage> message_;
 
         // Output histograms
-        TH1D *h_total_induced_charge_{}, *h_induced_pixel_charge_{};
+        Histogram<TH1D> h_total_induced_charge_, h_induced_pixel_charge_;
+        Histogram<TH2D> h_induced_pulses_, h_integrated_pulses_;
+        Histogram<TProfile> p_induced_pulses_, p_integrated_pulses_;
     };
 } // namespace allpix

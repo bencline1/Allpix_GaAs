@@ -41,7 +41,7 @@ CapacitiveTransferModule::CapacitiveTransferModule(Configuration& config,
     config_.setDefault("minimum_gap", config_.get<double>("nominal_gap"));
 
     // Require propagated deposits for single detector
-    messenger->bindSingle(this, &CapacitiveTransferModule::propagated_message_, MsgFlags::REQUIRED);
+    messenger_->bindSingle<PropagatedChargeMessage>(this, MsgFlags::REQUIRED);
 }
 
 void CapacitiveTransferModule::init() {
@@ -58,14 +58,14 @@ void CapacitiveTransferModule::init() {
             LOG(TRACE) << "Creating output plots";
 
             // Create histograms if needed
-            coupling_map = new TH2D("coupling_map",
-                                    "Coupling;pixel x;pixel y",
-                                    static_cast<int>(max_col),
-                                    -0.5,
-                                    static_cast<int>(max_col) - 0.5,
-                                    static_cast<int>(max_row),
-                                    -0.5,
-                                    static_cast<int>(max_row) - 0.5);
+            coupling_map = CreateHistogram<TH2D>("coupling_map",
+                                                 "Coupling;pixel x;pixel y",
+                                                 static_cast<int>(max_col),
+                                                 -0.5,
+                                                 static_cast<int>(max_col) - 0.5,
+                                                 static_cast<int>(max_row),
+                                                 -0.5,
+                                                 static_cast<int>(max_row) - 0.5);
 
             for(size_t col = 0; col < max_col; col++) {
                 for(size_t row = 0; row < max_row; row++) {
@@ -122,14 +122,14 @@ void CapacitiveTransferModule::init() {
             LOG(TRACE) << "Creating output plots";
 
             // Create histograms if needed
-            coupling_map = new TH2D("coupling_map",
-                                    "Coupling;pixel x;pixel y",
-                                    static_cast<int>(max_col),
-                                    -0.5,
-                                    static_cast<int>(max_col) - 0.5,
-                                    static_cast<int>(max_row),
-                                    -0.5,
-                                    static_cast<int>(max_row) - 0.5);
+            coupling_map = CreateHistogram<TH2D>("coupling_map",
+                                                 "Coupling;pixel x;pixel y",
+                                                 static_cast<int>(max_col),
+                                                 -0.5,
+                                                 static_cast<int>(max_col) - 0.5,
+                                                 static_cast<int>(max_row),
+                                                 -0.5,
+                                                 static_cast<int>(max_row) - 0.5);
 
             for(col = 0; col < max_col; col++) {
                 for(row = 0; row < max_row; row++) {
@@ -143,7 +143,7 @@ void CapacitiveTransferModule::init() {
                     << config_.get<std::string>("coupling_file");
 
     } else if(config_.has("coupling_scan_file")) {
-        TFile* root_file = new TFile(config_.getPath("coupling_scan_file", true).c_str());
+        auto* root_file = new TFile(config_.getPath("coupling_scan_file", true).c_str());
         if(root_file->IsZombie()) {
             throw InvalidValueError(config_, "coupling_scan_file", "ROOT file is corrupted. Please, check it");
         }
@@ -207,19 +207,20 @@ void CapacitiveTransferModule::init() {
             auto xpixels = static_cast<int>(model_->getNPixels().x());
             auto ypixels = static_cast<int>(model_->getNPixels().y());
 
-            gap_map = new TH2D("gap_map", "Gap;pixel x;pixel y", xpixels, -0.5, xpixels, ypixels, -0.5, ypixels - 0.5);
+            gap_map = CreateHistogram<TH2D>(
+                "gap_map", "Gap;pixel x;pixel y", xpixels, -0.5, xpixels, ypixels, -0.5, ypixels - 0.5);
 
-            capacitance_map = new TH2D(
+            capacitance_map = CreateHistogram<TH2D>(
                 "capacitance_map", "Capacitance;pixel x;pixel y", xpixels, -0.5, xpixels, ypixels, -0.5, ypixels - 0.5);
 
-            relative_capacitance_map = new TH2D("relative_capacitance_map",
-                                                "Relative Capacitance;pixel x;pixel y",
-                                                xpixels,
-                                                -0.5,
-                                                xpixels,
-                                                ypixels,
-                                                -0.5,
-                                                ypixels - 0.5);
+            relative_capacitance_map = CreateHistogram<TH2D>("relative_capacitance_map",
+                                                             "Relative Capacitance;pixel x;pixel y",
+                                                             xpixels,
+                                                             -0.5,
+                                                             xpixels,
+                                                             ypixels,
+                                                             -0.5,
+                                                             ypixels - 0.5);
 
             for(int col = 0; col < xpixels; col++) {
                 for(int row = 0; row < ypixels; row++) {
@@ -228,7 +229,7 @@ void CapacitiveTransferModule::init() {
 
                     Eigen::Vector3d pixel_point(local_x, local_y, 0);
                     Eigen::Vector3d pixel_projection = plane.projection(pixel_point);
-                    pixel_gap = pixel_projection[2];
+                    auto pixel_gap = pixel_projection[2];
 
                     gap_map->Fill(col, row, static_cast<double>(Units::convert(pixel_gap, "um")));
                     capacitance_map->Fill(
@@ -251,13 +252,14 @@ void CapacitiveTransferModule::init() {
     }
 }
 
-void CapacitiveTransferModule::run(unsigned int) {
+void CapacitiveTransferModule::run(Event* event) {
+    auto propagated_message = messenger_->fetchMessage<PropagatedChargeMessage>(this, event);
 
     // Find corresponding pixels for all propagated charges
     LOG(TRACE) << "Transferring charges to pixels";
     unsigned int transferred_charges_count = 0;
     std::map<Pixel::Index, std::pair<double, std::vector<const PropagatedCharge*>>> pixel_map;
-    for(auto& propagated_charge : propagated_message_->getData()) {
+    for(const auto& propagated_charge : propagated_message->getData()) {
         auto position = propagated_charge.getLocalPosition();
         // Ignore if outside depth range of implant
         if(std::fabs(position.z() - (model_->getSensorCenter().z() + model_->getSensorSize().z() / 2.0)) >
@@ -304,7 +306,7 @@ void CapacitiveTransferModule::run(unsigned int) {
                     double local_y = pixel_index.y() * model_->getPixelSize().y();
                     pixel_point = Eigen::Vector3d(local_x, local_y, 0);
                     pixel_projection = plane.projection(pixel_point);
-                    pixel_gap = pixel_projection[2];
+                    double pixel_gap = pixel_projection[2];
 
                     ccpd_factor = capacitances[row * 3 + col]->Eval(
                                       static_cast<double>(Units::convert(pixel_gap, "um")), nullptr, "S") *
@@ -319,10 +321,13 @@ void CapacitiveTransferModule::run(unsigned int) {
                 }
 
                 // Update statistics
-                unique_pixels_.insert(pixel_index);
-
+                {
+                    std::lock_guard<std::mutex> lock{stats_mutex_};
+                    unique_pixels_.insert(pixel_index);
+                }
                 transferred_charges_count += static_cast<unsigned int>(propagated_charge.getCharge() * ccpd_factor);
-                neighbour_charge = propagated_charge.getCharge() * ccpd_factor;
+                neighbour_charge =
+                    static_cast<double>(propagated_charge.getSign() * propagated_charge.getCharge()) * ccpd_factor;
 
                 LOG(DEBUG) << "Set of " << propagated_charge.getCharge() * ccpd_factor << " charges brought to neighbour "
                            << col << "," << row << " pixel " << pixel_index << "with cross-coupling of " << ccpd_factor * 100
@@ -353,7 +358,7 @@ void CapacitiveTransferModule::run(unsigned int) {
 
     // Dispatch message of pixel charges
     auto pixel_message = std::make_shared<PixelChargeMessage>(pixel_charges, detector_);
-    messenger_->dispatchMessage(this, pixel_message);
+    messenger_->dispatchMessage(this, pixel_message, event);
 }
 
 void CapacitiveTransferModule::finalize() {

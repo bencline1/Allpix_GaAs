@@ -30,14 +30,16 @@ namespace allpix {
          * @param global_position Global position of the propagated set of charges in the sensor
          * @param type Type of the carrier
          * @param charge Total charge of the deposit
-         * @param event_time Time of deposition after event start
+         * @param local_time Time of propagation arrival after energy deposition, local reference frame
+         * @param global_time Total time of propagation arrival after event start, global reference frame
          * @param mc_particle Optional pointer to related MC particle
          */
         DepositedCharge(ROOT::Math::XYZPoint local_position,
                         ROOT::Math::XYZPoint global_position,
                         CarrierType type,
                         unsigned int charge,
-                        double event_time,
+                        double local_time,
+                        double global_time,
                         const MCParticle* mc_particle = nullptr);
 
         /**
@@ -62,14 +64,16 @@ namespace allpix {
         /**
          * @brief ROOT class definition
          */
-        ClassDefOverride(DepositedCharge, 2);
+        ClassDefOverride(DepositedCharge, 3); // NOLINT
         /**
          * @brief Default constructor for ROOT I/O
          */
         DepositedCharge() = default;
 
+        void petrifyHistory() override;
+
     private:
-        TRef mc_particle_;
+        PointerWrapper<MCParticle> mc_particle_;
     };
 
     /**

@@ -18,6 +18,7 @@
 #include "core/config/ConfigReader.hpp"
 #include "core/config/Configuration.hpp"
 #include "core/config/exceptions.h"
+#include "core/module/ThreadPool.hpp"
 #include "core/utils/log.h"
 #include "core/utils/unit.h"
 #include "tools/ROOT.h"
@@ -26,12 +27,12 @@
 
 #include "MeshElement.hpp"
 #include "MeshParser.hpp"
-#include "ThreadPool.hpp"
 #include "combinations/combinations.h"
 #include "octree/Octree.hpp"
 
 using namespace mesh_converter;
 using namespace ROOT::Math;
+using allpix::ThreadPool;
 
 void interrupt_handler(int);
 
@@ -413,7 +414,7 @@ int main(int argc, char** argv) {
             allpix::Log::setFormat(log_format);
         };
 
-        ThreadPool pool(num_threads, init_function);
+        ThreadPool pool(num_threads, num_threads * 1024, init_function);
         std::vector<std::future<std::vector<Point>>> mesh_futures;
         // Set starting point
         double x = minx + xstep / 2.0;

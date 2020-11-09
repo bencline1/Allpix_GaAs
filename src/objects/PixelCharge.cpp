@@ -10,31 +10,37 @@
 #include "PixelCharge.hpp"
 
 #include <set>
-#include "exceptions.h"
+#include "objects/exceptions.h"
 
 using namespace allpix;
 
-PixelCharge::PixelCharge(Pixel pixel, unsigned int charge, const std::vector<const PropagatedCharge*>& propagated_charges)
+PixelCharge::PixelCharge(Pixel pixel, long charge, const std::vector<const PropagatedCharge*>& propagated_charges)
     : pixel_(std::move(pixel)), charge_(charge) {
     // Unique set of MC particles
-    std::set<TRef> unique_particles;
+    std::set<const MCParticle*> unique_particles;
     // Store all propagated charges and their MC particles
-    for(auto& propagated_charge : propagated_charges) {
-        propagated_charges_.push_back(const_cast<PropagatedCharge*>(propagated_charge)); // NOLINT
-        unique_particles.insert(propagated_charge->mc_particle_);
+    for(const auto& propagated_charge : propagated_charges) {
+        propagated_charges_.emplace_back(propagated_charge);
+        unique_particles.insert(propagated_charge->mc_particle_.get());
     }
     // Store the MC particle references
-    for(auto& mc_particle : unique_particles) {
-        mc_particles_.push_back(mc_particle);
+    for(const auto& mc_particle : unique_particles) {
+        // Local and global time are set as the earliest time found among the MCParticles:
+        if(mc_particle != nullptr) {
+            const auto* primary = mc_particle->getPrimary();
+            local_time_ = std::min(local_time_, primary->getLocalTime());
+            global_time_ = std::min(global_time_, primary->getGlobalTime());
+        }
+        mc_particles_.emplace_back(mc_particle);
     }
 
     // No pulse provided, set full charge in first bin:
-    pulse_.addCharge(charge, 0);
+    pulse_.addCharge(static_cast<double>(charge), 0);
 }
 
 // WARNING PixelCharge always returns a positive "collected" charge...
 PixelCharge::PixelCharge(Pixel pixel, Pulse pulse, const std::vector<const PropagatedCharge*>& propagated_charges)
-    : PixelCharge(std::move(pixel), static_cast<unsigned int>(std::abs(pulse.getCharge())), propagated_charges) {
+    : PixelCharge(std::move(pixel), static_cast<long>(pulse.getCharge()), propagated_charges) {
     pulse_ = std::move(pulse);
 }
 
@@ -46,12 +52,24 @@ Pixel::Index PixelCharge::getIndex() const {
     return getPixel().getIndex();
 }
 
-unsigned int PixelCharge::getCharge() const {
+long PixelCharge::getCharge() const {
     return charge_;
+}
+
+unsigned long PixelCharge::getAbsoluteCharge() const {
+    return static_cast<unsigned long>(std::abs(charge_));
 }
 
 const Pulse& PixelCharge::getPulse() const {
     return pulse_;
+}
+
+double PixelCharge::getGlobalTime() const {
+    return global_time_;
+}
+
+double PixelCharge::getLocalTime() const {
+    return local_time_;
 }
 
 /**
@@ -62,11 +80,11 @@ const Pulse& PixelCharge::getPulse() const {
 std::vector<const PropagatedCharge*> PixelCharge::getPropagatedCharges() const {
     // FIXME: This is not very efficient unfortunately
     std::vector<const PropagatedCharge*> propagated_charges;
-    for(auto& propagated_charge : propagated_charges_) {
-        if(!propagated_charge.IsValid() || propagated_charge.GetObject() == nullptr) {
+    for(const auto& propagated_charge : propagated_charges_) {
+        if(propagated_charge.get() == nullptr) {
             throw MissingReferenceException(typeid(*this), typeid(PropagatedCharge));
         }
-        propagated_charges.emplace_back(dynamic_cast<PropagatedCharge*>(propagated_charge.GetObject()));
+        propagated_charges.emplace_back(propagated_charge.get());
     }
     return propagated_charges;
 }
@@ -79,11 +97,11 @@ std::vector<const PropagatedCharge*> PixelCharge::getPropagatedCharges() const {
 std::vector<const MCParticle*> PixelCharge::getMCParticles() const {
 
     std::vector<const MCParticle*> mc_particles;
-    for(auto& mc_particle : mc_particles_) {
-        if(!mc_particle.IsValid() || mc_particle.GetObject() == nullptr) {
+    for(const auto& mc_particle : mc_particles_) {
+        if(mc_particle.get() == nullptr) {
             throw MissingReferenceException(typeid(*this), typeid(MCParticle));
         }
-        mc_particles.emplace_back(dynamic_cast<MCParticle*>(mc_particle.GetObject()));
+        mc_particles.emplace_back(mc_particle.get());
     }
 
     // Return as a vector of mc particles
@@ -101,5 +119,12 @@ void PixelCharge::print(std::ostream& out) const {
         << "Local Position: (" << local_center_location.X() << ", " << local_center_location.Y() << ", "
         << local_center_location.Z() << ") mm\n"
         << "Global Position: (" << global_center_location.X() << ", " << global_center_location.Y() << ", "
-        << global_center_location.Z() << ") mm\n";
+        << global_center_location.Z() << ") mm\n"
+        << "Local time:" << local_time_ << " ns\n"
+        << "Global time:" << global_time_ << " ns\n";
+}
+
+void PixelCharge::petrifyHistory() {
+    std::for_each(propagated_charges_.begin(), propagated_charges_.end(), [](auto& n) { n.store(); });
+    std::for_each(mc_particles_.begin(), mc_particles_.end(), [](auto& n) { n.store(); });
 }

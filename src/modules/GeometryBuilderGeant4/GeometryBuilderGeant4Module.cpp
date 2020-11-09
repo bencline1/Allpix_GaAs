@@ -14,7 +14,6 @@
 #include <string>
 #include <utility>
 
-#include <G4RunManager.hh>
 #include <G4UImanager.hh>
 #include <G4UIterminal.hh>
 #include <G4Version.hh>
@@ -22,16 +21,19 @@
 
 #include <Math/Vector3D.h>
 
-#include "tools/ROOT.h"
-#include "tools/geant4.h"
-
 #include "DetectorConstructionG4.hpp"
+#include "GeometryConstructionG4.hpp"
 #include "PassiveMaterialConstructionG4.hpp"
+
+#include "tools/ROOT.h"
+#include "tools/geant4/geant4.h"
 
 #include "core/config/ConfigReader.hpp"
 #include "core/config/exceptions.h"
 #include "core/geometry/GeometryManager.hpp"
 #include "core/utils/log.h"
+#include "tools/geant4/MTRunManager.hpp"
+#include "tools/geant4/RunManager.hpp"
 
 using namespace allpix;
 using namespace ROOT;
@@ -39,6 +41,8 @@ using namespace ROOT;
 GeometryBuilderGeant4Module::GeometryBuilderGeant4Module(Configuration& config, Messenger*, GeometryManager* geo_manager)
     : Module(config), geo_manager_(geo_manager), run_manager_g4_(nullptr) {
     geometry_construction_ = new GeometryConstructionG4(geo_manager_, config_);
+    // Enable parallelization of this module if multithreading is enabled
+    enable_parallelization();
 }
 
 /**
@@ -81,10 +85,15 @@ void GeometryBuilderGeant4Module::init() {
 
     // Suppress all output (also stdout due to a part in Geant4 where G4cout is not used)
     SUPPRESS_STREAM(std::cout);
-    SUPPRESS_STREAM(G4cout);
+    SUPPRESS_STREAM_EXCEPT(TRACE, G4cout);
 
-    // Create the G4 run manager
-    run_manager_g4_ = std::make_unique<G4RunManager>();
+    // Create the G4 run manager. If multithreading was requested we use the custom run manager
+    // that support calling BeamOn operations in parallel. Otherwise we use default manager.
+    if(canParallelize()) {
+        run_manager_g4_ = std::make_unique<MTRunManager>();
+    } else {
+        run_manager_g4_ = std::make_unique<RunManager>();
+    }
 
     // Release stdout again
     RELEASE_STREAM(std::cout);

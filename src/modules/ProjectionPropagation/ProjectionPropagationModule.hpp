@@ -16,10 +16,13 @@
 #include "core/config/Configuration.hpp"
 #include "core/geometry/DetectorModel.hpp"
 #include "core/messenger/Messenger.hpp"
+#include "core/module/Event.hpp"
 #include "core/module/Module.hpp"
 
 #include "objects/DepositedCharge.hpp"
 #include "objects/PropagatedCharge.hpp"
+
+#include "tools/ROOT.h"
 
 namespace allpix {
     /**
@@ -48,7 +51,7 @@ namespace allpix {
         /**
          * @brief Projection of the electrons to the surface
          */
-        void run(unsigned int) override;
+        void run(Event*) override;
 
         /**
          * @brief Write plots if needed
@@ -59,9 +62,6 @@ namespace allpix {
         Messenger* messenger_;
         std::shared_ptr<const Detector> detector_;
         std::shared_ptr<DetectorModel> model_;
-
-        // Random generator for diffusion calculation
-        std::mt19937_64 random_generator_;
 
         // Config parameters: Check whether plots should be generated
         bool output_plots_;
@@ -81,19 +81,13 @@ namespace allpix {
         double electron_Ec_;
         double electron_Beta_;
 
-        // Calculated slope of the electric field
-        double slope_efield_;
-
         // Precalculated value for Boltzmann constant:
         double boltzmann_kT_;
 
         // Output plot for drift time
-        TH1D* drift_time_histo_;
-        TH1D* diffusion_time_histo_;
-        TH1D* propagation_time_histo_;
-        TH1D* initial_position_histo_;
-
-        // Deposits for the bound detector in this event
-        std::shared_ptr<DepositedChargeMessage> deposits_message_;
+        Histogram<TH1D> drift_time_histo_;
+        Histogram<TH1D> diffusion_time_histo_;
+        Histogram<TH1D> propagation_time_histo_;
+        Histogram<TH1D> initial_position_histo_;
     };
 } // namespace allpix

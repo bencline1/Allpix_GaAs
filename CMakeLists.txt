@@ -1,5 +1,5 @@
 # CMake file for the allpix2 framework
-CMAKE_MINIMUM_REQUIRED(VERSION 3.4.3 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.6.3 FATAL_ERROR)
 IF(COMMAND CMAKE_POLICY)
   CMAKE_POLICY(SET CMP0003 NEW) # change linker path search behaviour
   CMAKE_POLICY(SET CMP0048 NEW) # set project version
@@ -9,7 +9,7 @@ IF(COMMAND CMAKE_POLICY)
 ENDIF(COMMAND CMAKE_POLICY)
 
 # Set default version
-SET(ALLPIX_VERSION "v1.5.0")
+SET(ALLPIX_VERSION "v1.6.0")
 
 # Set default build type
 IF(NOT CMAKE_BUILD_TYPE)
@@ -92,7 +92,7 @@ IF(APPLE)
 ENDIF()
 
 # If available, use CMake's link-what-you-use feature, not on APPLE
-IF(${CMAKE_VERSION} VERSION_GREATER "3.6.3" AND NOT APPLE AND NOT CMAKE_LINK_WHAT_YOU_USE)
+IF(NOT APPLE AND NOT CMAKE_LINK_WHAT_YOU_USE)
   SET(CMAKE_LINK_WHAT_YOU_USE TRUE CACHE STRING "Choose whether to only link libraries which contain symbols actually used by the target." FORCE)
 ENDIF()
 
@@ -159,6 +159,10 @@ FIND_PACKAGE(Threads REQUIRED)
 # Define the libraries
 SET(ALLPIX_LIBRARIES "")
 
+# Define the optional libraries
+SET(ALLPIX_GEANT4_INTERFACE "AllpixGeant4Interface")
+SET(ALLPIX_BUILD_GEANT4_INTERFACE "OFF" CACHE BOOL "Build Geant4 interface library" FORCE)
+
 # ROOT is required for vector and persistency etc
 FIND_PACKAGE(ROOT REQUIRED COMPONENTS Geom Core GenVector Hist RIO NO_MODULE)
 IF(NOT ROOT_FOUND)
@@ -204,7 +208,9 @@ ADD_RUNTIME_DEP(thisroot.sh)
 ###################################
 
 # Set the clang-format version required by the CI for correct formatting:
-SET(CLANG_FORMAT_VERSION "8")
+SET(CLANG_FORMAT_VERSION "10")
+# Set the clang-tidy version of the linter required by the CI:
+SET(CLANG_TIDY_VERSION "10")
 
 # Set the source files to clang-format (FIXME: determine this better)
 FILE(GLOB_RECURSE
@@ -238,6 +244,11 @@ SET(ALLPIX_LIBRARIES ${ALLPIX_LIBRARIES} AllpixCore)
 
 # Build required modules
 ADD_SUBDIRECTORY(src/modules)
+
+# Build geant4 interface library if needed by modules
+IF(${ALLPIX_BUILD_GEANT4_INTERFACE})
+    ADD_SUBDIRECTORY(src/tools/geant4)
+ENDIF()
 
 # Build the executable
 ADD_SUBDIRECTORY(src/exec)

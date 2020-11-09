@@ -90,6 +90,10 @@ namespace allpix {
         std::unique_ptr<ModuleManager> mod_mgr_;
         std::unique_ptr<ConfigManager> conf_mgr_;
         std::unique_ptr<GeometryManager> geo_mgr_{};
+
+        // Random generators
+        RandomNumberGenerator seeder_modules_;
+        RandomNumberGenerator seeder_core_;
     };
 } // namespace allpix
 

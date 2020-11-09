@@ -33,7 +33,10 @@
 using namespace allpix;
 
 ROOTObjectReaderModule::ROOTObjectReaderModule(Configuration& config, Messenger* messenger, GeometryManager* geo_mgr)
-    : Module(config), messenger_(messenger), geo_mgr_(geo_mgr) {}
+    : Module(config), messenger_(messenger), geo_mgr_(geo_mgr) {
+    // Enable parallelization of this module if multithreading is enabled
+    enable_parallelization();
+}
 
 /**
  * @note Objects cannot be stored in smart pointers due to internal ROOT logic
@@ -128,7 +131,7 @@ void ROOTObjectReaderModule::init() {
     for(auto&& object : *keys) {
         auto& key = dynamic_cast<TKey&>(*object);
         if(std::string(key.GetClassName()) == "TTree") {
-            auto tree = static_cast<TTree*>(key.ReadObjectAny(nullptr));
+            auto* tree = static_cast<TTree*>(key.ReadObjectAny(nullptr));
 
             // Check if a version of this tree has already been read
             if(tree_names.find(tree->GetName()) != tree_names.end()) {
@@ -253,7 +256,12 @@ void ROOTObjectReaderModule::init() {
     }
 }
 
-void ROOTObjectReaderModule::run(unsigned int event_num) {
+void ROOTObjectReaderModule::run(Event* event) {
+    // We can not read multiple events at the same time so we need to synchronize access
+    std::lock_guard<std::mutex> lock{mutex_};
+
+    // Beware: ROOT uses signed entry counters for its trees
+    auto event_num = static_cast<int64_t>(event->number);
     --event_num;
     for(auto& tree : trees_) {
         if(event_num >= tree->GetEntries()) {
@@ -266,7 +274,7 @@ void ROOTObjectReaderModule::run(unsigned int event_num) {
 
     // Loop through all branches
     for(const auto& message_inf : message_info_array_) {
-        auto objects = message_inf.objects;
+        auto* objects = message_inf.objects;
 
         // Skip empty objects in current event
         if(objects->empty()) {
@@ -274,7 +282,7 @@ void ROOTObjectReaderModule::run(unsigned int event_num) {
         }
 
         // Check if a pointer to a dispatcher method exist
-        auto first_object = (*objects)[0];
+        auto* first_object = (*objects)[0];
         auto iter = message_creator_map_.find(typeid(*first_object));
         if(iter == message_creator_map_.end()) {
             LOG(INFO) << "Cannot dispatch message with object " << allpix::demangle(typeid(*first_object).name())
@@ -289,7 +297,7 @@ void ROOTObjectReaderModule::run(unsigned int event_num) {
         std::shared_ptr<BaseMessage> message = iter->second(*objects, message_inf.detector);
 
         // Dispatch the message
-        messenger_->dispatchMessage(this, message, message_inf.name);
+        messenger_->dispatchMessage(this, message, event, message_inf.name);
     }
 }
 
@@ -301,7 +309,4 @@ void ROOTObjectReaderModule::finalize() {
 
     // Print statistics
     LOG(INFO) << "Read " << read_cnt_ << " objects from " << branch_count << " branches";
-
-    // Close the file
-    input_file_->Close();
 }

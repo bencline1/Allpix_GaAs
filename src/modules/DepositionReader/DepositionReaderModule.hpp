@@ -14,6 +14,7 @@
  */
 
 #include <fstream>
+#include <functional>
 #include <string>
 
 #include <TFile.h>
@@ -36,7 +37,7 @@ namespace allpix {
      * individual events with a list of energy deposits at specific position given in local coordinates of the respective
      * detector.
      */
-    class DepositionReaderModule : public Module {
+    class DepositionReaderModule : public BufferedModule {
     public:
         /**
          * @brief Constructor for this unique module
@@ -54,7 +55,7 @@ namespace allpix {
         /**
          * @brief Read the deposited energy for a given event and create a corresponding DepositedCharge message
          */
-        void run(unsigned int) override;
+        void run(Event*) override;
 
         /**
          * @brief Finalize and write histograms
@@ -93,7 +94,9 @@ namespace allpix {
         size_t volume_chars_{};
         std::string unit_length_{}, unit_time_{}, unit_energy_{};
 
-        bool read_csv(unsigned int event_num,
+        bool create_mcparticles_{}, time_available_{};
+
+        bool read_csv(uint64_t event_num,
                       std::string& volume,
                       ROOT::Math::XYZPoint& position,
                       double& time,
@@ -101,7 +104,7 @@ namespace allpix {
                       int& pdg_code,
                       int& track_id,
                       int& parent_id);
-        bool read_root(unsigned int event_num,
+        bool read_root(uint64_t event_num,
                        std::string& volume,
                        ROOT::Math::XYZPoint& position,
                        double& time,
@@ -110,10 +113,9 @@ namespace allpix {
                        int& track_id,
                        int& parent_id);
 
-        // Random number generator for e/h pair creation fluctuation
-        std::mt19937_64 random_generator_;
-
         // Vector of histogram pointers for debugging plots
-        std::map<std::string, TH1D*> charge_per_event_;
+        std::map<std::string, Histogram<TH1D>> charge_per_event_;
+
+        std::mutex mutex_;
     };
 } // namespace allpix

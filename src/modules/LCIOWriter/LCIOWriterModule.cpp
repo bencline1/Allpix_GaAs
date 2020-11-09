@@ -91,11 +91,13 @@ inline std::array<long double, 3> getRotationAnglesFromMatrix(ROOT::Math::Rotati
 }
 
 LCIOWriterModule::LCIOWriterModule(Configuration& config, Messenger* messenger, GeometryManager* geo)
-    : Module(config), geo_mgr_(geo) {
+    : BufferedModule(config), messenger_(messenger), geo_mgr_(geo) {
+    // Enable parallelization of this module if multithreading is enabled
+    enable_parallelization();
 
     // Bind pixel hits message
-    messenger->bindMulti(this, &LCIOWriterModule::pixel_messages_, MsgFlags::REQUIRED);
-    messenger->bindSingle(this, &LCIOWriterModule::mctracks_message_, MsgFlags::REQUIRED);
+    messenger_->bindMulti<PixelHitMessage>(this, MsgFlags::REQUIRED);
+    messenger_->bindSingle<MCTrackMessage>(this, MsgFlags::REQUIRED);
 
     // Set configuration defaults:
     config_.setDefault("file_name", "output.slcio");
@@ -245,10 +247,12 @@ void LCIOWriterModule::init() {
     lcWriter_->writeRunHeader(run.get());
 }
 
-void LCIOWriterModule::run(unsigned int eventNb) {
+void LCIOWriterModule::run(Event* event) {
+    auto pixel_messages = messenger_->fetchMultiMessage<PixelHitMessage>(this, event);
+
     auto evt = std::make_unique<LCEventImpl>(); // create the event
     evt->setRunNumber(1);
-    evt->setEventNumber(static_cast<int>(eventNb)); // set the event attributes
+    evt->setEventNumber(static_cast<int>(event->number)); // set the event attributes
     evt->parameters().setValue("EventType", 2);
 
     auto output_col_vec = std::vector<LCCollectionVec*>();
@@ -297,7 +301,7 @@ void LCIOWriterModule::run(unsigned int eventNb) {
     }
 
     // Receive all pixel messages, fill charge vectors
-    for(const auto& hit_msg : pixel_messages_) {
+    for(const auto& hit_msg : pixel_messages) {
         LOG(DEBUG) << hit_msg->getDetector()->getName();
         for(const auto& hitdata : hit_msg->getData()) {
 
@@ -360,11 +364,11 @@ void LCIOWriterModule::run(unsigned int eventNb) {
     // a TrackerPulse linked to a TrackerData object
     if(dump_mc_truth_ == true) {
         for(auto& mcp_pixel_data_vec_pair : mcp_to_pixel_data_vec) {
-            auto mc_tracker_data = new TrackerDataImpl();
-            auto mc_tracker_pulse = new TrackerPulseImpl();
-            auto mc_tracker_hit = new TrackerHitImpl();
+            auto* mc_tracker_data = new TrackerDataImpl();
+            auto* mc_tracker_pulse = new TrackerPulseImpl();
+            auto* mc_tracker_hit = new TrackerHitImpl();
 
-            auto& mc_particle = mcp_pixel_data_vec_pair.first;
+            const auto& mc_particle = mcp_pixel_data_vec_pair.first;
 
             // Every detected pixel hit which had charge contribution from this MCParticle will be added to the cluster
             std::vector<float> truth_cluster_charge_vec;
@@ -410,7 +414,7 @@ void LCIOWriterModule::run(unsigned int eventNb) {
     // Fill hitvector with event data
     for(auto const& det_id_name_pair : detector_names_to_id_) {
         auto det_id = det_id_name_pair.second;
-        auto hit = new TrackerDataImpl();
+        auto* hit = new TrackerDataImpl();
         hit->setChargeValues(charges[det_id]);
         auto col_index = detector_ids_to_colllection_index_[det_id];
         (*output_col_encoder_vec[col_index])["sensorID"] = det_id;
@@ -424,7 +428,7 @@ void LCIOWriterModule::run(unsigned int eventNb) {
         flag.setBit(LCIO::TRBIT_HITS);
         mc_track_vec->setFlag(flag.getFlag());
         for(auto& pair : mctrk_to_hit_data_vec) {
-            auto track = new TrackImpl();
+            auto* track = new TrackImpl();
             for(auto& hit : pair.second) {
                 // std::cout << "Got hit: " << hit << " z-pos: " << hit->getPosition()[2] << '\n';
                 track->addHit(hit);

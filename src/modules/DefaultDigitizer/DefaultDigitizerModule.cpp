@@ -22,15 +22,12 @@ using namespace allpix;
 DefaultDigitizerModule::DefaultDigitizerModule(Configuration& config,
                                                Messenger* messenger,
                                                std::shared_ptr<Detector> detector)
-    : Module(config, std::move(detector)), messenger_(messenger), pixel_message_(nullptr) {
+    : Module(config, std::move(detector)), messenger_(messenger) {
     // Enable parallelization of this module if multithreading is enabled
     enable_parallelization();
 
     // Require PixelCharge message for single detector
-    messenger_->bindSingle(this, &DefaultDigitizerModule::pixel_message_, MsgFlags::REQUIRED);
-
-    // Seed the random generator with the global seed
-    random_generator_.seed(getRandomSeed());
+    messenger_->bindSingle<PixelChargeMessage>(this, MsgFlags::REQUIRED);
 
     config_.setAlias("qdc_resolution", "adc_resolution", true);
     config_.setAlias("qdc_smearing", "adc_smearing", true);
@@ -91,78 +88,86 @@ void DefaultDigitizerModule::init() {
         auto nbins = config_.get<int>("output_plots_bins");
 
         // Create histograms if needed
-        h_pxq = new TH1D("pixelcharge", "raw pixel charge;pixel charge [ke];pixels", nbins, 0, maximum);
-        h_pxq_noise = new TH1D("pixelcharge_noise", "pixel charge w/ el. noise;pixel charge [ke];pixels", nbins, 0, maximum);
-        h_gain = new TH1D("gain", "applied gain; gain factor;events", 40, -20, 20);
-        h_pxq_gain =
-            new TH1D("pixelcharge_gain", "pixel charge w/ gain applied;pixel charge [ke];pixels", nbins, 0, maximum);
-        h_thr = new TH1D("threshold", "applied threshold; threshold [ke];events", maximum, 0, maximum / 10);
-        h_pxq_thr =
-            new TH1D("pixelcharge_threshold", "pixel charge above threshold;pixel charge [ke];pixels", nbins, 0, maximum);
+        h_pxq = CreateHistogram<TH1D>("pixelcharge", "raw pixel charge;pixel charge [ke];pixels", nbins, 0, maximum);
+        h_pxq_noise = CreateHistogram<TH1D>(
+            "pixelcharge_noise", "pixel charge w/ el. noise;pixel charge [ke];pixels", nbins, 0, maximum);
+        h_gain = CreateHistogram<TH1D>("gain", "applied gain; gain factor;events", 40, -20, 20);
+        h_pxq_gain = CreateHistogram<TH1D>(
+            "pixelcharge_gain", "pixel charge w/ gain applied;pixel charge [ke];pixels", nbins, 0, maximum);
+        h_thr = CreateHistogram<TH1D>("threshold", "applied threshold; threshold [ke];events", maximum, 0, maximum / 10);
+        h_pxq_thr = CreateHistogram<TH1D>(
+            "pixelcharge_threshold", "pixel charge above threshold;pixel charge [ke];pixels", nbins, 0, maximum);
 
         // Create final pixel charge plot with different axis, depending on whether ADC simulation is enabled or not
         if(config_.get<int>("qdc_resolution") > 0) {
-            h_pxq_adc_smear = new TH1D(
-                "pixelcharge_adc_smeared", "pixel charge after QDC smearing;pixel charge [ke];pixels", nbins, 0, maximum);
+            h_pxq_adc_smear = CreateHistogram<TH1D>(
+                "pixelcharge_adc_smeared", "pixel charge after ADC smearing;pixel charge [ke];pixels", nbins, 0, maximum);
 
             int adcbins = (1 << config_.get<int>("qdc_resolution"));
-            h_pxq_adc = new TH1D("pixelcharge_adc", "pixel charge after QDC;pixel charge [QDC];pixels", adcbins, 0, adcbins);
-            h_calibration = new TH2D("charge_adc_calibration",
-                                     "calibration curve of pixel charge to QDC units;pixel charge [ke];pixel charge [QDC]",
-                                     nbins,
-                                     0,
-                                     maximum,
-                                     adcbins,
-                                     0,
-                                     adcbins);
+            h_pxq_adc = CreateHistogram<TH1D>(
+                "pixelcharge_adc", "pixel charge after QDC;pixel charge [QDC];pixels", adcbins, 0, adcbins);
+            h_calibration =
+                CreateHistogram<TH2D>("charge_adc_calibration",
+                                      "calibration curve of pixel charge to QDC units;pixel charge [ke];pixel charge [QDC]",
+                                      nbins,
+                                      0,
+                                      maximum,
+                                      adcbins,
+                                      0,
+                                      adcbins);
         } else {
-            h_pxq_adc = new TH1D("pixelcharge_adc", "final pixel charge;pixel charge [ke];pixels", nbins, 0, maximum);
+            h_pxq_adc =
+                CreateHistogram<TH1D>("pixelcharge_adc", "final pixel charge;pixel charge [ke];pixels", nbins, 0, maximum);
         }
 
         int time_maximum = static_cast<int>(Units::convert(config_.get<int>("output_plots_timescale"), "ns"));
-        h_px_toa = new TH1D("pixel_toa", "pixel time-of-arrival;pixel ToA [ns];pixels", nbins, 0, maximum);
+        h_px_toa = CreateHistogram<TH1D>("pixel_toa", "pixel time-of-arrival;pixel ToA [ns];pixels", nbins, 0, maximum);
 
         // Create time-of-arrival plot with different axis, depending on whether TDC simulation is enabled or not
         if(config_.get<int>("tdc_resolution") > 0) {
-            h_px_tdc_smear = new TH1D("pixel_tdc_smeared",
-                                      "pixel time-of-arrival after TDC smearing;pixel ToA [ns];pixels",
-                                      nbins,
-                                      0,
-                                      time_maximum);
+            h_px_tdc_smear = CreateHistogram<TH1D>("pixel_tdc_smeared",
+                                                   "pixel time-of-arrival after TDC smearing;pixel ToA [ns];pixels",
+                                                   nbins,
+                                                   0,
+                                                   time_maximum);
 
             int adcbins = (1 << config_.get<int>("tdc_resolution"));
-            h_px_tdc = new TH1D("pixel_tdc", "pixel time-of-arrival after TDC;pixel ToA [TDC];pixels", adcbins, 0, adcbins);
-            h_toa_calibration =
-                new TH2D("tdc_calibration",
-                         "calibration curve of pixel time-of-arrival to TDC units;pixel ToA [ns];pixel ToA [TDC]",
-                         nbins,
-                         0,
-                         time_maximum,
-                         adcbins,
-                         0,
-                         adcbins);
+            h_px_tdc = CreateHistogram<TH1D>(
+                "pixel_tdc", "pixel time-of-arrival after TDC;pixel ToA [TDC];pixels", adcbins, 0, adcbins);
+            h_toa_calibration = CreateHistogram<TH2D>(
+                "tdc_calibration",
+                "calibration curve of pixel time-of-arrival to TDC units;pixel ToA [ns];pixel ToA [TDC]",
+                nbins,
+                0,
+                time_maximum,
+                adcbins,
+                0,
+                adcbins);
         } else {
-            h_px_tdc = new TH1D("pixel_tdc", "final pixel time-of-arrival;pixel ToA [ns];pixels", nbins, 0, time_maximum);
+            h_px_tdc = CreateHistogram<TH1D>(
+                "pixel_tdc", "final pixel time-of-arrival;pixel ToA [ns];pixels", nbins, 0, time_maximum);
         }
     }
 }
 
-void DefaultDigitizerModule::run(unsigned int) {
+void DefaultDigitizerModule::run(Event* event) {
+    auto pixel_message = messenger_->fetchMessage<PixelChargeMessage>(this, event);
+
     // Loop through all pixels with charges
     std::vector<PixelHit> hits;
-    for(auto& pixel_charge : pixel_message_->getData()) {
+    for(const auto& pixel_charge : pixel_message->getData()) {
         auto pixel = pixel_charge.getPixel();
         auto pixel_index = pixel.getIndex();
-        auto charge = static_cast<double>(pixel_charge.getCharge());
+        auto charge = static_cast<double>(pixel_charge.getAbsoluteCharge());
 
-        LOG(DEBUG) << "Received pixel " << pixel_index << ", charge " << Units::display(charge, "e");
+        LOG(DEBUG) << "Received pixel " << pixel_index << ", (absolute) charge " << Units::display(charge, "e");
         if(config_.get<bool>("output_plots")) {
             h_pxq->Fill(charge / 1e3);
         }
 
         // Add electronics noise from Gaussian:
         std::normal_distribution<double> el_noise(0, config_.get<unsigned int>("electronics_noise"));
-        charge += el_noise(random_generator_);
+        charge += el_noise(event->getRandomEngine());
 
         LOG(DEBUG) << "Charge with noise: " << Units::display(charge, "e");
         if(config_.get<bool>("output_plots")) {
@@ -171,7 +176,7 @@ void DefaultDigitizerModule::run(unsigned int) {
 
         // Smear the gain factor, Gaussian distribution around "gain" with width "gain_smearing"
         std::normal_distribution<double> gain_smearing(config_.get<double>("gain"), config_.get<double>("gain_smearing"));
-        double gain = gain_smearing(random_generator_);
+        double gain = gain_smearing(event->getRandomEngine());
         if(config_.get<bool>("output_plots")) {
             h_gain->Fill(gain);
         }
@@ -186,7 +191,7 @@ void DefaultDigitizerModule::run(unsigned int) {
         // Smear the threshold, Gaussian distribution around "threshold" with width "threshold_smearing"
         std::normal_distribution<double> thr_smearing(config_.get<unsigned int>("threshold"),
                                                       config_.get<unsigned int>("threshold_smearing"));
-        double threshold = thr_smearing(random_generator_);
+        double threshold = thr_smearing(event->getRandomEngine());
         if(config_.get<bool>("output_plots")) {
             h_thr->Fill(threshold / 1e3);
         }
@@ -210,7 +215,7 @@ void DefaultDigitizerModule::run(unsigned int) {
 
             // Add ADC smearing:
             std::normal_distribution<double> adc_smearing(0, config_.get<unsigned int>("qdc_smearing"));
-            charge += adc_smearing(random_generator_);
+            charge += adc_smearing(event->getRandomEngine());
             if(config_.get<bool>("output_plots")) {
                 h_pxq_adc_smear->Fill(charge / 1e3);
             }
@@ -232,7 +237,7 @@ void DefaultDigitizerModule::run(unsigned int) {
         }
 
         auto time = time_of_arrival(pixel_charge, threshold);
-        LOG(DEBUG) << "Time of arrival: " << Units::display(time, {"ns", "ps"});
+        LOG(DEBUG) << "Local time of arrival: " << Units::display(time, {"ns", "ps"});
         if(config_.get<bool>("output_plots")) {
             h_px_toa->Fill(time);
         }
@@ -244,7 +249,7 @@ void DefaultDigitizerModule::run(unsigned int) {
 
             // Add TDC smearing:
             std::normal_distribution<double> tdc_smearing(0, config_.get<unsigned int>("tdc_smearing"));
-            time += tdc_smearing(random_generator_);
+            time += tdc_smearing(event->getRandomEngine());
             if(config_.get<bool>("output_plots")) {
                 h_px_tdc_smear->Fill(time);
             }
@@ -266,7 +271,7 @@ void DefaultDigitizerModule::run(unsigned int) {
         }
 
         // Add the hit to the hitmap
-        hits.emplace_back(pixel, time, charge, &pixel_charge);
+        hits.emplace_back(pixel, time, pixel_charge.getGlobalTime() + time, charge, &pixel_charge);
     }
 
     // Output summary and update statistics
@@ -276,7 +281,7 @@ void DefaultDigitizerModule::run(unsigned int) {
     if(!hits.empty()) {
         // Create and dispatch hit message
         auto hits_message = std::make_shared<PixelHitMessage>(std::move(hits), getDetector());
-        messenger_->dispatchMessage(this, hits_message);
+        messenger_->dispatchMessage(this, hits_message, event);
     }
 }
 

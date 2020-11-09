@@ -32,7 +32,7 @@
 #include "Passive_Material_Models/SphereModel.hpp"
 #include "core/module/exceptions.h"
 #include "tools/ROOT.h"
-#include "tools/geant4.h"
+#include "tools/geant4/geant4.h"
 
 using namespace allpix;
 using namespace ROOT::Math;
@@ -59,7 +59,7 @@ void PassiveMaterialConstructionG4::registerVolumes() {
         auto m = std::find_if(vols.begin(), vols.end(), [&vol](const std::shared_ptr<PassiveMaterialModel>& v) {
             return v->getName() == vol->getMotherVolume();
         });
-        LOG(DEBUG) << "n=" << n;
+
         if(n > 100) {
             throw ModuleError(
                 "Hierarchy of mother volumes cannot be resolved. The configuration might hold circular dependencies.");

@@ -11,7 +11,7 @@
 
 #include "PropagatedCharge.hpp"
 
-#include "exceptions.h"
+#include "objects/exceptions.h"
 
 using namespace allpix;
 
@@ -19,10 +19,11 @@ PropagatedCharge::PropagatedCharge(ROOT::Math::XYZPoint local_position,
                                    ROOT::Math::XYZPoint global_position,
                                    CarrierType type,
                                    unsigned int charge,
-                                   double event_time,
+                                   double local_time,
+                                   double global_time,
                                    const DepositedCharge* deposited_charge)
-    : SensorCharge(std::move(local_position), std::move(global_position), type, charge, event_time) {
-    deposited_charge_ = const_cast<DepositedCharge*>(deposited_charge); // NOLINT
+    : SensorCharge(std::move(local_position), std::move(global_position), type, charge, local_time, global_time) {
+    deposited_charge_ = PointerWrapper<DepositedCharge>(deposited_charge);
     if(deposited_charge != nullptr) {
         mc_particle_ = deposited_charge->mc_particle_;
     }
@@ -32,7 +33,8 @@ PropagatedCharge::PropagatedCharge(ROOT::Math::XYZPoint local_position,
                                    ROOT::Math::XYZPoint global_position,
                                    CarrierType type,
                                    std::map<Pixel::Index, Pulse> pulses,
-                                   double event_time,
+                                   double local_time,
+                                   double global_time,
                                    const DepositedCharge* deposited_charge)
     : PropagatedCharge(std::move(local_position),
                        std::move(global_position),
@@ -43,7 +45,8 @@ PropagatedCharge::PropagatedCharge(ROOT::Math::XYZPoint local_position,
                                        [](const unsigned int prev, const auto& elem) {
                                            return prev + static_cast<unsigned int>(std::abs(elem.second.getCharge()));
                                        }),
-                       event_time,
+                       local_time,
+                       global_time,
                        deposited_charge) {
     pulses_ = std::move(pulses);
 }
@@ -54,7 +57,7 @@ PropagatedCharge::PropagatedCharge(ROOT::Math::XYZPoint local_position,
  * Object is stored as TRef and can only be accessed if pointed object is in scope
  */
 const DepositedCharge* PropagatedCharge::getDepositedCharge() const {
-    auto deposited_charge = dynamic_cast<DepositedCharge*>(deposited_charge_.GetObject());
+    auto* deposited_charge = deposited_charge_.get();
     if(deposited_charge == nullptr) {
         throw MissingReferenceException(typeid(*this), typeid(DepositedCharge));
     }
@@ -67,7 +70,7 @@ const DepositedCharge* PropagatedCharge::getDepositedCharge() const {
  * Object is stored as TRef and can only be accessed if pointed object is in scope
  */
 const MCParticle* PropagatedCharge::getMCParticle() const {
-    auto mc_particle = dynamic_cast<MCParticle*>(mc_particle_.GetObject());
+    auto* mc_particle = mc_particle_.get();
     if(mc_particle == nullptr) {
         throw MissingReferenceException(typeid(*this), typeid(MCParticle));
     }
@@ -81,4 +84,9 @@ std::map<Pixel::Index, Pulse> PropagatedCharge::getPulses() const {
 void PropagatedCharge::print(std::ostream& out) const {
     out << "--- Propagated charge information\n";
     SensorCharge::print(out);
+}
+
+void PropagatedCharge::petrifyHistory() {
+    deposited_charge_.store();
+    mc_particle_.store();
 }
