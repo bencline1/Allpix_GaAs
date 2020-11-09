@@ -281,24 +281,19 @@ void DefaultLogger::drawProgressBar(std::string identifier,
 
     stream << " " << std::setw(3) << std::setfill(' ') << (100 * current) / total << "% ";
 
-    std::string str_complete = " " + std::to_string(current) + " ";
-    std::string str_buffered = " " + std::to_string(buffered) + " ";
-    std::string str_total = " " + std::to_string(total) + " ";
+    std::string str_c = " " + std::to_string(current) + " ";
+    std::string str_b = " " + std::to_string(buffered) + " ";
+    std::string str_t = " " + std::to_string(total) + " ";
 
     auto width = query_line_length() - indent_count_ - 7;
     auto completed = (width * current) / total;
     auto buffer = (width * buffered) / total;
     auto pending = ((completed + buffer) >= width ? 0ul : width - completed - buffer);
 
-    stream << "\x1B[90;107m"
-           << (str_complete.length() > completed ? std::string(completed, ' ')
-                                                 : std::string(completed - str_complete.length(), ' ') + str_complete);
-    stream << "\x1B[90;47m"
-           << (str_buffered.length() > buffer ? std::string(buffer, ' ')
-                                              : std::string(buffer - str_buffered.length(), ' ') + str_buffered);
-    stream << "\x1B[37;100m"
-           << (str_total.length() > pending ? std::string(pending, ' ')
-                                            : std::string(pending - str_total.length(), ' ') + str_total);
+    stream << std::setfill(' ');
+    stream << "\x1B[90;107m" << std::setw(completed) << (str_c.length() > completed ? "" : str_c);
+    stream << "\x1B[90;47m" << std::setw(buffer) << (str_b.length() > buffer ? "" : str_b);
+    stream << "\x1B[37;100m" << std::setw(pending) << (str_t.length() > pending ? "" : str_t);
     stream << "\x1B[0m";
 }
 
