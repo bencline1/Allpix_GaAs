@@ -773,14 +773,12 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
                 }
 
                 dispatched_events++;
-                if(progress_bar) {
-                    LOG_PROGRESS_BAR(
-                        STATUS, "EVENT_LOOP", (dispatched_events - buffered_events), buffered_events, number_of_events);
-                } else {
-                    LOG_PROGRESS(STATUS, "EVENT_LOOP")
-                        << "Buffered " << buffered_events << ", finished " << (dispatched_events - buffered_events) << " of "
-                        << number_of_events << " events";
-                }
+                LOG_PROGRESS_BAR(STATUS,
+                                 "EVENT_LOOP",
+                                 progress_bar,
+                                 (dispatched_events - buffered_events),
+                                 buffered_events,
+                                 number_of_events);
             };
         thread_pool->submit(event_function);
         thread_pool->checkException();

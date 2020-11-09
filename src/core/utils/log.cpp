@@ -264,6 +264,7 @@ std::ostringstream& DefaultLogger::getProcessStream(
  */
 void DefaultLogger::drawProgressBar(std::string identifier,
                                     LogLevel level,
+                                    bool draw_bar,
                                     uint64_t current,
                                     uint64_t buffered,
                                     uint64_t total,
@@ -272,6 +273,12 @@ void DefaultLogger::drawProgressBar(std::string identifier,
                                     uint32_t line) {
     // Get a progress stream, set indicator to "#" to indicate progress bar (is overwritten)
     std::ostringstream& stream = getProcessStream(identifier, level, file, function, line);
+
+    if(!draw_bar) {
+        stream << "Buffered " << buffered << ", finished " << current << " of " << total << " events";
+        return;
+    }
+
     stream << " " << std::setw(3) << std::setfill(' ') << (100 * current) / total << "% ";
 
     std::string str_complete = " " + std::to_string(current) + " ";
