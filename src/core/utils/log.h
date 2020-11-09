@@ -108,10 +108,15 @@ namespace allpix {
                                              uint32_t line = 0);
 
         /**
-         * @brief Gives a process stream which updates the same line as long as it is the same
+         * @brief Gives a process stream which updates the same line as long as its identifier stays the same.
+         *
          * @param identifier Name to indicate the line, used to distinguish when to update or write new line
          * @param level Logging level
          * @param draw_bar Indicate whether a bar should be printed or simply text
+         * @param finished Number of finished items of the loop
+         * @param buffered Number of items in buffer / transient state
+         * @param total Number of total items expected
+         * @param quantity Name of the quantity counted, used for textual representation
          * @param file The file name of the file containing the log message
          * @param function The function containing the log message
          * @param line The line number of the log message
@@ -119,9 +124,10 @@ namespace allpix {
         void drawProgressBar(std::string identifier,
                              LogLevel level = LogLevel::INFO,
                              bool draw_bar = true,
-                             uint64_t current = 0,
+                             uint64_t finished = 0,
                              uint64_t buffered = 0,
                              uint64_t total = 0,
+                             std::string quantity = "",
                              const std::string& file = "",
                              const std::string& function = "",
                              uint32_t line = 0);
@@ -298,14 +304,15 @@ namespace allpix {
     allpix::Log().getProcessStream(                                                                                         \
         identifier, allpix::LogLevel::level, __FILE_NAME__, std::string(static_cast<const char*>(__func__)), __LINE__)
 
-#define LOG_PROGRESS_BAR(level, identifier, draw_bar, current, buffered, total)                                             \
+#define LOG_PROGRESS_BAR(level, identifier, draw_bar, finished, buffered, total, quantity)                                  \
     if(allpix::LogLevel::level <= allpix::Log::getReportingLevel() && !allpix::Log::getStreams().empty())                   \
     allpix::Log().drawProgressBar(identifier,                                                                               \
                                   allpix::LogLevel::level,                                                                  \
                                   draw_bar,                                                                                 \
-                                  current,                                                                                  \
+                                  finished,                                                                                 \
                                   buffered,                                                                                 \
                                   total,                                                                                    \
+                                  quantity,                                                                                 \
                                   __FILE_NAME__,                                                                            \
                                   std::string(static_cast<const char*>(__func__)),                                          \
                                   __LINE__)

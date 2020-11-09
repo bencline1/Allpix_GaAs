@@ -778,7 +778,8 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
                                  progress_bar,
                                  (dispatched_events - buffered_events),
                                  buffered_events,
-                                 number_of_events);
+                                 number_of_events,
+                                 "events");
             };
         thread_pool->submit(event_function);
         thread_pool->checkException();

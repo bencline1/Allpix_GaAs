@@ -265,9 +265,10 @@ std::ostringstream& DefaultLogger::getProcessStream(
 void DefaultLogger::drawProgressBar(std::string identifier,
                                     LogLevel level,
                                     bool draw_bar,
-                                    uint64_t current,
+                                    uint64_t finished,
                                     uint64_t buffered,
                                     uint64_t total,
+                                    std::string quantity,
                                     const std::string& file,
                                     const std::string& function,
                                     uint32_t line) {
@@ -275,25 +276,25 @@ void DefaultLogger::drawProgressBar(std::string identifier,
     std::ostringstream& stream = getProcessStream(std::move(identifier), level, file, function, line);
 
     if(!draw_bar) {
-        stream << "Buffered " << buffered << ", finished " << current << " of " << total << " events";
+        stream << "Buffered " << buffered << ", finished " << finished << " of " << total << " " << quantity;
         return;
     }
 
-    stream << " " << std::setw(3) << std::setfill(' ') << (100 * current) / total << "% ";
+    stream << " " << std::setw(3) << std::setfill(' ') << (100 * finished) / total << "% ";
 
-    std::string str_c = " " + std::to_string(current) + " ";
+    std::string str_c = " " + std::to_string(finished) + " ";
     std::string str_b = " " + std::to_string(buffered) + " ";
     std::string str_t = " " + std::to_string(total) + " ";
 
     auto width = query_line_length() - indent_count_ - 7;
-    auto completed = (width * current) / total;
+    auto completed = (width * finished) / total;
     auto buffer = (width * buffered) / total;
     auto pending = ((completed + buffer) >= width ? 0ul : width - completed - buffer);
 
     stream << std::setfill(' ');
-    stream << "\x1B[90;107m" << std::setw(completed) << (str_c.length() > completed ? "" : str_c);
-    stream << "\x1B[90;47m" << std::setw(buffer) << (str_b.length() > buffer ? "" : str_b);
-    stream << "\x1B[37;100m" << std::setw(pending) << (str_t.length() > pending ? "" : str_t);
+    stream << "\x1B[90;107m" << std::setw(static_cast<int>(completed)) << (str_c.length() > completed ? "" : str_c);
+    stream << "\x1B[90;47m" << std::setw(static_cast<int>(buffer)) << (str_b.length() > buffer ? "" : str_b);
+    stream << "\x1B[37;100m" << std::setw(static_cast<int>(pending)) << (str_t.length() > pending ? "" : str_t);
     stream << "\x1B[0m";
 }
 
