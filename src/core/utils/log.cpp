@@ -272,7 +272,7 @@ void DefaultLogger::drawProgressBar(std::string identifier,
                                     const std::string& function,
                                     uint32_t line) {
     // Get a progress stream, set indicator to "#" to indicate progress bar (is overwritten)
-    std::ostringstream& stream = getProcessStream(identifier, level, file, function, line);
+    std::ostringstream& stream = getProcessStream(std::move(identifier), level, file, function, line);
 
     if(!draw_bar) {
         stream << "Buffered " << buffered << ", finished " << current << " of " << total << " events";
@@ -432,8 +432,7 @@ uint64_t& DefaultLogger::get_event_num() {
 
     // Make sure event_num is initialized to zero.
     thread_local std::once_flag flag;
-    std::call_once(
-        flag, []() noexcept { event_num = 0; });
+    std::call_once(flag, []() noexcept { event_num = 0; });
 
     return event_num;
 }
