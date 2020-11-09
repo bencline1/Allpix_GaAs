@@ -127,7 +127,7 @@ namespace allpix {
                              uint64_t finished = 0,
                              uint64_t buffered = 0,
                              uint64_t total = 0,
-                             std::string quantity = "",
+                             const std::string& quantity = "",
                              const std::string& file = "",
                              const std::string& function = "",
                              uint32_t line = 0);

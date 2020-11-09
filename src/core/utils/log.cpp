@@ -268,7 +268,7 @@ void DefaultLogger::drawProgressBar(std::string identifier,
                                     uint64_t finished,
                                     uint64_t buffered,
                                     uint64_t total,
-                                    std::string quantity,
+                                    const std::string& quantity,
                                     const std::string& file,
                                     const std::string& function,
                                     uint32_t line) {
