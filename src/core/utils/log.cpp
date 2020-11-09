@@ -274,28 +274,24 @@ void DefaultLogger::drawProgressBar(std::string identifier,
     std::ostringstream& stream = getProcessStream(identifier, level, file, function, line);
     stream << " " << std::setw(3) << std::setfill(' ') << (100 * current) / total << "% ";
 
-    std::string events =
-        " " + std::to_string(buffered) + " | " + std::to_string(current) + " / " + std::to_string(total) + " ";
+    std::string str_complete = " " + std::to_string(current) + " ";
+    std::string str_buffered = " " + std::to_string(buffered) + " ";
+    std::string str_total = " " + std::to_string(total) + " ";
 
     auto width = query_line_length() - indent_count_ - 7;
     auto completed = (width * current) / total;
     auto buffer = (width * buffered) / total;
     auto pending = ((completed + buffer) >= width ? 0ul : width - completed - buffer);
 
-    if(events.length() < pending) {
-        stream << "\x1B[107m" << std::string(completed, ' ');
-        stream << "\x1B[47m" << std::string(buffer, ' ');
-        stream << "\x1B[100m" << events;
-        stream << std::string(pending - events.length(), ' ');
-    } else if(events.length() < completed) {
-        stream << "\x1B[107m" << std::string(completed - events.length(), ' ') << events;
-        stream << "\x1B[47m" << std::string(buffer, ' ');
-        stream << "\x1B[100m" << std::string(pending, ' ');
-    } else {
-        stream << "\x1B[107m" << std::string(completed, ' ');
-        stream << "\x1B[47m" << std::string(buffer, ' ');
-        stream << "\x1B[100m" << std::string(pending, ' ');
-    }
+    stream << "\x1B[90;107m"
+           << (str_complete.length() > completed ? std::string(completed, ' ')
+                                                 : std::string(completed - str_complete.length(), ' ') + str_complete);
+    stream << "\x1B[90;47m"
+           << (str_buffered.length() > buffer ? std::string(buffer, ' ')
+                                              : std::string(buffer - str_buffered.length(), ' ') + str_buffered);
+    stream << "\x1B[37;100m"
+           << (str_total.length() > pending ? std::string(pending, ' ')
+                                            : std::string(pending - str_total.length(), ' ') + str_total);
     stream << "\x1B[0m";
 }
 
