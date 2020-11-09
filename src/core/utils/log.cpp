@@ -499,11 +499,11 @@ unsigned int DefaultLogger::query_line_length() {
 // https://www.linuxquestions.org/questions/programming-9/get-width-height-of-a-terminal-window-in-c-810739/
 #ifdef TIOCGSIZE
     struct ttysize ts;
-    ioctl(STDIN_FILENO, TIOCGSIZE, &ts);
+    ioctl(fileno(stdout), TIOCGSIZE, &ts);
     return ts.ts_cols;
 #elif defined(TIOCGWINSZ)
     struct winsize ts;
-    ioctl(STDIN_FILENO, TIOCGWINSZ, &ts);
+    ioctl(fileno(stdout), TIOCGWINSZ, &ts);
     return ts.ws_col;
 #else
     return 50; // fallback
