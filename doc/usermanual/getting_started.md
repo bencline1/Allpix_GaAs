@@ -6,7 +6,7 @@ mind, meaning that some parts may not apply if a custom installation was
 used. When the *allpix* binary is used, this refers to the executable
 installed in in the installation path. It is worth noting that before
 running any Allpix² simulation, ROOT and (in most cases) Geant4 should
-be initialized. Refer to Section [sec:initialize~d~ependencies] for
+be initialized. Refer to Section [Initializing the dependencies](installation.md#initializing-the-dependencies) for
 instructions on how to load these libraries.
 
 Configuration Files 
@@ -28,7 +28,7 @@ files:
     the global framework configuration and the list of modules to
     instantiate together with their configuration. An example can be
     found in the repository at *examples/example.conf*. More details and
-    a more thorough example are found in Section [sec:main~c~onfig],
+    a more thorough example are found in Section [Main conﬁguration](getting_started.md#main-configuration),
     several advanced simulation chain configurations are presented in
     Chapter [Examples](examples.md).
 
@@ -62,7 +62,7 @@ possible, or if the given value is outside the domain of possible
 options. Please refer to the module documentation in
 Chapter [Modules](modules.md) for the list of module parameters and their types.
 Parsing the value roughly follows common-sense (more details can be
-found in Section [sec:accessing~p~arameters]). A few special rules do
+found in Section [Accessing parameters](framework.md#accessing-parameters)). A few special rules do
 apply:
 
 -   If the value is a **string**, it may be enclosed by a single pair of
@@ -201,7 +201,7 @@ determines how the module is instantiated:
     irrespective of the number of detectors. These kinds of modules
     should only appear once in the whole configuration file unless
     different inputs and outputs are used, as explained in
-    Section [sec:redirect~m~odule~i~nput~o~utputs].
+    Section [Redirect Module Inputs and Outputs](framework.md#redirect-module-inputs-and-outputs).
 
 -   If the module is **detector**-specific, it is instantiated once for
     every detector it is configured to run on. By default, an
@@ -346,7 +346,7 @@ Every passive material has to contain all of the following parameters:
     means the radius will extend from the `position` on both sides,
     making its total size two times the radius in the given direction.
     The size parameters for the specific models are described in
-    Section [geometrybuildergeant4].
+    Section [GeometryBuilderGeant4](modules/GeometryBuilderGeant4/).
 
 In addition, an optional string referring to the `mothervolume`, which
 defines another passive material the volume will be placed in, can be
@@ -400,7 +400,7 @@ and alter its behavior:
     including how to change them for a particular module, can be found
     in Section [Logging and Verbosity Levels](getting_started.md#logging-and-verbosity-levels). Can be overwritten by the `-v`
     parameter on the command line (see
-    Section [sec:allpix~e~xecutable]).
+    Section [The allpix Executable](getting_started.md#the-allpix-executable)).
 
 -   `logformat`: Determines the log message format to display. Possible
     options are `SHORT`, `DEFAULT` and `LONG`, where all options are
@@ -412,7 +412,7 @@ and alter its behavior:
     Only writes to standard output if this option is not provided.
     Another (additional) location to write to can be specified on the
     command line using the `-l` parameter (see
-    Section [sec:allpix~e~xecutable]).
+    Section [The allpix Executable](getting_started.md#the-allpix-executable)).
 
 -   `outputdirectory`: Directory to write all output files into.
     Subdirectories are created automatically for all module
@@ -453,7 +453,7 @@ and alter its behavior:
 -   `experimentalmultithreading`: Enable **experimental**
     multi-threading for the framework. This can speed up simulations of
     multiple detectors significantly. More information about
-    multi-threading can be found in Section [sec:multithreading].
+    multi-threading can be found in Section [Parallel execution of modules](framework.md#parallel-execution-of-modules).
 
 -   `workers`: Specify the number of workers to use in total, should be
     strictly larger than zero. Only used if `experimentalmultithreading`
@@ -602,7 +602,7 @@ components:
 
 -   An **output** module, saving the data of the simulation. The Allpix²
     standard file format is a ROOT TTree, which is described in detail
-    in Section [sec:storing~o~utput~d~ata].
+    in Section [Storing Output Data](getting_started.md#storing-output-data).
 
 In this example, charge carriers will be deposited in the three sensors
 defined in the detector configuration file in
@@ -860,7 +860,7 @@ The `ROOTObjectWriter` automatically saves all objects created in a
 TTree @roottree. It stores separate trees for all object types and
 creates branches for every unique message name: a combination of the
 detector, the module and the message output name as described in
-Section [sec:redirect~m~odule~i~nput~o~utputs]. For each event, values
+Section [Redirect Module Inputs and Outputs](framework.md#redirect-module-inputs-and-outputs). For each event, values
 are added to the leaves of the branches containing the data of the
 objects. This allows for easy histogramming of the acquired data over
 the total run using standard ROOT utilities.

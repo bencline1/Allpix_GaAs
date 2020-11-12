@@ -23,7 +23,7 @@ Prerequisites
 If the framework is to be compiled and executed on CERN’s LXPLUS
 service, all build dependencies can be loaded automatically from the
 CVMFS file system as described in
-Section [sec:initialize~d~ependencies].
+Section [Initializing the dependencies](installation.md#initializing-the-dependencies).
 
 The core framework is compiled separately from the individual modules
 and Allpix² has therefore only one required dependency: ROOT 6 (versions
@@ -146,7 +146,7 @@ supported:
     modules with large additional dependencies such as LCIO @lcio are
     disabled by default. This set of parameters allows to configure the
     build for minimal requirements as detailed in
-    Section [sec:prerequisites].
+    Section [Prerequisites](installation.md#prerequisites).
 
 -   `BUILDALLMODULES`: Build all included modules, defaulting to `OFF`.
     This overwrites any selection using the parameters described above.
@@ -226,11 +226,11 @@ directly executed and the container terminated and deleted after
 completing the simulation. This closely resembles the behavior of
 running Allpix² natively on the host system. Of course, any additional
 command line arguments known to the `allpix` executable described in
-Section [sec:allpix~e~xecutable] can be appended.
+Section [The allpix Executable](getting_started.md#the-allpix-executable) can be appended.
 
 For tagged versions, the tag name should be appended to the image name,
 e.g. `gitlab-registry.cern.ch/allpix-squared/allpix-squared:v1.1`, and a
 full list of available Docker containers is provided via the project’s
 container registry @ap2-container-registry. A short description of how
 Docker images for this project are built can be found in
-Section [sec:build-docker].
+Section [Building Docker images](testing.md#building-docker-images).

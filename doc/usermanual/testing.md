@@ -7,9 +7,9 @@ This comprises tools for the developer to be used while coding, as well
 as a continuous integration (CI) and automated test cases of various
 framework and module functionalities.
 
-The chapter is structured as follows. Section [sec:targets] describes
+The chapter is structured as follows. Section [Additional Targets](testing.md#additional-targets) describes
 the available `make` targets for code quality and formatting checks,
-Section [sec:ci] briefly introduces the CI, and Section [sec:tests]
+Section [Continuous Integration](testing.md#continuous-integration) briefly introduces the CI, and Section [Tests](testing.md#tests)
 provides an overview of the currently implemented framework, module, and
 performance test scenarios.
 
@@ -65,7 +65,7 @@ are provided:
 
 <span>make package</span>
 :   creates a binary release tarball as described in
-    Section [sec:packaging].
+    Section [Packaging](testing.md#packaging)].
 
 Packaging 
 ---------
@@ -177,7 +177,7 @@ default compiler flags enabled for the project:
         -Wheader-hygiene
 
 The **testing** stage executes the framework system and unit tests
-described in Section [sec:tests]. Different jobs are used to run
+described in Section [Tests](testing.md#tests). Different jobs are used to run
 different test types. This allows to optimize the CI setup depending on
 the demands of the test to be executed. All tests are expected to pass,
 and no code that fails to satisfy all tests will be merged into the
@@ -198,7 +198,7 @@ The **performance** stage runs a longer simulation with several thousand
 events and measures the execution time. This facilitates monitoring of
 the simulation performance, a failing job would indicate a degradation
 in speed. These CI jobs run on dedicated machines with only one
-concurrent job as described in Section [sec:tests]. Performance tests
+concurrent job as described in Section [Tests](testing.md#tests). Performance tests
 are separated into their own CI stage because their execution is time
 consuming and they should only be started once proper formatting of the
 new code is established.
@@ -213,7 +213,7 @@ distributable tarballs for several platforms. This includes adding all
 libraries and executables to the tarball as well as preparing the
 `setup.sh` script to prepare run-time dependencies using the information
 provided to the build system. This procedure is described in more detail
-in Section [sec:packaging].
+in Section [Packaging](testing.md#packaging)].
 
 Finally, the **deployment** stage is only executed for new tags in the
 repository. Whenever a tag is pushed, this stages receives the build
@@ -376,7 +376,7 @@ The configuration of the tests can be found in the `etc/unittests/test*`
 directories of the repository and are automatically discovered by CMake.
 CMake automatically searches for Allpix² configuration files in the
 different directories and passes them to the Allpix²
-executable (cf. Section [sec:allpix~e~xecutable]).
+executable (cf. Section [The allpix Executable](getting_started.md#the-allpix-executable)).
 
 Adding a new test is as simple as adding a new configuration file to one
 of the different subdirectories and specifying the pass or fail
@@ -423,7 +423,7 @@ Defining a timeout
 Adding additional CLI options
 :   Additional module command line options can be specified for the
     `allpix` executable using the `#OPTION` tag, following the format
-    found in Section [sec:allpix~e~xecutable]. Multiple options can be
+    found in Section [The allpix Executable](getting_started.md#the-allpix-executable). Multiple options can be
     supplied by repeating the `#OPTION` tag in the configuration file,
     only one option per tag is allowed. In exactly the same way options
     for the detectors can be set as well using the `#DETOPION` tag.
