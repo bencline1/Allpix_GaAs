@@ -14,7 +14,7 @@ Configuration Files
 
 The framework is configured with simple human-readable configuration
 files. The configuration format is described in detail in
-Section [sec:config~f~ile~f~ormat], and consists of several section
+Section [File format](framework.md#file-format), and consists of several section
 headers within $[$ and $]$ brackets, and a section without header at the
 start. Each of these sections contains a set of key/value pairs
 separated by the `=` character. Comments are indicated using the hash
@@ -39,13 +39,13 @@ files:
     configuration. Examples are available in the repository at
     `examples/exampledetector.conf` or
     `examples/exampledetectorpassive.conf`. Introduced in
-    Section [sec:detector~c~onfig].
+    Section [Detector configuration](getting_started.md#detector-configuration).
 
 -   The detector **model** configuration. Contains the parameters
     describing a particular type of detector. Several models are already
     provided by the framework, but new types of detectors can easily be
     added. See *models/test.conf* in the repository for an example.
-    Please refer to Section [sec:adding~d~etector~m~odel] for more
+    Please refer to Section [Adding a New Detector Model](development.md#adding-a-new-detector-model) for more
     details about adding new models.
 
 In the following paragraphs, the available types and the unit system are
@@ -206,7 +206,7 @@ determines how the module is instantiated:
 -   If the module is **detector**-specific, it is instantiated once for
     every detector it is configured to run on. By default, an
     instantiation is created for all detectors defined in the detector
-    configuration file (see Section [sec:detector~c~onfig], lowest
+    configuration file (see Section [Detector configuration](getting_started.md#detector-configuration), lowest
     priority) unless one or both of the following parameters are
     specified:
 
@@ -270,13 +270,13 @@ Every detector has to contain all of the following parameters:
     Section [Detector models](framework.md#detector-models).
 
 -   The 3D `position` in the world frame in the order x, y, z. See
-    Section [sec:models~g~eometry] for details.
+    Section [Geometry and Detectors](framework.md#geometry-and-detectors) for details.
 
 -   The `orientation` specified as X-Y-Z extrinsic Euler angles. This
     means the detector is rotated first around the world’s X-axis, then
     around the world’s Y-axis and then around the world’s Z-axis.
     Alternatively the orientation can be set as Z-Y-X or X-Z-X extrinsic
-    Euler angles, refer to Section [sec:models~g~eometry] for details.
+    Euler angles, refer to Section [Geometry and Detectors](framework.md#geometry-and-detectors) for details.
 
 In addition to these required parameters, the following parameters allow
 to randomly misalign the respective detector from its initial position.
@@ -329,7 +329,7 @@ identify the passive material; all names are required to be unique.
 Every passive material has to contain all of the following parameters:
 
 -   The `position` and `orientation` of the material as described for
-    the detector, see Section [sec:detector~c~onfig].
+    the detector, see Section [Detector configuration](getting_started.md#detector-configuration).
 
 -   A string referring to the `type` of the passive material. The model
     should be interpreted by the module constructing the passive
@@ -360,8 +360,8 @@ part of the material. Placing a passive volume in the hollow part
 requires a different `mothervolume`.
 
 Similar to the detector configuration, the parameters `orientationmode`
-(see Section [sec:models~g~eometry]), `alignmentprecisionposition` and
-`alignmentprecisionorientation` (see Section [sec:detector~c~onfig]) can
+(see Section [Geometry and Detectors](framework.md#geometry-and-detectors)), `alignmentprecisionposition` and
+`alignmentprecisionorientation` (see Section [Detector configuration](getting_started.md#detector-configuration)) can
 be used optionally to define the rotation order and a possible
 misalignment of passive materials.
 
@@ -379,7 +379,7 @@ The Allpix² framework provides a set of global parameters which control
 and alter its behavior:
 
 -   `detectorsfile`: Location of the file describing the detector
-    configuration (introduced in Section [sec:detector~c~onfig]). The
+    configuration (introduced in Section [Detector configuration](getting_started.md#detector-configuration)). The
     only *required* global parameter: the framework will fail to start
     if it is not specified.
 
@@ -398,14 +398,14 @@ and alter its behavior:
     and `DEBUG`, where all options are case-insensitive. Defaults to the
     `INFO` level. More details and information about the log levels,
     including how to change them for a particular module, can be found
-    in Section [sec:logging~v~erbosity]. Can be overwritten by the `-v`
+    in Section [Logging and Verbosity Levels](getting_started.md#logging-and-verbosity-levels). Can be overwritten by the `-v`
     parameter on the command line (see
     Section [sec:allpix~e~xecutable]).
 
 -   `logformat`: Determines the log message format to display. Possible
     options are `SHORT`, `DEFAULT` and `LONG`, where all options are
     case-insensitive. More information can be found in
-    Section [sec:logging~v~erbosity].
+    Section [Logging and Verbosity Levels](getting_started.md#logging-and-verbosity-levels).
 
 -   `logfile`: File where the log output should be written to in
     addition to printing to the standard output (usually the terminal).
@@ -487,7 +487,7 @@ The executable handles the following arguments:
     Section [Framework parameters](getting_started.md#framework-parameters). Possible values are `FATAL`,
     `STATUS`, `ERROR`, `WARNING`, `INFO` and `DEBUG`, where all options
     are case-insensitive. The module specific logging level introduced
-    in Section [sec:logging~v~erbosity] is not overwritten.
+    in Section [Logging and Verbosity Levels](getting_started.md#logging-and-verbosity-levels) is not overwritten.
 
 -   `--version`: Prints the version and build time of the executable and
     terminates the program.
@@ -496,7 +496,7 @@ The executable handles the following arguments:
     added and overwritten in the main configuration file. This argument
     may be specified multiple times, to add multiple options. Options
     are specified as key/value pairs in the same syntax as used in the
-    configuration files (refer to Section [sec:config~f~ile~f~ormat] for
+    configuration files (refer to Section [File format](framework.md#file-format) for
     more details), but the key is extended to include a reference to a
     configuration section or instantiation in shorthand notation. There
     are three types of keys that can be specified:
@@ -606,7 +606,7 @@ components:
 
 In this example, charge carriers will be deposited in the three sensors
 defined in the detector configuration file in
-Section [sec:detector~c~onfig]. All charge carriers deposited in the
+Section [Detector configuration](getting_started.md#detector-configuration). All charge carriers deposited in the
 different sensors will be propagated and digitized. Finally, monitoring
 histograms for the device under test (DUT) will be recorded in the
 framework’s main ROOT file and all simulated objects, including the
@@ -615,7 +615,7 @@ will be stored in a ROOT file using the Allpix² format. An example
 configuration file implementing this would look like:
 
 This configuration is available in the repository at `etc/manual.conf`.
-The detector configuration file from Section [sec:detector~c~onfig] can
+The detector configuration file from Section [Detector configuration](getting_started.md#detector-configuration) can
 be found at `etc/manualdetector.conf`.
 
 The simulation is started by passing the path of the main configuration
@@ -788,7 +788,7 @@ configuration section. The following log levels are supported:
     termination of the application. Typically only emitted in the main
     executable after catching exceptions as they are the preferred way
     of fatal error handling (as discussed in
-    Section [sec:error~r~eporting~e~xceptions]). An example of a fatal
+    Section [Error Reporting and Exceptions](framework.md#error-reporting-and-exceptions)). An example of a fatal
     error is an invalid configuration parameter.
 
 -   **STATUS**: Important information about the status of the
@@ -846,8 +846,8 @@ messages. The following formats are supported via the global parameter
     produced. This can help in debugging modules.
 
 More details about the logging system and the procedure for reporting
-errors in the code can be found in Sections [sec:logger]
-and [sec:error~r~eporting~e~xceptions].
+errors in the code can be found in Sections [Logging system](framework.md#logging-system)
+and [Error Reporting and Exceptions](framework.md#error-reporting-and-exceptions).
 
 Storing Output Data 
 -------------------

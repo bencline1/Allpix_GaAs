@@ -38,19 +38,19 @@ following four main components that together form Allpix²:
     Chapter [Additional Tools & Resources](additional.md). This set of tools is
     different from the set of core utilities the framework itself
     provides, which is part of the core and explained in
-    Section [sec:logging~u~tilities].
+    Section [Logging and other Utilities](framework.md#logging-and-other-utilities).
 
 Finally, Allpix² provides an executable which instantiates the core of
 the framework, receives and distributes the configuration object and
 runs the simulation chain.
 
-The chapter is structured as follows. Section [sec:arch] provides an
+The chapter is structured as follows. Section [Architecture of the Core](framework.md#architecture-of-the-core) provides an
 overview of the architectural design of the core and describes its
 interaction with the rest of the Allpix² framework. The different
 subcomponents such as configuration, modules and messages are discussed
-in Sections [sec:config~p~arameters]–[sec:objects~m~essages]. The
+in Sections [Configuration and Parameters](framework.md#configuration-and-parameters)–[Passing Objects using Messages](framework.md#passing-objects-using-messages). The
 chapter closes with a description of the available framework tools in
-Section [sec:logging~u~tilities]. Some code will be provided in the
+Section [Logging and other Utilities](framework.md#logging-and-other-utilities). Some code will be provided in the
 text, but readers not interested may skip the technical details.
 
 Architecture of the Core
@@ -70,7 +70,7 @@ general utilities. The systems provided are:
     provides access to the main configuration file and its sections. It
     is used by the module manager system to find the required
     instantiations and access the global configuration. More information
-    is given in Section [sec:config~p~arameters].
+    is given in Section [Configuration and Parameters](framework.md#configuration-and-parameters).
 
 2.  **Module**: The module subsystem contains the base class of all
     Allpix² modules as well as the manager responsible for loading and
@@ -84,7 +84,7 @@ general utilities. The systems provided are:
     and orientation linked to an instantiation of a particular detector
     model, itself containing all parameters describing the geometry of
     the detector. More details about geometry and detector models is
-    provided in Section [sec:models~g~eometry].
+    provided in Section [Geometry and Detectors](framework.md#geometry-and-detectors).
 
 4.  **Messenger**: The messenger is responsible for sending objects from
     one module to another. The messenger object is passed to every
@@ -95,12 +95,12 @@ general utilities. The systems provided are:
 5.  **Utilities**: The framework provides a set of utilities for
     logging, file and directory access, and unit conversion. An
     explanation on how to use of these utilities can be found in
-    Section [sec:logging~u~tilities]. A set of exceptions is also
+    Section [Logging and other Utilities](framework.md#logging-and-other-utilities). A set of exceptions is also
     provided in the utilities, which are inherited and extended by the
     other components. Proper use of exceptions, together with logging
     information and reporting errors, makes the framework easier to use
     and debug. A few notes about the use and structure of exceptions are
-    provided in Section [sec:error~r~eporting~e~xceptions].
+    provided in Section [Error Reporting and Exceptions](framework.md#error-reporting-and-exceptions).
 
 Configuration and Parameters
 ----------------------------
@@ -109,7 +109,7 @@ Individual modules as well as the framework itself are configured
 through configuration files, which all follow the same format.
 Explanations on how to use the various configuration files together with
 several examples have been provided in
-Section [sec:configuration~f~iles].
+Section [Conﬁguration Files](getting_started.md#configuration-files).
 
 ### File format
 
@@ -219,9 +219,9 @@ config.setAlias("new_key", "old_key")
 
 Conversions to the requested type are using the `fromstring` and
 `tostring` methods provided by the string utility library described in
-Section [sec:string~u~tilities]. These conversions largely follow
+Section [Internal utilities](framework.md#internal-utilities). These conversions largely follow
 standard parsing, with one important exception. If (and only if) the
-value is retrieved as a C/string and the string is fully enclosed by a
+value is retrieved as a C/C++ string and the string is fully enclosed by a
 pair of `"` characters, these are stripped before returning the value.
 Strings can thus also be provided with or without quotation marks.
 
@@ -260,7 +260,7 @@ They are constructed, initialized, executed and finalized in the linear
 order in which they are defined in the configuration file; for this
 reason the configuration file should follow the order of the real
 process. For each section in the main configuration file
-(see [sec:config~p~arameters] for more details), a corresponding library
+(see [Configuration and Parameters](framework.md#configuration-and-parameters) for more details), a corresponding library
 is searched for which contains the module (the exception being the
 global framework section). Module libraries are always named following
 the scheme **libAllpixModule`ModuleName`**, reflecting the `ModuleName`
@@ -362,7 +362,7 @@ Each detector has a set of properties attached to it:
 -   The `position` in the world frame. This is the position of the
     geometric center of the sensitive device (sensor) given in world
     coordinates as X, Y and Z as defined in
-    Section [sec:coordinate~s~ystems] (note that any additional
+    Section [Coordinate systems](framework.md#coordinate-systems) (note that any additional
     components like the chip and possible support layers are ignored
     when determining the geometric center).
 
@@ -420,18 +420,18 @@ Each detector has a set of properties attached to it:
 
 -   An optional parameter `alignmentprecisionposition` to specify the
     alignment precision along the three global axes as described in
-    Section [sec:detector~c~onfig].
+    Section [Detector configuration](getting_started.md#detector-configuration).
 
 -   An optional parameter `alignmentprecisionorientation` for the
     alignment precision in the three rotation angles as described in
-    Section [sec:detector~c~onfig].
+    Section [Detector configuration](getting_started.md#detector-configuration).
 
 -   An optional **electric field** in the sensitive device. An electric
     field can be added to a detector by a special module as demonstrated
     in Section [Electric Fields](getting_started.md#electric-fields).
 
 The detector configuration is provided in the detector configuration
-file as explained in Section [sec:detector~c~onfig].
+file as explained in Section [Detector configuration](getting_started.md#detector-configuration).
 
 ### Coordinate systems
 
@@ -473,7 +473,7 @@ loading the appropriate detector models is explained in more detail in
 Section [Detector models](framework.md#detector-models).
 
 The geometry is directly added from the detector configuration file
-described in Section [sec:detector~c~onfig]. The geometry manager parses
+described in Section [Detector configuration](getting_started.md#detector-configuration). The geometry manager parses
 this file on construction, and the detector models are loaded and linked
 later during geometry closing as described above. It is also possible to
 add additional models and detectors directly using `addModel` and
@@ -500,7 +500,7 @@ void run(unsigned int event_id) \texttt{
 
 Different types of detector models are available and distributed
 together with the framework: these models use the configuration format
-introduced in Section [sec:config~f~ile~f~ormat] and can be found in the
+introduced in Section [File format](framework.md#file-format) and can be found in the
 *models* directory of the repository. Every model extends from the
 `DetectorModel` base class, which defines the minimum required
 parameters of a detector model within the framework. The coordinates
@@ -528,7 +528,7 @@ the actual model classes; these files contain various types of
 parameters, some of which are required for all models while others are
 optional or only supported by certain model types. For more details on
 how to add and use a new detector model,
-Section [sec:adding~d~etector~m~odel] should be consulted.
+Section [Adding a New Detector Model](development.md#adding-a-new-detector-model) should be consulted.
 
 The set of base parameters supported by every model is provided below.
 These parameters should be given at the top of the file before the start
@@ -680,7 +680,7 @@ A detector model contains default values for all parameters. Some
 parameters like the sensor thickness can however vary between different
 detectors of the same model. To allow for easy adjustment of these
 parameters, models can be specialized in the detector configuration file
-introduced in [sec:detector~c~onfig]. All model parameters, except the
+introduced in [Detector configuration](getting_started.md#detector-configuration). All model parameters, except the
 type parameter and the support layers, can be changed by adding a
 parameter with the exact same key and the updated value to the detector
 configuration. The framework will then automatically create a copy of
@@ -926,15 +926,15 @@ Logging and other Utilities
 The Allpix² framework provides a set of utilities which improve the
 usability of the framework and extend the functionality provided by the
 Standard Template Library (STL). The former includes a flexible and
-easy-to-use logging system, introduced in Section [sec:logger] and an
+easy-to-use logging system, introduced in Section [Logging system](framework.md#logging-system) and an
 easy-to-use framework for units that supports converting arbitrary
 combinations of units to common base units which can be used
 transparently throughout the framework, and which will be discussed in
-more detail in Section [sec:unit~s~ystem]. The latter comprise tools
-which provide functionality the ``14 standard does not contain. These
+more detail in Section [Unit system](framework.md#unit-system). The latter comprise tools
+which provide functionality the C++14 standard does not contain. These
 utilities are used internally in the framework and are only shortly
-discussed in Section [sec:filesystem] (file system support) and
-Section [sec:string~u~tilities] (string utilities).
+discussed in Section [Internal utilities](framework.md#internal-utilities) (file system support) and
+Section [Internal utilities](framework.md#internal-utilities) (string utilities).
 
 ### Logging system
 
@@ -1001,7 +1001,7 @@ to make it easier to identify warnings and error messages. This is
 disabled automatically for all non-terminal outputs.
 
 More details about the logging levels and formats can be found in
-Section [sec:logging~v~erbosity].
+Section [Logging and Verbosity Levels](getting_started.md#logging-and-verbosity-levels).
 
 ### Unit system
 
@@ -1032,7 +1032,7 @@ Units::display(2e3, \texttt{"mm/ns", "m/ns"});
 ```
 
 A description of the use of units in config files within Allpix² was
-presented in Section [sec:config~v~alues].
+presented in Section [Parsing types and units](getting_started.md#parsing-types-and-units).
 
 ### Internal utilities
 
@@ -1042,7 +1042,7 @@ and to create new directories. These functions should be replaced by the
 ``17 file system API @cppfilesystem as soon as the framework minimum
 standard is updated to ``17.
 
-[sec:string~u~tilities] STL only provides string conversions for
+[Internal utilities](framework.md#internal-utilities) STL only provides string conversions for
 standard types using `std::stringstream` and `std::to_string`, which do
 not allow parsing strings encapsulated in pairs of double quote (`"`)
 characters nor integrating different units. Furthermore it does not
@@ -1058,7 +1058,7 @@ strings functions missing in the STL.
 
 Furthermore, the Allpix² tool system contains extensions to allow
 automatic conversions for ROOT and Geant4 types as explained in
-Section [sec:root~a~nd~g~eant4~u~tilities].
+Section [ROOT and Geant4 utilities](additional.md#root-and-geant4-utilities).
 
 Error Reporting and Exceptions
 ------------------------------
@@ -1076,7 +1076,7 @@ extensively. This helps both in following the progress of the simulation
 and in debugging problems. Care should however be taken to limit the
 amount of messages in levels higher than `DEBUG` or `TRACE`. More
 details about the logging levels and their usage can be found in
-Section [sec:logging~v~erbosity].
+Section [Logging and Verbosity Levels](getting_started.md#logging-and-verbosity-levels).
 
 The base exceptions in Allpix² are available via the utilities. The most
 important exception base classes are the following:
