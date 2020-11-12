@@ -346,7 +346,7 @@ Every passive material has to contain all of the following parameters:
     means the radius will extend from the `position` on both sides,
     making its total size two times the radius in the given direction.
     The size parameters for the specific models are described in
-    Section [GeometryBuilderGeant4](modules/GeometryBuilderGeant4/).
+    Section [GeometryBuilderGeant4](modules/GeometryBuilderGeant4.md).
 
 In addition, an optional string referring to the `mothervolume`, which
 defines another passive material the volume will be placed in, can be
