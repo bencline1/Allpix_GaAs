@@ -56,7 +56,7 @@ in mind:
     -   Limit flexibility for the sake of simplicity and ease of use
 
 Allpix² has been designed following some ideas previously implemented in
-the AllPix[^3][^4] project. Originally written as a Geant4
+the AllPix[^3],[^4] project. Originally written as a Geant4
 user application, AllPix has been successfully used for simulating a
 variety of different detector setups.
 
