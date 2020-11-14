@@ -1,5 +1,5 @@
 Geometry and Detectors
-----------------------
+========================
 
 Simulations are frequently performed for a set of different detectors
 (such as a beam telescope and a device under test). All of these
@@ -12,7 +12,7 @@ Each detector has a set of properties attached to it:
 -   The `position` in the world frame. This is the position of the
     geometric center of the sensitive device (sensor) given in world
     coordinates as X, Y and Z as defined in
-    Section [Coordinate systems](framework.md#coordinate-systems) (note that any additional
+    Section [Coordinate systems](framework-geometry-detectors.md#coordinate-systems) (note that any additional
     components like the chip and possible support layers are ignored
     when determining the geometric center).
 
@@ -118,9 +118,9 @@ It should be noted that Monte Carlo particles that start the local time frame on
 
 The geometry is needed at a very early stage because it determines the
 number of detector module instantiations as explained in
-Section [Module instantiation](framework.md#module-instantiation). The procedure of finding and
+Section [Module instantiation](framework-modules-manager.md#module-instantiation). The procedure of finding and
 loading the appropriate detector models is explained in more detail in
-Section [Detector models](framework.md#detector-models).
+Section [Detector models](framework-geometry-detectors.md#detector-models).
 
 The geometry is directly added from the detector configuration file
 described in Section [Detector configuration](getting_started.md#detector-configuration). The geometry manager parses

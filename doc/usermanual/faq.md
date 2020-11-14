@@ -51,7 +51,7 @@ How do I run a module only for a specific detector type?
     depletion_voltage = -30V
     ```
 
-    Please refer to Section [Module instantiation](framework.md#module-instantiation) for more
+    Please refer to Section [Module instantiation](framework-modules-manager.md#module-instantiation) for more
     information.
 
 How can I run the exact same type of module with different settings?
@@ -85,7 +85,7 @@ How can I run the exact same type of module with different settings?
     name = "dut0"
     ```
 
-    Please refer to Section [Passing Objects using Messages](framework.md#passing-objects-using-messages) for more
+    Please refer to Section [Passing Objects using Messages](framework-passing-objects-using-messages.md) for more
     information.
 
 How can I temporarily ignore a module during development?
@@ -120,7 +120,7 @@ I want to use a detector model with one or several small changes, do I have to c
     detector). Only parameters in the header of detector models can be
     changed. If support layers should be changed, or new support layers
     are needed, a new model should be created instead. Please refer to
-    Section [Detector models](framework.md#detector-models) for more information.
+    Section [Detector models](framework-geometry-detectors.md#detector-models) for more information.
 
 Data Analysis
 -------------
@@ -281,7 +281,7 @@ How do I write my own output module?
 :   An essential requirement of any output module is its ability to
     receive any message of the framework. This can be implemented by
     defining a private `listener` function for the module as described
-    in Section [Passing Objects using Messages](framework.md#passing-objects-using-messages). This function will be called for
+    in Section [Passing Objects using Messages](framework-passing-objects-using-messages.md). This function will be called for
     every new message dispatched within the framework, and should
     contain code to decide whether to discard or cache a message for
     processing. Heavy-duty tasks such as handling data should not be
@@ -292,11 +292,11 @@ How do I process data from multiple detectors?
 :   When developing a new Allpix² module which processes data from
     multiple detectors, e.g. as the simulation of a track trigger
     module, this module has to be of type `unique` as described in
-    Section [Modules and the Module Manager](framework.md#modules-and-the-module-manager). As a `detector` module, it would
+    Section [Modules and the Module Manager](framework-modules-manager.md). As a `detector` module, it would
     always only have access to the information linked to the specific
     detector is has been instantiated for. The module should then
     request all messages of the desired type using the messenger call
-    `bindMulti` as described in Section [Passing Objects using Messages](framework.md#passing-objects-using-messages). For
+    `bindMulti` as described in Section [Passing Objects using Messages](framework-passing-objects-using-messages.md). For
     `PixelHit` messages, an example code would be:
 
     ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
@@ -316,7 +316,7 @@ How do I calculate an efficiency in a module?
     detection efficiencies in Allpix², this could be the Monte Carlo
     truth information available via the `MCParticle` objects. Since the
     framework only runs modules, if all input message requirements are
-    satisfied, the message flags described in Section [Message ﬂags](framework.md#message-flags)
+    satisfied, the message flags described in Section [Message ﬂags](framework-passing-objects-using-messages.md#message-flags)
     have to be set up accordingly. For the hit efficiency example, two
     different message types are required, and the Monte Carlo truth
     should always be required (using `MsgFlags::REQUIRED`) while the

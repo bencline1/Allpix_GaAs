@@ -17,7 +17,7 @@ tools.
 The framework provides a set of methods to ease the integration of ROOT
 and Geant4 in the framework. An important part is the extension of the
 custom conversion `to_string` and `from_string` methods from the
-internal string utilities (see Section [Internal utilities](framework.md#internal-utilities)) to
+internal string utilities (see Section [Internal utilities](framework-redirect-module-inputs-outputs.md#internal-utilities)) to
 support internal ROOT and Geant4 classes. This allows to directly read
 configuration parameters to these types, making the code in the modules
 both shorter and cleaner. In addition, more conversions functions are

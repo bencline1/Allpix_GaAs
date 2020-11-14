@@ -1,5 +1,5 @@
 Passing Objects using Messages
-------------------------------
+===============================
 
 Communication between modules is performed by the exchange of messages.
 Messages are templated instantiations of the `Message` class carrying a

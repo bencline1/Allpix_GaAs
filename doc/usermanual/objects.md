@@ -6,7 +6,7 @@ Object Types
 
 Allpix² provides a set of objects which can be used to transfer data
 between modules. These objects can be sent with the messaging system as
-explained in Section [Passing Objects using Messages](framework.md#passing-objects-using-messages). A `typedef` is added to
+explained in Section [Passing Objects using Messages](framework-passing-objects-using-messages.md). A `typedef` is added to
 every object in order to provide an alternative name for the message
 which is directly indicating the carried object.
 

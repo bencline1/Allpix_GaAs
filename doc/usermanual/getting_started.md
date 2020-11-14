@@ -191,7 +191,7 @@ meaning in the main configuration, namely the following:
 All other section headers are used to instantiate modules of the
 respective name. Installed modules are loaded automatically. If problems
 arise please review the loading rules described in
-Section [Module instantiation](framework.md#module-instantiation).
+Section [Module instantiation](framework-modules-manager.md#module-instantiation).
 
 Modules can be specified multiple times in the configuration files,
 depending on their type and configuration. The type of the module
@@ -201,7 +201,7 @@ determines how the module is instantiated:
     irrespective of the number of detectors. These kinds of modules
     should only appear once in the whole configuration file unless
     different inputs and outputs are used, as explained in
-    Section [Redirect Module Inputs and Outputs](framework.md#redirect-module-inputs-and-outputs).
+    Section [Redirect Module Inputs and Outputs](framework-redirect-module-inputs-and-outputs.md).
 
 -   If the module is **detector**-specific, it is instantiated once for
     every detector it is configured to run on. By default, an
@@ -267,16 +267,16 @@ Every detector has to contain all of the following parameters:
 
 -   A string referring to the `type` of the detector model. The model
     should exist in the search path described in
-    Section [Detector models](framework.md#detector-models).
+    Section [Detector models](framework-geometry-detectors.md#detector-models).
 
 -   The 3D `position` in the world frame in the order x, y, z. See
-    Section [Geometry and Detectors](framework.md#geometry-and-detectors) for details.
+    Section [Geometry and Detectors](framework-geometry-detectors.md) for details.
 
 -   The `orientation` specified as X-Y-Z extrinsic Euler angles. This
     means the detector is rotated first around the world’s X-axis, then
     around the world’s Y-axis and then around the world’s Z-axis.
     Alternatively the orientation can be set as Z-Y-X or X-Z-X extrinsic
-    Euler angles, refer to Section [Geometry and Detectors](framework.md#geometry-and-detectors) for details.
+    Euler angles, refer to Section [Geometry and Detectors](framework-geometry-detectors.md) for details.
 
 In addition to these required parameters, the following parameters allow
 to randomly misalign the respective detector from its initial position.
@@ -303,7 +303,7 @@ and `passive` for passive elements in the setup. If no value is given,
 `active` is taken as the default value.
 
 Furthermore it is possible to specify certain parameters of the detector
-explained in more detail in Section [Detector models](framework.md#detector-models). This allows
+explained in more detail in Section [Detector models](framework-geometry-detectors.md#detector-models). This allows
 to quickly adapt e.g. the sensor thickness of a certain detector without
 altering the actual detector model file.
 
@@ -360,7 +360,7 @@ part of the material. Placing a passive volume in the hollow part
 requires a different `mothervolume`.
 
 Similar to the detector configuration, the parameters `orientationmode`
-(see Section [Geometry and Detectors](framework.md#geometry-and-detectors)), `alignmentprecisionposition` and
+(see Section [Geometry and Detectors](framework-geometry-detectors.md)), `alignmentprecisionposition` and
 `alignmentprecisionorientation` (see Section [Detector configuration](getting_started.md#detector-configuration)) can
 be used optionally to define the rotation order and a possible
 misalignment of passive materials.
@@ -444,16 +444,16 @@ and alter its behavior:
 
 -   `librarydirectories`: Additional directories to search for module
     libraries, before searching the default paths. See
-    Section [Module instantiation](framework.md#module-instantiation) for details.
+    Section [Module instantiation](framework-modules-manager.md#module-instantiation) for details.
 
 -   `modelpaths`: Additional files or directories from which detector
     models should be read besides the standard search locations. Refer
-    to Section [Detector models](framework.md#detector-models) for more information.
+    to Section [Detector models](framework-geometry-detectors.md#detector-models) for more information.
 
 -   `experimentalmultithreading`: Enable **experimental**
     multi-threading for the framework. This can speed up simulations of
     multiple detectors significantly. More information about
-    multi-threading can be found in Section [Parallel execution of modules](framework.md#parallel-execution-of-modules).
+    multi-threading can be found in Section [Parallel execution of modules](framework-modules-manager.md#parallel-execution-of-modules).
 
 -   `workers`: Specify the number of workers to use in total, should be
     strictly larger than zero. Only used if `experimentalmultithreading`
@@ -788,7 +788,7 @@ configuration section. The following log levels are supported:
     termination of the application. Typically only emitted in the main
     executable after catching exceptions as they are the preferred way
     of fatal error handling (as discussed in
-    Section [Error Reporting and Exceptions](framework.md#error-reporting-and-exceptions)). An example of a fatal
+    Section [Error Reporting and Exceptions](framework-error-reporting-exceptions.md)). An example of a fatal
     error is an invalid configuration parameter.
 
 -   **STATUS**: Important information about the status of the
@@ -846,8 +846,8 @@ messages. The following formats are supported via the global parameter
     produced. This can help in debugging modules.
 
 More details about the logging system and the procedure for reporting
-errors in the code can be found in Sections [Logging system](framework.md#logging-system)
-and [Error Reporting and Exceptions](framework.md#error-reporting-and-exceptions).
+errors in the code can be found in Sections [Logging system](framework-redirect-module-inputs-outputs.md#logging-system)
+and [Error Reporting and Exceptions](framework-error-reporting-exceptions.md).
 
 Storing Output Data 
 -------------------
@@ -860,7 +860,7 @@ The `ROOTObjectWriter` automatically saves all objects created in a
 TTree @roottree. It stores separate trees for all object types and
 creates branches for every unique message name: a combination of the
 detector, the module and the message output name as described in
-Section [Redirect Module Inputs and Outputs](framework.md#redirect-module-inputs-and-outputs). For each event, values
+Section [Redirect Module Inputs and Outputs](framework-redirect-module-inputs-and-outputs.md). For each event, values
 are added to the leaves of the branches containing the data of the
 objects. This allows for easy histogramming of the acquired data over
 the total run using standard ROOT utilities.

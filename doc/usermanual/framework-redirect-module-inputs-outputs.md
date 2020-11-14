@@ -1,5 +1,5 @@
 Redirect Module Inputs and Outputs
-----------------------------------
+====================================
 
 In the Allpix² framework, modules exchange messages typically based on
 their input and output message types and the detector type. It is,
@@ -56,15 +56,15 @@ Logging and other Utilities
 The Allpix² framework provides a set of utilities which improve the
 usability of the framework and extend the functionality provided by the
 Standard Template Library (STL). The former includes a flexible and
-easy-to-use logging system, introduced in Section [Logging system](framework.md#logging-system) and an
+easy-to-use logging system, introduced in Section [Logging system](framework-redirect-module-inputs-outputs.md#logging-system) and an
 easy-to-use framework for units that supports converting arbitrary
 combinations of units to common base units which can be used
 transparently throughout the framework, and which will be discussed in
-more detail in Section [Unit system](framework.md#unit-system). The latter comprise tools
+more detail in Section [Unit system](framework-redirect-module-inputs-outputs.md#unit-system). The latter comprise tools
 which provide functionality the C++14 standard does not contain. These
 utilities are used internally in the framework and are only shortly
-discussed in Section [Internal utilities](framework.md#internal-utilities) (file system support) and
-Section [Internal utilities](framework.md#internal-utilities) (string utilities).
+discussed in Section [Internal utilities](framework-redirect-module-inputs-outputs.md#internal-utilities) (file system support) and
+Section [Internal utilities](framework-redirect-module-inputs-outputs.md#internal-utilities) (string utilities).
 
 ### Logging system
 
@@ -172,7 +172,7 @@ and to create new directories. These functions should be replaced by the
 ``17 file system API @cppfilesystem as soon as the framework minimum
 standard is updated to ``17.
 
-[Internal utilities](framework.md#internal-utilities) STL only provides string conversions for
+[Internal utilities](framework-redirect-module-inputs-outputs.md#internal-utilities) STL only provides string conversions for
 standard types using `std::stringstream` and `std::to_string`, which do
 not allow parsing strings encapsulated in pairs of double quote (`"`)
 characters nor integrating different units. Furthermore it does not

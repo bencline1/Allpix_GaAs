@@ -1,5 +1,5 @@
 Error Reporting and Exceptions
-------------------------------
+===============================
 
 Allpix² generally follows the principle of throwing exceptions in all
 cases where something is definitely wrong. Exceptions are also thrown to

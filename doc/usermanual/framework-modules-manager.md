@@ -1,5 +1,5 @@
 Modules and the Module Manager
-------------------------------
+==================================
 
 Allpix² is a modular framework and one of the core ideas is to partition
 functionality in independent modules which can be inserted or removed as
@@ -19,7 +19,7 @@ modules which can be defined:
 The type of module determines the constructor used, the internal unique
 name and the supported configuration parameters. For more details about
 the instantiation logic for the different types of modules, see
-Section [Module instantiation](framework.md#module-instantiation).
+Section [Module instantiation](framework-modules-manager.md#module-instantiation).
 
 ### Module instantiation
 

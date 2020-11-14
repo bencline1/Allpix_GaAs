@@ -28,7 +28,7 @@ following four main components that together form Allpix²:
     module wishes to change the data. All objects are compiled into a
     separate library which is automatically linked to every module. More
     information about the messaging system and the supported objects can
-    be found in Section [Passing Objects using Messages](framework.md#passing-objects-using-messages).
+    be found in Section [Passing Objects using Messages](framework-passing-objects-using-messages.md).
 
 4.  **Tools**: Allpix² provides a set of header-only ’tools’ that allow
     access to common logic shared by various modules. Examples are the
@@ -38,7 +38,7 @@ following four main components that together form Allpix²:
     Chapter [Additional Tools & Resources](additional.md). This set of tools is
     different from the set of core utilities the framework itself
     provides, which is part of the core and explained in
-    Section [Logging and other Utilities](framework.md#logging-and-other-utilities).
+    Section [Logging and other Utilities](framework-redirect-module-inputs-outputs.md#logging-and-other-utilities).
 
 Finally, Allpix² provides an executable which instantiates the core of
 the framework, receives and distributes the configuration object and
@@ -48,9 +48,9 @@ The chapter is structured as follows. Section [Architecture of the Core](framew
 overview of the architectural design of the core and describes its
 interaction with the rest of the Allpix² framework. The different
 subcomponents such as configuration, modules and messages are discussed
-in Sections [Configuration and Parameters](framework.md#configuration-and-parameters)–[Passing Objects using Messages](framework.md#passing-objects-using-messages). The
+in Sections [Configuration and Parameters](framework.md#configuration-and-parameters)–[Passing Objects using Messages](framework-passing-objects-using-messages.md). The
 chapter closes with a description of the available framework tools in
-Section [Logging and other Utilities](framework.md#logging-and-other-utilities). Some code will be provided in the
+Section [Logging and other Utilities](framework-redirect-module-inputs-outputs.md#logging-and-other-utilities). Some code will be provided in the
 text, but readers not interested may skip the technical details.
 
 Architecture of the Core
@@ -76,7 +76,7 @@ general utilities. The systems provided are:
     Allpix² modules as well as the manager responsible for loading and
     executing the modules (using the configuration system). This
     component is discussed in more detail in
-    Section [Modules and the Module Manager](framework.md#modules-and-the-module-manager).
+    Section [Modules and the Module Manager](framework-modules-manager.md).
 
 3.  **Geometry**: The geometry subsystem supplies helpers for the
     simulation geometry. The manager instantiates all detectors from the
@@ -84,23 +84,23 @@ general utilities. The systems provided are:
     and orientation linked to an instantiation of a particular detector
     model, itself containing all parameters describing the geometry of
     the detector. More details about geometry and detector models is
-    provided in Section [Geometry and Detectors](framework.md#geometry-and-detectors).
+    provided in Section [Geometry and Detectors](framework-geometry-detectors.md).
 
 4.  **Messenger**: The messenger is responsible for sending objects from
     one module to another. The messenger object is passed to every
     module and can be used to bind to messages to listen for. Messages
     with objects are also dispatched through the messenger as described
-    in Section [Passing Objects using Messages](framework.md#passing-objects-using-messages).
+    in Section [Passing Objects using Messages](framework-passing-objects-using-messages.md).
 
 5.  **Utilities**: The framework provides a set of utilities for
     logging, file and directory access, and unit conversion. An
     explanation on how to use of these utilities can be found in
-    Section [Logging and other Utilities](framework.md#logging-and-other-utilities). A set of exceptions is also
+    Section [Logging and other Utilities](framework-redirect-module-inputs-outputs.md#logging-and-other-utilities). A set of exceptions is also
     provided in the utilities, which are inherited and extended by the
     other components. Proper use of exceptions, together with logging
     information and reporting errors, makes the framework easier to use
     and debug. A few notes about the use and structure of exceptions are
-    provided in Section [Error Reporting and Exceptions](framework.md#error-reporting-and-exceptions).
+    provided in Section [Error Reporting and Exceptions](framework-error-reporting-exceptions.md).
 
 Configuration and Parameters
 ----------------------------
@@ -219,7 +219,7 @@ config.setAlias("new_key", "old_key")
 
 Conversions to the requested type are using the `fromstring` and
 `tostring` methods provided by the string utility library described in
-Section [Internal utilities](framework.md#internal-utilities). These conversions largely follow
+Section [Internal utilities](framework-redirect-module-inputs-outputs.md#internal-utilities). These conversions largely follow
 standard parsing, with one important exception. If (and only if) the
 value is retrieved as a C/C++ string and the string is fully enclosed by a
 pair of `"` characters, these are stripped before returning the value.

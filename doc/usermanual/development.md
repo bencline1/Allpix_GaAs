@@ -176,7 +176,7 @@ modular design of Allpix².
 
 Before starting the development of a new module, it is essential to
 carefully read the documentation of the framework module manager which
-can be found in Section [Modules and the Module Manager](framework.md#modules-and-the-module-manager). The basic steps ti
+can be found in Section [Modules and the Module Manager](framework-modules-manager.md). The basic steps ti
 implement a new module, hereafter referred to as `ModuleName`, are the
 following:
 
@@ -380,7 +380,7 @@ TestModule(Configuration& config, Messenger* messenger, std::shared_ptr<Detector
 
 The pointer to a Messenger can be used to bind variables to either
 receive or dispatch messages as explained in
-Section [Passing Objects using Messages](framework.md#passing-objects-using-messages). The constructor should be used to bind
+Section [Passing Objects using Messages](framework-passing-objects-using-messages.md). The constructor should be used to bind
 required messages, set configuration defaults and to throw exceptions in
 case of failures. Unique modules can access the GeometryManager to fetch
 all detector descriptions, while detector modules directly receive a
@@ -414,7 +414,7 @@ Adding a New Detector Model
 
 Custom detector models based on the detector classes provided with
 Allpix² can easily be added to the framework. In particular
-Section [Detector models](framework.md#detector-models) explains all parameters of the detector
+Section [Detector models](framework-geometry-detectors.md#detector-models) explains all parameters of the detector
 models currently available. The default models provided in the `models`
 directory of the repository can serve as examples. To create a new
 detector model, the following steps should be taken:
@@ -428,7 +428,7 @@ detector model, the following steps should be taken:
     readout chip.
 
 3.  Add all required parameters and possibly optional parameters as
-    explained in Section [Detector models](framework.md#detector-models).
+    explained in Section [Detector models](framework-geometry-detectors.md#detector-models).
 
 4.  Include the detector model in the search path of the framework by
     adding the `modelpaths` parameter to the general setting of the main

@@ -489,7 +489,7 @@ instantiations. Currently implemented tests comprise:
 
 <span>test~0~3-4~g~eometry~o~verwrite.conf</span>
 :   checks that detector model parameters are overwritten correctly as
-    described in Section [Detector models](framework.md#detector-models).
+    described in Section [Detector models](framework-geometry-detectors.md#detector-models).
 
 <span>test~0~4-1~c~onfiguration~c~li~c~hange.conf</span>
 :   tests whether single configuration values can be overwritten by
