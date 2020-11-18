@@ -92,11 +92,11 @@ created during a single simulation event are accessible until the end of
 the event; more information on object persistency within the framework
 can be found in Chapter [Structure & Components of the Framework][objects.md#persistency].
 
-Object history is implemented using the ROOT TRef class @roottref, which
+Object history is implemented using the ROOT TRef class[^17]tref, which
 acts as a special reference. On construction, every object gets a unique
 identifier assigned, that can be stored in other linked objects. This
 identifier can be used to retrieve the history, even after the objects
-are written out to ROOT TTrees  @roottree. TRef objects are however not
+are written out to ROOT TTrees [^16]tree. TRef objects are however not
 automatically fetched and can only be retrieved if their linked objects
 are available in memory, which has to be ensured explicitly. Outside the
 framework this means that the relevant tree containing the linked

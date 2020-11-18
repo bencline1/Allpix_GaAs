@@ -83,11 +83,11 @@ apply:
     indicating the unit. The list of base units is shown in
     the table.
 
-If no units are specified, values will always be interpreted in the base
+==If no units are specified, values will always be interpreted in the base
 units of the framework. In some cases this can lead to unexpected
 results. E.g. specifying a bias voltage as `bias_voltage = 50` results
 in an applied voltage of . Therefore it is strongly recommended to
-always specify units in the configuration files.
+always specify units in the configuration files.==
 
 The internal base units of the framework are not chosen for user
 convenience but for maximum precision of the calculations and in order
@@ -201,7 +201,7 @@ determines how the module is instantiated:
     irrespective of the number of detectors. These kinds of modules
     should only appear once in the whole configuration file unless
     different inputs and outputs are used, as explained in
-    Section [Redirect Module Inputs and Outputs](framework-redirect-module-inputs-and-outputs.md).
+    Section [Redirect Module Inputs and Outputs](framework-redirect-module-inputs-outputs.md).
 
 -   If the module is **detector**-specific, it is instantiated once for
     every detector it is configured to run on. By default, an
@@ -313,7 +313,7 @@ material of the detector in the center.](../assets/images/telescope.png "fig:")
 [fig:telescope]
 
 An example configuration file describing a setup with one CLICpix2
-detector and two Timepix @timepix models is the following:
+detector and two Timepix[^14] models is the following:
 Figure [fig:telescope] shows a visualization of the setup described in
 the file. This configuration is used in the rest of this chapter for
 explaining concepts.
@@ -644,7 +644,7 @@ use during a first simulation.
 Displaying the geometry and the particle tracks helps both in checking
 and interpreting the results of a simulation. Visualization is fully
 supported through Geant4, supporting all the options provided by
-Geant4 @geant4vis. Using the Qt viewer with OpenGL driver is the
+Geant4[^15]vis. Using the Qt viewer with OpenGL driver is the
 recommended option as long as the installed version of Geant4 is built
 with Qt support enabled.
 
@@ -825,10 +825,10 @@ configuration section. The following log levels are supported:
     running. Mostly used for software debugging or determining
     performance bottlenecks in the simulations.
 
-It is not recommended to set the `loglevel` higher than **WARNING** in a
+==It is not recommended to set the `loglevel` higher than **WARNING** in a
 typical simulation as important messages may be missed. Setting too low
 logging levels should also be avoided since printing many log messages
-will significantly slow down the simulation.
+will significantly slow down the simulation.==
 
 The logging system supports several formats for displaying the log
 messages. The following formats are supported via the global parameter
@@ -857,16 +857,16 @@ importance for subsequent reprocessing and analysis. Allpix² primarily
 uses ROOT for storing output data, given that it is a standard tool in
 High-Energy Physics and allows objects to be written directly to disk.
 The `ROOTObjectWriter` automatically saves all objects created in a
-TTree @roottree. It stores separate trees for all object types and
+TTree[^16]tree. It stores separate trees for all object types and
 creates branches for every unique message name: a combination of the
 detector, the module and the message output name as described in
-Section [Redirect Module Inputs and Outputs](framework-redirect-module-inputs-and-outputs.md). For each event, values
+Section [Redirect Module Inputs and Outputs](framework-redirect-module-inputs-outputs.md). For each event, values
 are added to the leaves of the branches containing the data of the
 objects. This allows for easy histogramming of the acquired data over
 the total run using standard ROOT utilities.
 
 Relations between objects within a single event are internally stored as
-ROOT TRefs @roottref, allowing retrieval of related objects as long as
+ROOT TRefs[^17]tref, allowing retrieval of related objects as long as
 these are loaded in memory. An exception will be thrown when trying to
 access an object which is not in memory. Refer to
 Section [Object History](objects.md#object-history) for more information about object history.
@@ -907,6 +907,12 @@ file_name = "../output/data.root"
 
 The Allpix² framework comes with a few more output modules which allow
 data storage in different formats, such as the LCIO persistency event
-data model @lcio, the native RCE file format @rce, or the Corryvreckan
+data model[^12], the native RCE file format[^18], or the Corryvreckan
 reconstruction framework data format. Detailed descriptions of these
 modules can be found in Chapter [Modules](modules.md).
+
+[^12]:S. Aplin et al. “LCIO: A persistency framework and event data model for HEP”. In: Nuclear Science Symposium and Medical Imaging Conference (NSS/MIC), IEEE. Anaheim, CA, Oct. 2012, pp. 2075–2079. doi: 10.1109/NSSMIC.2012.6551478.
+[^15]:[Geant4 Collaboration. Geant4 User’s Guide for Application Developers. Visualization. 2016.](https://geant4.web.cern.ch/geant4/UserDocumentation/UsersGuides/ForApplicationDeveloper/html/ch08.html]).
+[^16]:[Rene Brun and Fons Rademakers. ROOT User’s Guide. Trees.](https://root.cern.ch/root/htmldoc/guides/users-guide/Trees.html).
+[^17]:[Rene Brun and Fons Rademakers. ROOT User’s Guide. Input/Output.](https://root.cern.ch/root/htmldoc/guides/users-guide/InputOutput.html).
+[^18]:[Rainer Bartholdus, Su Dong, et al. ATLAS RCE Development Lab](https://twiki.cern.ch/twiki/bin/view/Atlas/RCEDevelopmentLab).

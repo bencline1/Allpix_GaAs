@@ -513,7 +513,7 @@ These tests ensure the proper functionality of each module covered and
 thus protect the framework against accidental changes affecting the
 physics simulation. Using a fixed seed (using the `randomseed`
 configuration keyword) together with a specific version of
-Geant4 @geant4 allows to reproduce the same simulation event.
+Geant4[^1] allows to reproduce the same simulation event.
 
 One event is produced per test and the `DEBUG`-level logging output of
 the respective module is checked against pre-defined expectation output
@@ -780,7 +780,7 @@ Current performance tests comprise:
 
 <span>test~0~1~d~eposition.conf</span>
 :   tests the performance of charge carrier deposition in the sensitive
-    sensor volume using Geant4 @geant4. A stepping length of is chosen,
+    sensor volume using Geant4[^1]. A stepping length of is chosen,
     and events are simulated. The addition of an electric field and the
     subsequent projection of the charges are necessary since Allpix²
     would otherwise detect that there are no recipients for the
@@ -805,4 +805,4 @@ Current performance tests comprise:
     very same configuration as performance test 02-1 but in addition
     enables multi-threading with four worker threads.
 
-
+[^1]:S. Agostinelli et al. “Geant4 - a simulation toolkit”. In: Nucl. Instr. Meth. A 506.3 (2003), pp. 250–303. issn: 0168-9002. doi: 10.1016/S0168-9002(03)01368-8.

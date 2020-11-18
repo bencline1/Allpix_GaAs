@@ -27,7 +27,7 @@ Section [Initializing the dependencies](installation.md#initializing-the-depend
 
 The core framework is compiled separately from the individual modules
 and Allpix² has therefore only one required dependency: ROOT 6 (versions
-below 6 are not supported) @root. Please refer to @rootinstallation for
+below 6 are not supported)[^2]. Please refer to ROOT installation[^9] for
 instructions on how to install ROOT. ROOT has several components of
 which the GenVector package is required to run Allpix². This package is
 included in the default build.
@@ -37,10 +37,10 @@ dependencies and their installation see the module documentation in
 Chapter [Modules](modules.md). The following dependencies are needed to compile
 the standard installation:
 
--   Geant4 @geant4: Simulates the desired particles and their
+-   Geant4[^1]: Simulates the desired particles and their
     interactions with matter, depositing charges in the detectors with
     the help of the constructed geometry. See the instructions
-    in @geant4installation for details on how to install the software.
+    in Geant installation[^10] for details on how to install the software.
     All Geant4 data sets are required to run the modules successfully.
     It is recommended to enable the Geant4 Qt extensions to allow
     visualization of the detector setup and the simulated particle
@@ -54,7 +54,7 @@ the standard installation:
         -DGEANT4_USE_OPENGL_X11=ON
         -DGEANT4_USE_SYSTEM_CLHEP=OFF
 
--   Eigen3 @eigen3: Vector package used to perform Runge-Kutta
+-   Eigen3[^8]: Vector package used to perform Runge-Kutta
     integration in the generic charge propagation module. Eigen is
     available in almost all Linux distributions through the package
     manager. Otherwise it can be easily installed, comprising a
@@ -68,7 +68,7 @@ Downloading the source code
 ---------------------------
 
 The latest version of Allpix² can be downloaded from the CERN Gitlab
-repository @ap2-repo. For production environments it is recommended to
+repository[^11]. For production environments it is recommended to
 only download and use tagged software versions, as many of the available
 git branches are considered development versions and might exhibit
 unexpected behavior.
@@ -143,7 +143,7 @@ supported:
 
 -   **`BUILD_ModuleName`**: If the specific module `ModuleName` should
     be installed or not. Defaults to ON for most modules, however some
-    modules with large additional dependencies such as LCIO @lcio are
+    modules with large additional dependencies such as LCIO[^12] are
     disabled by default. This set of parameters allows to configure the
     build for minimal requirements as detailed in
     Section [Prerequisites](installation.md#prerequisites).
@@ -231,6 +231,15 @@ Section [The allpix Executable](getting_started.md#the-allpix-executable) can b
 For tagged versions, the tag name should be appended to the image name,
 e.g. `gitlab-registry.cern.ch/allpix-squared/allpix-squared:v1.1`, and a
 full list of available Docker containers is provided via the project’s
-container registry @ap2-container-registry. A short description of how
+container registry[^13]. A short description of how
 Docker images for this project are built can be found in
 Section [Building Docker images](testing.md#building-docker-images).
+
+[^1]:S. Agostinelli et al. “Geant4 - a simulation toolkit”. In: Nucl. Instr. Meth. A 506.3 (2003), pp. 250–303. issn: 0168-9002. doi: 10.1016/S0168-9002(03)01368-8.
+[^2]:Rene Brun and Fons Rademakers. “ROOT - An Object Oriented Data Analysis Framework”. In: AIHENP’96 Workshop, Lausanne. Vol. 389. Sept. 1996, pp. 81–86.
+[^8]:Gaël Guennebaud, Benoît Jacob, et al. Eigen v3. 2010. url: [http://eigen.tuxfamily.org](http://eigen.tuxfamily.org).
+[^9]:Rene Brun and Fons Rademakers. Building ROOT. url: [https://root.cern.ch/building-root](https://root.cern.ch/building-root).
+[^10]:Geant4 Collaboration. Geant4 Installation Guide. Building and Installing Geant4 for Users and Developers. 2016. url: [http://geant4.web.cern.ch/geant4/UserDocumentation/UsersGuides/InstallationGuide/html/](http://geant4.web.cern.ch/geant4/UserDocumentation/UsersGuides/InstallationGuide/html/).
+[^11]:The Allpix2 Project Repository. Aug. 2, 2017. url: [https://gitlab.cern.ch/allpix-squared/allpix-squared/](https://gitlab.cern.ch/allpix-squared/allpix-squared/).
+[^12]:S. Aplin et al. “LCIO: A persistency framework and event data model for HEP”. In: Nuclear Science Symposium and Medical Imaging Conference (NSS/MIC), IEEE. Anaheim, CA, Oct. 2012, pp. 2075–2079. doi: 10.1109/NSSMIC.2012.6551478.
+[^13]:Simon Spannagel. The Allpix2 Docker Container Registry. Mar. 12, 2018. url: [https://gitlab.cern.ch/allpix-squared/allpix-squared/container_registry](ttps://gitlab.cern.ch/allpix-squared/allpix-squared/container_registry).

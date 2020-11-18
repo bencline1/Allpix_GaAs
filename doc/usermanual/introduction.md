@@ -119,8 +119,8 @@ ensure code quality as detailed in Chapter [Development Tools & Continuous Integ
 
 [^1]:S. Agostinelli et al. “Geant4 - a simulation toolkit”. In: Nucl. Instr. Meth. A 506.3 (2003), pp. 250–303. issn: 0168-9002. doi: 10.1016/S0168-9002(03)01368-8.
 [^2]:Rene Brun and Fons Rademakers. “ROOT - An Object Oriented Data Analysis Framework”. In: AIHENP’96 Workshop, Lausanne. Vol. 389. Sept. 1996, pp. 81–86.
-[^3]:Mathieu Benoit and John Idarraga. The AllPix Simulation Framework. Mar. 21, 2017. url: https://twiki.cern.ch/twiki/bin/view/Main/AllPix.
-[^4]:Mathieu Benoit, John Idarraga, and Samir Arfaoui. AllPix. Generic simulation for pixel detectors. url: https://github.com/ALLPix/allpix.
-[^5]:Daniel Hynds, Simon Spannagel, and Koen Wolters. The Allpix2 Code Documentation. Aug. 22, 2017. url: https://cern.ch/allpix-squared/reference/.
-[^6]:The Allpix2 Project Issue Tracker. July 27, 2017. url: https://gitlab.cern.ch/allpix-squared/allpix-squared/issues.
-[^7]:The Allpix2 Project Forum. Dec. 12, 2018. url: https://cern.ch/allpix-squared-forum.
+[^3]:Mathieu Benoit and John Idarraga. The AllPix Simulation Framework. Mar. 21, 2017. url: [https://twiki.cern.ch/twiki/bin/view/Main/AllPix](https://twiki.cern.ch/twiki/bin/view/Main/AllPix).
+[^4]:Mathieu Benoit, John Idarraga, and Samir Arfaoui. AllPix. Generic simulation for pixel detectors. url: [https://github.com/ALLPix/allpix](https://github.com/ALLPix/allpix).
+[^5]:Daniel Hynds, Simon Spannagel, and Koen Wolters. The Allpix2 Code Documentation. Aug. 22, 2017. url: [https://cern.ch/allpix-squared/reference/](https://cern.ch/allpix-squared/reference/).
+[^6]:The Allpix2 Project Issue Tracker. July 27, 2017. url: [https://gitlab.cern.ch/allpix-squared/allpix-squared/issues](https://gitlab.cern.ch/allpix-squared/allpix-squared/issues).
+[^7]:The Allpix2 Project Forum. Dec. 12, 2018. url: [https://cern.ch/allpix-squared-forum](https://cern.ch/allpix-squared-forum).
