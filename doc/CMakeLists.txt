@@ -78,4 +78,3 @@ FOREACH(subdir ${subdirs})
         SET(example_md_files ${example_md_files} ${CMAKE_BINARY_DIR}/usermanual/tools/${subdir}.md)
     ENDIF()
 ENDFOREACH()
-
