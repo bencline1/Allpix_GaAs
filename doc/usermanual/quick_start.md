@@ -38,8 +38,7 @@ pixel hits. All generated data is finally stored on disk in ROOT TTrees
 for later analysis.
 
 After this quick start it is very much recommended to proceed to the
-other chapters of this user manual. For quickly resolving common issues,
-the in Chapter [FAQs](faq.md) may be particularly useful.
+other chapters of this user manual. For quickly resolving common issues, Chapter [FAQs](faq.md) may be particularly useful.
 
 [^1]:S. Agostinelli et al. “Geant4 - a simulation toolkit”. In: Nucl. Instr. Meth. A 506.3 (2003), pp. 250–303. issn: 0168-9002. doi: 10.1016/S0168-9002(03)01368-8.
 [^2]:Rene Brun and Fons Rademakers. “ROOT - An Object Oriented Data Analysis Framework”. In: AIHENP’96 Workshop, Lausanne. Vol. 389. Sept. 1996, pp. 81–86.

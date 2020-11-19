@@ -38,7 +38,7 @@ Each detector has a set of properties attached to it:
     -   The `zxz` uses the **extrinsic Z-X-Z convention** for Euler
         angles instead. This option is also known as the 3-1-3 or the
         “x-convention” and the most widely used definition of Euler
-        angles @eulerangles.
+        angles[^22].
 
     It is highly recommended to always explicitly state the orientation
     mode instead of relying on the default configuration.
@@ -361,3 +361,4 @@ order:
     (thus effectively */usr/local/share//models*) followed by
     */usr/share/* (effectively */usr/share//models*).
 
+[^22]:Eric W. Weisstein. Euler Angles. From MathWorld – A Wolfram Web Resource. url: [http://mathworld.wolfram.com/EulerAngles.html](http://mathworld.wolfram.com/EulerAngles.html).

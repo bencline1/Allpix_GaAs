@@ -218,7 +218,7 @@ in Section [Packaging](testing.md#packaging)].
 Finally, the **deployment** stage is only executed for new tags in the
 repository. Whenever a tag is pushed, this stages receives the build
 artifacts of previous stages and publishes them to the Allpix² project
-website through the EOS file system @eos. More detailed information on
+website through the EOS file system[^46]. More detailed information on
 deployments is provided in the following.
 
 Automatic Deployment
@@ -237,7 +237,7 @@ deployment targets are executed.
 ### Software deployment to CVMFS
 
 The software is automatically deployed to CERN’s VM file system
-(CVMFS) @cvmfs for every new tag. In addition, the `master` branch is
+(CVMFS)[^47] for every new tag. In addition, the `master` branch is
 built and deployed every night. New versions are published to the folder
 `/cvmfs/clicdp.cern.ch/software/allpix-squared/` where a new folder is
 created for every new tag, while updates via the `master` branch are
@@ -299,7 +299,7 @@ Building Docker images
 New Allpix² Docker images are automatically created and deployed by the
 CI for every new tag and as a nightly build from the `master` branch.
 New versions are published to project Docker container
-registry @ap2-container-registry. Tagged versions can be found via their
+registry[^13]. Tagged versions can be found via their
 respective tag name, while updates via the nightly build are always
 stored with the `latest` tag attached.
 
@@ -806,3 +806,6 @@ Current performance tests comprise:
     enables multi-threading with four worker threads.
 
 [^1]:S. Agostinelli et al. “Geant4 - a simulation toolkit”. In: Nucl. Instr. Meth. A 506.3 (2003), pp. 250–303. issn: 0168-9002. doi: 10.1016/S0168-9002(03)01368-8.
+[^13]:Simon Spannagel. The Allpix2 Docker Container Registry. Mar. 12, 2018. url: [https://gitlab.cern.ch/allpix-squared/allpix-squared/container_registry](https://gitlab.cern.ch/allpix-squared/allpix-squared/container_registry).
+[^46]:A. J. Peters and L. Janyst. “Exabyte Scale Storage at CERN”. In: Journal of Physics: Conference Series 331.5 (2011), p. 052015. doi: [10.1088/1742-6596/331/5/052015](http://dx.doi.org/10.1088/1742-6596/331/5/052015).
+[^47]:C. Aguado Sanchez et al. “CVMFS - a ﬁle system for the CernVM virtual appliance”. In: XII Advanced Computing and Analysis Techniques in Physics Research (ACAT08). Vol. ACAT08. 2008, p. 052.

@@ -36,7 +36,7 @@ of non-linear particle trajectories due to multiple scattering is up to
 module. In addition, it provides a member function to retrieve the
 reference point at the sensor center plane in local coordinates for
 convenience. The MCParticle also stores an identifier of the particle
-type, using the PDG particle codes @pdg, as well as the time it has
+type, using the PDG particle codes[^24], as well as the time it has
 first been observed in the respective sensor. The MCParticle
 additionally stores a parent MCParticle object, if available. The lack
 of a parent doesn’t guarantee that this MCParticle originates from a
@@ -90,13 +90,13 @@ create them. For example, a `PropagatedCharge` could hold a link to the
 `DepositedCharge` object at which the propagation started. All objects
 created during a single simulation event are accessible until the end of
 the event; more information on object persistency within the framework
-can be found in Chapter [Structure & Components of the Framework][objects.md#persistency].
+can be found in Chapter [Allpix SquaredPassing Objects using Messages](framework-passing-objects-using-messages.md#persistency).
 
-Object history is implemented using the ROOT TRef class[^17]tref, which
+Object history is implemented using the ROOT TRef class[^17], which
 acts as a special reference. On construction, every object gets a unique
 identifier assigned, that can be stored in other linked objects. This
 identifier can be used to retrieve the history, even after the objects
-are written out to ROOT TTrees [^16]tree. TRef objects are however not
+are written out to ROOT TTrees[^16]. TRef objects are however not
 automatically fetched and can only be retrieved if their linked objects
 are available in memory, which has to be ensured explicitly. Outside the
 framework this means that the relevant tree containing the linked
@@ -112,3 +112,7 @@ MCParticle can furthermore be linked to another MCParticle on the same
 detector. This will be the case if there are MCParticles from a primary
 (parent) and secondary (child) track on one detector. The corresponding
 child MCParticles will then carry a reference to the parent MCParticle.
+
+[^16]:Rene Brun and Fons Rademakers. ROOT User’s Guide. Trees. url: [https://root.cern.ch/root/htmldoc/guides/users-guide/Trees.html](https://root.cern.ch/root/htmldoc/guides/users-guide/Trees.html).
+[^17]:Rene Brun and Fons Rademakers. ROOT User’s Guide. Input/Output. url: [https://root.cern.ch/root/htmldoc/guides/users-guide/InputOutput.html](https://root.cern.ch/root/htmldoc/guides/users-guide/InputOutput.html).
+[^24]:L. Garren et al. Monte Carlo Particle Numbering Scheme. 2015. url: [http://hepdata.cedar.ac.uk/lbl/2016/reviews/rpp2016-rev-monte-carlo-numbering.pdf](http://hepdata.cedar.ac.uk/lbl/2016/reviews/rpp2016-rev-monte-carlo-numbering.pdf).

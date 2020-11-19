@@ -146,7 +146,7 @@ TARGET_LINK_LIBRARIES(${MODULE_NAME} MyExternalLibrary)
 ```
 
 A more complete CMake structure, suited to host multiple external
-modules, is provided in a separate repository @ap2-external-modules.
+modules, is provided in a separate repository[^43].
 
 In order to load modules which have been compiled and installed in a
 different location than the ones shipped with the framework itself, the
@@ -190,7 +190,7 @@ following:
 2.  Before starting to implement the actual module, it is recommended to
     update the introductory documentation in *README.md*. No additional
     documentation in LaTeX has to be provided, as this
-    Markdown-formatted file @markdown is automatically converted and
+    Markdown-formatted file[^44] is automatically converted and
     included in the user manual. Formulae can be included by enclosure
     in Dollar-backtick markers, i.e. \`$` E(z) = 0`$\`. The Doxygen
     documentation in *`ModuleName`.hpp* should also be extended to
@@ -209,7 +209,7 @@ development of a module include:
     of the functionality of other modules already implemented, and to
     look for similar modules which can help during development.
 
--   The [Doxygen (core) reference documentation](/reference/index.html) included in the
+-   The [Doxygen (core) reference documentation](/codereference/index.html) included in the
     framework.
 
 -   The latest version of the source code of all modules and the Allpix²
@@ -218,7 +218,7 @@ development of a module include:
 Any module potentially useful for other users should be contributed back
 to the main repository after is has been validated. It is strongly
 encouraged to send a merge-request through the mechanism provided by the
-software repository @ap2-repo.
+software repository[^11].
 
 ### Files of a Module
 
@@ -306,8 +306,8 @@ ALLPIX_MODULE_INSTALL(${MODULE_NAME})
 ##### README.md
 
 The `README.md` serves as the documentation for the module and should be
-written in Markdown format @markdown. It is automatically converted to
-LaTeX using Pandoc @pandoc and included in the user manual in
+written in Markdown format[^44]. It is automatically converted to
+LaTeX using Pandoc[^45] and included in the user manual in
 Chapter [Modules](modules.md). By documenting the module functionality in
 Markdown, the information is also viewable with a web browser in the
 repository within the module sub-folder.
@@ -443,4 +443,9 @@ the framework the configuration file should be moved to the `models`
 folder of the repository. The file should then be added to the
 installation target in the `CMakeLists.txt` file of the `models`
 directory. Afterwards, a merge-request can be created via the mechanism
-provided by the software repository @ap2-repo.
+provided by the software repository[^11].
+
+[^11]:The Allpix2 Project Repository. Aug. 2, 2017. url: [https://gitlab.cern.ch/allpix-squared/allpix-squared/](https://gitlab.cern.ch/allpix-squared/allpix-squared/).
+[^43]:CMake for External Allpix2 Modules Repository. Sept. 20, 2019. url: [https://gitlab.cern.ch/allpix-squared/external-modules/](https://gitlab.cern.ch/allpix-squared/external-modules/).
+[^44]:John Gruber and Aaron Swartz. Markdown. url: [https://daringﬁreball.net/projects/markdown/](https://daringﬁreball.net/projects/markdown/).
+[^45]:John MacFarlane. Pandoc. A universal document converter. url: [http://pandoc.org/](http://pandoc.org/).

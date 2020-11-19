@@ -26,8 +26,8 @@ display a ROOT vector with units.
 
 ### Runge-Kutta integrator
 
-A fast Eigen-powered @eigen3 Runge-Kutta integrator is provided as a
-tool to numerically solve differential equations @fehlberg. The
+A fast Eigen-powered[^8] Runge-Kutta integrator is provided as a
+tool to numerically solve differential equations[^19]. The
 Runge-Kutta integrator is designed in a generic way and supports
 multiple methods using different tableaus. It allows to integrate a
 system of equations in several steps with customizable step size. The

@@ -40,14 +40,14 @@ configured via CMake. The module search order is as follows:
     `librarydirectories` in the provided order, if this parameter
     exists.
 
-3.  4.  The internal library paths of the executable, that should
+3.  The internal library paths of the executable, that should
     automatically point to the libraries that are built and installed
     together with the executable. These library paths are stored in
     `RPATH` on Linux, see the next point for more information.
 
-5.  The other standard locations to search for libraries depending on
+4.  The other standard locations to search for libraries depending on
     the operating system. Details about the procedure Linux follows can
-    be found in @linuxld.
+    be found in the Linux Manual[^21].
 
 If the loading of the module library is successful, the module is
 checked to determine if it is a unique or detector module. As a single
@@ -115,3 +115,5 @@ properly bind ROOT histograms to their directory before the
 `run()`-method. Access to constant operations in the GeometryManager,
 Detector and DetectorModel is always valid between various threads. In
 addition, sending and receiving messages is thread-safe.
+
+[^21]:Michael Kerrisk. Linux Programmer’s Manual. ld.so, ld-linux.so - dynamic linker/loader. url: [http://man7.org/linux/man-pages/man8/ld.so.8.html](http://man7.org/linux/man-pages/man8/ld.so.8.html).

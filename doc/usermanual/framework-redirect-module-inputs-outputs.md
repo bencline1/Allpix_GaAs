@@ -169,8 +169,8 @@ presented in Section [Parsing types and units](getting_started.md#parsing-types
 The **filesystem** utilities provide functions to convert relative to
 absolute canonical paths, to iterate through all files in a directory
 and to create new directories. These functions should be replaced by the
-``17 file system API @cppfilesystem as soon as the framework minimum
-standard is updated to ``17.
+C++17 file system API[^23] as soon as the framework minimum
+standard is updated to C++17.
 
 [Internal utilities](framework-redirect-module-inputs-outputs.md#internal-utilities) STL only provides string conversions for
 standard types using `std::stringstream` and `std::to_string`, which do
@@ -189,3 +189,5 @@ strings functions missing in the STL.
 Furthermore, the Allpix² tool system contains extensions to allow
 automatic conversions for ROOT and Geant4 types as explained in
 Section [ROOT and Geant4 utilities](additional.md#root-and-geant4-utilities).
+
+[^23]:Beman Dawes. Adopt the File System TS for C++17. Feb. 2016. url: [http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0218r0.html](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0218r0.html). 
