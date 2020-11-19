@@ -103,3 +103,6 @@ bytes in the file. If every byte in that part of the file is non-null,
 the parser considers the file to be text and reads it as INIT file;
 otherwise it considers the file to be binary and parses the field as APF
 data.
+
+[^8]:Gaël Guennebaud, Benoît Jacob, et al. Eigen v3. 2010. url: [http://eigen.tuxfamily.org](http://eigen.tuxfamily.org).
+[^19]:Erwin Fehlberg. Low-order classical Runge-Kutta formulas with stepsize control and their application to some heat transfer problems. NASA Technical Report NASA-TR-R-315. [http://hdl.handle.net/2060/19690021375](http://hdl.handle.net/2060/19690021375). 1969.

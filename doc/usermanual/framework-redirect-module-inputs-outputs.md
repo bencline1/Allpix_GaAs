@@ -74,7 +74,7 @@ easy to read. The system is globally configured, thus only one logger
 instance exists. The following commands are available for sending
 messages to the logging system at a level of `LEVEL`:
 
-<span>LOG(LEVEL)</span>
+LOG(LEVEL)
 :   Send a message with severity level `LEVEL` to the logging system.
 
     ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
@@ -88,7 +88,7 @@ messages to the logging system at a level of `LEVEL`:
     every new line under the previous message and will leave the header
     space empty on new lines.
 
-<span>LOG~O~NCE(LEVEL)</span>
+LOG_ONCE(LEVEL)
 :   Same as `LOG`, but will only log this message once over the full
     run, even if the logging function is called multiple times.
 
@@ -102,7 +102,7 @@ messages to the logging system at a level of `LEVEL`:
     message for every event. The message is preceded by the information
     that further messages will be suppressed.
 
-<span>LOG~N~(LEVEL, NUMBER)</span>
+LOG_N(LEVEL, NUMBER)
 :   Same as `LOGONCE` but allows to specify the number of times the
     message will be logged via the additional parameter `NUMBER`.
 
@@ -114,7 +114,7 @@ messages to the logging system at a level of `LEVEL`:
     The last message is preceded by the information that further
     messages will be suppressed.
 
-<span>LOG~P~ROGRESS(LEVEL, IDENTIFIER)</span>
+LOG_PROGRESS(LEVEL, IDENTIFIER)
 :   This function allows to update the message to be updated on the same
     line for simple progressbar-like functionality.
 

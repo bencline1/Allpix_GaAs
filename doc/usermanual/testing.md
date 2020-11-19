@@ -65,7 +65,7 @@ are provided:
 
 <span>make package</span>
 :   creates a binary release tarball as described in
-    Section [Packaging](testing.md#packaging)].
+    Section [Packaging](testing.md#packaging).
 
 Packaging 
 ---------
@@ -213,7 +213,7 @@ distributable tarballs for several platforms. This includes adding all
 libraries and executables to the tarball as well as preparing the
 `setup.sh` script to prepare run-time dependencies using the information
 provided to the build system. This procedure is described in more detail
-in Section [Packaging](testing.md#packaging)].
+in Section [Packaging](testing.md#packaging).
 
 Finally, the **deployment** stage is only executed for new tags in the
 repository. Whenever a tag is pushed, this stages receives the build
@@ -334,7 +334,7 @@ file `etc/docker/Dockerfile.deps` via:
 These images are created manually and only updated when necessary,
 i.e. if major new version of the underlying dependencies are available.
 
-The dependencies Docker images should not be flattened with commands
+==The dependencies Docker images should not be flattened with commands
 like
 
 `docker export <container id> | docker import - <tag name>`
@@ -342,7 +342,7 @@ like
 because it strips any `ENV` variables set or used during the build
 process. They are used to set up the ROOT6 and Geant4 environments. When
 flattening, their executables and data paths cannot be found in the
-final Allpix² image.
+final Allpix² image.==
 
 Finally, the latest revision of Allpix² is built using the file
 `etc/docker/Dockerfile`. This job is performed automatically by the
@@ -439,71 +439,71 @@ The framework functionality tests aim at reproducing basic features such
 as correct parsing of configuration keys or resolution of module
 instantiations. Currently implemented tests comprise:
 
-<span>test~0~1-1~g~lobalconfig~d~etectors.conf</span>
+test_01-1_globalconfig_detectors.conf
 :   tests the framework behavior in case of a non-existent detector
     setup description file.
 
-<span>test~0~1-2~g~lobalconfig~m~odelpaths.conf</span>
+test_01-2_globalconfig_modelpaths.conf
 :   tests the correct parsing of additional model paths and the loading
     of the detector model.
 
-<span>test~0~1-3~g~lobalconfig~l~og~f~ormat.conf</span>
+test_01-3_globalconfig_log_format.conf
 :   switches the logging format.
 
-<span>test~0~1-4~g~lobalconfig~l~og~l~evel.conf</span>
+test_01-4_globalconfig_log_level.conf
 :   sets a different logging verbosity level.
 
-<span>test~0~1-5~g~lobalconfig~l~og~f~ile.conf</span>
+test_01-5_globalconfig_log_file.conf
 :   configures the framework to write log messages into a file.
 
-<span>test~0~1-6~g~lobalconfig~m~issing~m~odel.conf</span>
+test_01-6_globalconfig_missing_model.conf
 :   tests the behavior of the framework in case of a missing detector
     model file.
 
-<span>test~0~1-7~g~lobalconfig~r~andom~s~eed.conf</span>
+test_01-7_globalconfig_random_seed.conf
 :   sets a defined random seed to start the simulation with.
 
-<span>test~0~1-8~g~lobalconfig~r~andom~s~eed~c~ore.conf</span>
+test_01-8_globalconfig_random_seed_core.conf
 :   sets a defined seed for the core component seed generator, e.g. used
     for misalignment.
 
-<span>test~0~2-1~s~pecialization~u~nique~n~ame.conf</span>
+test_02-1_specialization_unique_name.conf
 :   tests the framework behavior for an invalid module configuration:
     attempt to specialize a unique module for one detector instance.
 
-<span>test~0~2-2~s~pecialization~u~nique~t~ype.conf</span>
+test_02-2_specialization_unique_type.conf
 :   tests the framework behavior for an invalid module configuration:
     attempt to specialize a unique module for one detector type.
 
-<span>test~0~3-1~g~eometry~g~4~c~oordinate~s~ystem.conf</span>
+test_03-1_geometry_g4_coordinate_system.conf
 :   ensures that the Allpix² and Geant4 coordinate systems and
     transformations are identical.
 
-<span>test~0~3-2~g~eometry~r~otations.conf</span>
+test_03-2_geometry_rotations.conf
 :   tests the correct interpretation of rotation angles in the detector
     setup file.
 
-<span>test~0~3-3~g~eometry~m~isaligned.conf</span>
+test_03-3_geometry_misaligned.conf
 :   tests the correct calculation of misalignments from alignment
     precisions given in the detector setup file.
 
-<span>test~0~3-4~g~eometry~o~verwrite.conf</span>
+test_03-4_geometry_overwrite.conf
 :   checks that detector model parameters are overwritten correctly as
     described in Section [Detector models](framework-geometry-detectors.md#detector-models).
 
-<span>test~0~4-1~c~onfiguration~c~li~c~hange.conf</span>
+test_04-1_configuration_cli_change.conf
 :   tests whether single configuration values can be overwritten by
     options supplied via the command line.
 
-<span>test~0~4-2~c~onfiguration~c~li~n~ochange.conf</span>
+test_04-2_configuration_cli_nochange.conf
 :   tests whether command line options are correctly assigned to module
     instances and do not alter other values.
 
-<span>test~0~5-1~o~verwrite~s~ame~d~enied.conf</span>
+test_05-1_overwrite_same_denied.conf
 :   tests whether two modules writing to the same file is disallowed if
     overwriting is denied.
 
-<span>test~0~4-2~c~onfiguration~c~li~n~ochange.conf</span>
+test_05-2_configuration_cli_nochange.conf
 :   tests whether two modules writing to the same file is allowed if the
     last one reenables overwriting locally.
 
@@ -523,112 +523,112 @@ simulation result.
 
 Currently implemented tests comprise:
 
-<span>test~0~1~g~eobuilder.conf</span>
+test_01_geobuilder.conf
 :   takes the provided detector setup and builds the Geant4 geometry
     from the internal detector description. The monitored output
     comprises the calculated wrapper dimensions of the detector model.
 
-<span>test~0~2-1~e~lectricfield~l~inear.conf</span>
+test_02-1_electricfield_linear.conf
 :   creates a linear electric field in the constructed detector by
     specifying the bias and depletion voltages. The monitored output
     comprises the calculated effective thickness of the depleted
     detector volume.
 
-<span>test~0~2-2~e~lectricfield~i~nit.conf</span>
+test_02-2_electricfield_init.conf
 :   loads an INIT file containing a TCAD-simulated electric field
     (cf. Section [Electric Fields](getting_started.md#electric-fields)) and applies the field to
     the detector model. The monitored output comprises the number of
     field cells for each pixel as read and parsed from the input file.
 
-<span>test~0~2-3~e~lectricfield~l~inear~d~epth.conf</span>
+test_02-3_electricfield_linear_depth.conf
 :   creates a linear electric field in the constructed detector by
     specifying the applied bias voltage and a depletion depth. The
     monitored output comprises the calculated effective thickness of the
     depleted detector volume.
 
-<span>test~0~2-4~m~agneticfield~c~onstant.conf</span>
+test_02-4_magneticfield_constant.conf
 :   creates a constant magnetic field for the full volume and applies it
     to the geometryManager. The monitored output comprises the message
     for successful application of the magnetic field.
 
-<span>test~0~3-1~d~eposition.conf</span>
+test_03-1_deposition.conf
 :   executes the charge carrier deposition module. This will invoke
     Geant4 to deposit energy in the sensitive volume. The monitored
     output comprises the exact number of charge carriers deposited in
     the detector.
 
-<span>test~0~3-2~d~eposition~m~c.conf</span>
+test_03-2_deposition_mc.conf
 :   executes the charge carrier deposition module as the previous tests,
     but monitors the type, entry and exit point of the Monte Carlo
     particle associated to the deposited charge carriers.
 
-<span>test~0~3-3~d~eposition~t~rack.conf</span>
+test_03-3_deposition_track.conf
 :   executes the charge carrier deposition module as the previous tests,
     but monitors the start and end point of one of the Monte Carlo
     tracks in the event.
 
-<span>test~0~3-4~d~eposition~s~ource~p~oint.conf</span>
+test_03-4_deposition_source_point.conf
 :   tests the point source in the charge carrier deposition module by
     monitoring the deposited charges.
 
-<span>test~0~3-5~d~eposition~s~ource~s~quare.conf</span>
+test_03-5_deposition_source_square.conf
 :   tests the square source in the charge carrier deposition module by
     monitoring the deposited charges.
 
-<span>test~0~3-6~d~eposition~s~ource~s~phere.conf</span>
+test_03-6_deposition_source_sphere.conf
 :   tests the sphere source in the charge carrier deposition module by
     monitoring the deposited charges.
 
-<span>test~0~3-7~d~eposition~s~ource~m~acro.conf</span>
+test_03-7_deposition_source_macro.conf
 :   tests the G4 macro source in the charge carrier deposition module
     using the macro file `sourcemacrotest.txt`, monitoring the deposited
     charges.
 
-<span>test~0~3-8~d~eposition~p~oint.conf</span>
+test_03-8_deposition_point.conf
 :   tests the deposition of a point charge at a specified position,
     checks the position of the deposited charge carrier in global
     coordinates.
 
-<span>test~0~3-9~d~eposition~s~can.conf</span>
+test_03-9_deposition_scan.conf
 :   tests the scan of a pixel volume by depositing charges for a given
     number of events, check for the calculated voxel size.
 
-<span>test~0~3-10~d~eposition~s~can~c~ube.conf</span>
+test_03-10_deposition_scan_cube.conf
 :   tests the calculation of the scanning points by monitoring the
     warning of the number of events is not a perfect cube.
 
-<span>test~0~3-11~d~eposition~m~ip.conf</span>
+test_03-11_deposition_mip.conf
 :   tests the deposition of charges along a line by monitoring the
     calculated step size and number of charge carriers deposited per
     step.
 
-<span>test~0~3-12~d~eposition~m~ip~p~osition.conf</span>
+test_03-12_deposition_mip_position.conf
 :   tests the generation of the Monte Carlo particle when depositing
     charges along a line by monitoring the start and end positions of
     the particle.
 
-<span>test~0~3-13~d~eposition~f~ano.conf</span>
+test_03-13_deposition_fano.conf
 :   tests the simulation of fluctuations in charge carrier generation by
     monitoring the total number of generated carrier pairs when altering
     the Fano factor.
 
-<span>test~0~3-14~d~eposition~s~pot.conf</span>
+test_03-14_deposition_spot.conf
 :   tests the deposition of charge carriers around a fixed position with
     a Gaussian distribution.
 
-<span>test~0~4-1~p~ropagation~p~roject.conf</span>
+test_04-1_propagation_project.conf
 :   projects deposited charges to the implant side of the sensor. The
     monitored output comprises the total number of charge carriers
     propagated to the sensor implants.
 
-<span>test~0~4-2~p~ropagation~g~eneric.conf</span>
+test_04-2_propagation_generic.conf
 :   uses the Runge-Kutta-Fehlberg integration of the equations of motion
     implemented in the drift-diffusion model to propagate the charge
     carriers to the implants. The monitored output comprises the total
     number of charges moved, the number of integration steps taken and
     the simulated propagation time.
 
-<span>test~0~4-3~p~ropagation~g~eneric-magnetic.conf</span>
+test_04-3_propagation_generic-magnetic.conf
 :   uses the Runge-Kutta-Fehlberg integration of the equations of motion
     implemented in the drift-diffusion model to propagate the charge
     carriers to the implants under the influence of a constant magnetic
@@ -636,121 +636,121 @@ Currently implemented tests comprise:
     moved, the number of integration steps taken and the simulated
     propagation time.
 
-<span>test~0~4-4~p~ropagation~p~roject~i~ntegration.conf</span>
+test_04-4_propagation_project_integration.conf
 :   projects deposited charges to the implant side of the sensor with a
     reduced integration time to ignore some charge carriers. The
     monitored output comprises the total number of charge carriers
     propagated to the sensor implants.
 
-<span>test~0~5~t~ransfer~s~imple.conf</span>
+test_05_transfer_simple.conf
 :   tests the transfer of charges from sensor implants to readout chip.
     The monitored output comprises the total number of charges
     transferred and the coordinates of the pixels the charges have been
     assigned to.
 
-<span>test~0~6-1~d~igitization~c~harge.conf</span>
+test_06-1_digitization_charge.conf
 :   digitizes the transferred charges to simulate the front-end
     electronics. The monitored output of this test comprises the total
     charge for one pixel including noise contributions and the smeared
     threshold it is compared to.
 
-<span>test~0~6-2~d~igitization~q~dc.conf</span>
+test_06-2_digitization_qdc.conf
 :   digitizes the transferred charges and tests the conversion into QDC
     units. The monitored output comprises the converted charge value in
     units of QDC counts.
 
-<span>test~0~6-3~d~igitization~g~ain.conf</span>
+test_06-3_digitization_gain.conf
 :   digitizes the transferred charges and tests the amplification
     process by monitoring the total charge after signal amplification
     and smearing.
 
-<span>test~0~6-4~d~igitization~t~oa.conf</span>
+test_06-4_digitization_toa.conf
 :   digitizes the signal and calculates the time-of-arrival of the
     particle by checking when the threshold was crossed.
 
-<span>test~0~6-5~d~igitization~t~dc.conf</span>
+test_06-5_digitization_tdc.conf
 :   digitizes the signal and test the conversion of time-of-arrival to
     TDC units.
 
-<span>test~0~7~h~istogramming.conf</span>
+test_07_histogramming.conf
 :   tests the detector histogramming module and its clustering
     algorithm. The monitored output comprises the total number of
     clusters and their mean position.
 
-<span>test~0~8-1~w~riter~r~oot.conf</span>
+test_08-1_writer_root.conf
 :   ensures proper functionality of the ROOT file writer module. It
     monitors the total number of objects and branches written to the
     output ROOT trees.
 
-<span>test~0~8-2~w~riter~r~ce.conf</span>
+test_08-2_writer_rce.conf
 :   ensures proper functionality of the RCE file writer module. The
     correct conversion of the PixelHit position and value is monitored
     by the test’s regular expressions.
 
-<span>test~0~8-3~w~riter~l~cio.conf</span>
+test_08-3_writer_lcio.conf
 :   ensures proper functionality of the LCIO file writer module. Similar
     to the above test, the correct conversion of PixelHits (coordinates
     and charge) is monitored.
 
-<span>test~0~8-4~w~riter~c~orryvreckan.conf</span>
+test_08-4_writer_corryvreckan.conf
 :   ensures proper functionality of the Corryvreckan file writer module.
     The monitored output comprises the coordinates of the pixel produced
     in the simulation.
 
-<span>test~0~8-5~w~riter~c~orryvreckan~m~c.conf</span>
+test_08-5_writer_corryvreckan_mc.conf
 :   ensures the correct storage of Monte Carlo truth particle
     information in the Corryvreckan file writer module by monitoring the
     local coordinates of the MC particle associated to the pixel hit.
 
-<span>test~0~8-6~w~riter~t~ext.conf</span>
+test_08-6_writer_text.conf
 :   ensures proper functionality of the ASCII text writer module by
     monitoring the total number of objects and messages written to the
     text file..
 
-<span>test~0~8-7~w~riter~l~cio~d~etector~a~ssignment.conf</span>
+test_08-7_writer_lcio_detector_assignment.conf
 :   exercises the assignment of detector IDs to Allpix² detectors in the
     LCIO output file. A fixed ID and collection name is assigned to the
     simulated detector.
 
-<span>test~0~8-8~w~riter~l~cio~n~o~m~c~t~ruth.conf</span>
+test_08-8_writer_lcio_no_mc_truth.conf
 :   ensures that simulation results are properly converted to LCIO and
     stored even without the Monte Carlo truth information available.
 
-<span>test~0~9-1~r~eader~r~oot.conf</span>
+test_09-1_reader_root.conf
 :   tests the capability of the framework to read data back in and to
     dispatch messages for all objects found in the input tree. The
     monitored output comprises the total number of objects read from all
     branches.
 
-<span>test~0~9-2~r~eader~r~oot~s~eed.conf</span>
+test_09-2_reader_root_seed.conf
 :   tests the capability of the framework to detect different random
     seeds for misalignment set in a data file to be read back in. The
     monitored output comprises the error message including the two
     different random seed values.
 
-<span>test~0~9-3~r~eader~r~oot~i~gnoreseed.conf</span>
+test_09-3_reader_root_ignoreseed.conf
 :   tests if core random seeds are properly ignored by the
     ROOTObjectReader module if requested by the configuration. The
     monitored output comprises the warning message emitted if a
     difference in seed values is discovered.
 
-<span>test~1~0-1~p~assivemat~a~ddpoint.conf</span>
+test_10-1_passivemat_addpoint.conf
 :   ensures the module adds corner points of the passive material in a
     correct way.
 
-<span>test~1~0-2~p~assivemat~a~ddpoint~r~ot.conf</span>
+test_10-2_passivemat_addpoint_rot.conf
 :   ensures proper rotation of the position of the corner points of the
     passive material.
 
-<span>test~1~0-3~p~assivemat~m~othervolume.conf</span>
+test_10-3_passivemat_mothervolume.conf
 :   ensures placing a detector inside a passive material will not cause
     overlapping materials.
 
-<span>test~1~0-4~p~assivemat~w~orldvolume.conf</span>
+test_10-4_passivemat_worldvolume.conf
 :   ensures the added corner points of the passive material increase the
     world volume accordingly.
 
-<span>test~1~0-5~p~assivemat~s~ame~m~aterials.conf</span>
+test_10-5_passivemat_same_materials.conf
 :   tests if a warning will be thrown if the material of the passive
     material is the same as the material of the world volume.
 
@@ -778,7 +778,7 @@ code under review.
 
 Current performance tests comprise:
 
-<span>test~0~1~d~eposition.conf</span>
+test_01_deposition.conf
 :   tests the performance of charge carrier deposition in the sensitive
     sensor volume using Geant4[^1]. A stepping length of is chosen,
     and events are simulated. The addition of an electric field and the
@@ -786,7 +786,7 @@ Current performance tests comprise:
     would otherwise detect that there are no recipients for the
     deposited charge carriers and skip the deposition entirely.
 
-<span>test~0~2-1~p~ropagation~g~eneric.conf</span>
+test_02-1_propagation_generic.conf
 :   tests the very critical performance of the drift-diffusion
     propagation of charge carriers, as this is the most
     computing-intense module of the framework. Charge carriers are
@@ -794,13 +794,13 @@ Current performance tests comprise:
     fine spatial and temporal resolution is performed. The simulation
     comprises events.
 
-<span>test~0~2-2~p~ropagation~p~roject.conf</span>
+test_02-2_propagation_project.conf
 :   tests the projection of charge carriers onto the implants, taking
     into account the diffusion only. Since this module is less
     computing-intense, a total of events are simulated, and charge
     carriers are propagated one-by-one.
 
-<span>test~0~2-3~p~ropagation~g~eneric~m~ultithread.conf</span>
+test_02-3_propagation_generic_multithread.conf
 :   tests the performance of multi-threaded simulation. It utilizes the
     very same configuration as performance test 02-1 but in addition
     enables multi-threading with four worker threads.

@@ -679,7 +679,7 @@ steps are necessary in order to use a VRML viewer:
 
 -   Subsequently, two environmental parameters have to be exported to
     the shell environment to inform Geant4 about the configuration:
-    <span>G4VRMLFILE~V~IEWER</span> should point to the location of the
+    `G4VRMLFILE_VIEWER` should point to the location of the
     viewer executable and `G4VRMLFILEMAXFILENUM` should typically be set
     to 1 to prevent too many files from being created.
 

@@ -70,4 +70,7 @@ Allpix²:
 -   Morag Williams, University of Glasgow
 
 The authors would also like to express their thanks to the developers of
-AllPix @ap1wiki [@ap1git].
+AllPix[^3][^4].
+
+[^3]:Mathieu Benoit and John Idarraga. The AllPix Simulation Framework. Mar. 21, 2017. url: [https://twiki.cern.ch/twiki/bin/view/Main/AllPix](https://twiki.cern.ch/twiki/bin/view/Main/AllPix).
+[^4]:Mathieu Benoit, John Idarraga, and Samir Arfaoui. AllPix. Generic simulation for pixel detectors. url: [https://github.com/ALLPix/allpix](https://github.com/ALLPix/allpix).
