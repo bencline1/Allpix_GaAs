@@ -806,6 +806,6 @@ test_02-3_propagation_generic_multithread.conf
     enables multi-threading with four worker threads.
 
 [^1]:S. Agostinelli et al. “Geant4 - a simulation toolkit”. In: Nucl. Instr. Meth. A 506.3 (2003), pp. 250–303. issn: 0168-9002. doi: 10.1016/S0168-9002(03)01368-8.
-[^13]:Simon Spannagel. The Allpix2 Docker Container Registry. Mar. 12, 2018. url: [https://gitlab.cern.ch/allpix-squared/allpix-squared/container_registry](https://gitlab.cern.ch/allpix-squared/allpix-squared/container_registry).
+[^13]:Simon Spannagel. The Allpix² Docker Container Registry. Mar. 12, 2018. url: [https://gitlab.cern.ch/allpix-squared/allpix-squared/container_registry](https://gitlab.cern.ch/allpix-squared/allpix-squared/container_registry).
 [^46]:A. J. Peters and L. Janyst. “Exabyte Scale Storage at CERN”. In: Journal of Physics: Conference Series 331.5 (2011), p. 052015. doi: [10.1088/1742-6596/331/5/052015](http://dx.doi.org/10.1088/1742-6596/331/5/052015).
 [^47]:C. Aguado Sanchez et al. “CVMFS - a ﬁle system for the CernVM virtual appliance”. In: XII Advanced Computing and Analysis Techniques in Physics Research (ACAT08). Vol. ACAT08. 2008, p. 052.

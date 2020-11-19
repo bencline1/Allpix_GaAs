@@ -27,7 +27,7 @@ FOREACH(subdir ${subdirs})
         CONFIGURE_FILE(${module_dir}/${subdir}/README.md ${CMAKE_BINARY_DIR}/mkdocs/modules/${subdir}.md)
         FILE(READ ${CMAKE_BINARY_DIR}/mkdocs/modules/${subdir}.md markdown_file)
         # Chang GitLab-flavord markdown syntax to MkDocs formula style:
-        string(REGEX REPLACE "(\n\\$` *| *`\\$)+" "\$\$" markdown_file "${markdown_file}")
+        string(REGEX REPLACE "(\n\\$` *| *`\\$)+" "\$" markdown_file "${markdown_file}")
         string(REGEX REPLACE "(\\$` *| *`\\$)+" "\$" markdown_file "${markdown_file}")
         # Get Title:
         string(REGEX MATCH "^# ([A-Za-z0-9 ]+)\n" _ ${markdown_file})
@@ -47,7 +47,7 @@ FOREACH(subdir ${subdirs})
         CONFIGURE_FILE(${example_dir}/${subdir}/README.md ${CMAKE_BINARY_DIR}/mkdocs/examples/${subdir}.md)
         FILE(READ ${CMAKE_BINARY_DIR}/mkdocs/examples/${subdir}.md markdown_file)
         # Chang GitLab-flavord markdown syntax to MkDocs formula style:
-        string(REGEX REPLACE "(\n\\$` *| *`\\$)+" "\$\$" markdown_file "${markdown_file}")
+        string(REGEX REPLACE "(\n\\$` *| *`\\$)+" "\$" markdown_file "${markdown_file}")
         string(REGEX REPLACE "(\\$` *| *`\\$)+" "\$" markdown_file "${markdown_file}")
         # Get Title:
         string(REGEX MATCH "^# ([A-Za-z0-9 ]+)\n" _ ${markdown_file})

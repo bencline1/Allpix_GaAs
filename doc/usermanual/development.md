@@ -445,7 +445,7 @@ installation target in the `CMakeLists.txt` file of the `models`
 directory. Afterwards, a merge-request can be created via the mechanism
 provided by the software repository[^11].
 
-[^11]:The Allpix2 Project Repository. Aug. 2, 2017. url: [https://gitlab.cern.ch/allpix-squared/allpix-squared/](https://gitlab.cern.ch/allpix-squared/allpix-squared/).
-[^43]:CMake for External Allpix2 Modules Repository. Sept. 20, 2019. url: [https://gitlab.cern.ch/allpix-squared/external-modules/](https://gitlab.cern.ch/allpix-squared/external-modules/).
+[^11]:The Allpix² Project Repository. Aug. 2, 2017. url: [https://gitlab.cern.ch/allpix-squared/allpix-squared/](https://gitlab.cern.ch/allpix-squared/allpix-squared/).
+[^43]:CMake for External Allpix² Modules Repository. Sept. 20, 2019. url: [https://gitlab.cern.ch/allpix-squared/external-modules/](https://gitlab.cern.ch/allpix-squared/external-modules/).
 [^44]:John Gruber and Aaron Swartz. Markdown. url: [https://daringﬁreball.net/projects/markdown/](https://daringﬁreball.net/projects/markdown/).
 [^45]:John MacFarlane. Pandoc. A universal document converter. url: [http://pandoc.org/](http://pandoc.org/).

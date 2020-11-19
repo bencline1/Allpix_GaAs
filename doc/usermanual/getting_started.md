@@ -912,6 +912,7 @@ reconstruction framework data format. Detailed descriptions of these
 modules can be found in Chapter [Modules](modules.md).
 
 [^12]:S. Aplin et al. “LCIO: A persistency framework and event data model for HEP”. In: Nuclear Science Symposium and Medical Imaging Conference (NSS/MIC), IEEE. Anaheim, CA, Oct. 2012, pp. 2075–2079. doi: 10.1109/NSSMIC.2012.6551478.
+[^14]:X. Llopart et al. “Timepix, a 65k programmable pixel readout chip for arrival time, energy and/or photon counting measurements”. In: Nucl. Instr. Meth. A 581.1 (2007). VCI 2007, pp. 485–494. issn: 0168-9002. doi: [10.1016/j.nima.2007.08.079](http://dx.doi.org/10.1016/j.nima.2007.08.079).
 [^15]:[Geant4 Collaboration. Geant4 User’s Guide for Application Developers. Visualization. 2016.](https://geant4.web.cern.ch/geant4/UserDocumentation/UsersGuides/ForApplicationDeveloper/html/ch08.html]).
 [^16]:[Rene Brun and Fons Rademakers. ROOT User’s Guide. Trees.](https://root.cern.ch/root/htmldoc/guides/users-guide/Trees.html).
 [^17]:[Rene Brun and Fons Rademakers. ROOT User’s Guide. Input/Output.](https://root.cern.ch/root/htmldoc/guides/users-guide/InputOutput.html).

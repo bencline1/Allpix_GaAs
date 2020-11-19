@@ -240,6 +240,6 @@ Section [Building Docker images](testing.md#building-docker-images).
 [^8]:Gaël Guennebaud, Benoît Jacob, et al. Eigen v3. 2010. url: [http://eigen.tuxfamily.org](http://eigen.tuxfamily.org).
 [^9]:Rene Brun and Fons Rademakers. Building ROOT. url: [https://root.cern.ch/building-root](https://root.cern.ch/building-root).
 [^10]:Geant4 Collaboration. Geant4 Installation Guide. Building and Installing Geant4 for Users and Developers. 2016. url: [http://geant4.web.cern.ch/geant4/UserDocumentation/UsersGuides/InstallationGuide/html/](http://geant4.web.cern.ch/geant4/UserDocumentation/UsersGuides/InstallationGuide/html/).
-[^11]:The Allpix2 Project Repository. Aug. 2, 2017. url: [https://gitlab.cern.ch/allpix-squared/allpix-squared/](https://gitlab.cern.ch/allpix-squared/allpix-squared/).
+[^11]:The Allpix² Project Repository. Aug. 2, 2017. url: [https://gitlab.cern.ch/allpix-squared/allpix-squared/](https://gitlab.cern.ch/allpix-squared/allpix-squared/).
 [^12]:S. Aplin et al. “LCIO: A persistency framework and event data model for HEP”. In: Nuclear Science Symposium and Medical Imaging Conference (NSS/MIC), IEEE. Anaheim, CA, Oct. 2012, pp. 2075–2079. doi: 10.1109/NSSMIC.2012.6551478.
-[^13]:Simon Spannagel. The Allpix2 Docker Container Registry. Mar. 12, 2018. url: [https://gitlab.cern.ch/allpix-squared/allpix-squared/container_registry](ttps://gitlab.cern.ch/allpix-squared/allpix-squared/container_registry).
+[^13]:Simon Spannagel. The Allpix² Docker Container Registry. Mar. 12, 2018. url: [https://gitlab.cern.ch/allpix-squared/allpix-squared/container_registry](ttps://gitlab.cern.ch/allpix-squared/allpix-squared/container_registry).
