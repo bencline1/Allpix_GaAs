@@ -1,5 +1,7 @@
-Quick Start
-===========
+---
+template: overrides/main.html
+title: "Quick Start"
+---
 
 This chapter serves as a swift introduction to Allpix² for users who
 prefer to start quickly and learn the details while simulating. The

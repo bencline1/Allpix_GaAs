@@ -1,5 +1,7 @@
-Acknowledgments
-===============
+---
+template: overrides/main.html
+title: "Acknowledgments"
+---
 
 Allpix² has been developed and is maintained by
 

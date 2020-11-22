@@ -1,5 +1,7 @@
-Installation
-============
+---
+template: overrides/main.html
+title: "Installation"
+---
 
 This section aims to provide details and instructions on how to build
 and install Allpix². An overview of possible build configurations is

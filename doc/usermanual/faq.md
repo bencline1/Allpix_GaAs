@@ -1,5 +1,7 @@
-Frequently Asked Questions
-==========================
+---
+template: overrides/main.html
+title: "Frequently Asked Questions"
+---
 
 This chapter provides answers to some of the most frequently asked
 questions concerning usage, configuration and extension of the Allpix²

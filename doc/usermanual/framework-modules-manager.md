@@ -1,5 +1,7 @@
-Modules and the Module Manager
-==================================
+---
+template: overrides/main.html
+title: "Modules and the Module Manager"
+---
 
 Allpix² is a modular framework and one of the core ideas is to partition
 functionality in independent modules which can be inserted or removed as

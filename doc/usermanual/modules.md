@@ -1,3 +1,8 @@
+---
+template: overrides/main.html
+title: "Modules"
+---
+
 This section describes all currently available Allpix² modules in
 detail. This includes a description of the physics implemented as well
 as possible configuration parameters along with their defaults. For

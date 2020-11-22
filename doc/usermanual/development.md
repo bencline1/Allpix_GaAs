@@ -1,5 +1,7 @@
-Module & Detector Development
-=============================
+---
+template: overrides/main.html
+title: "Module & Detector Development"
+---
 
 This chapter provides a few brief recipes for developing new simulation
 modules and detector models for the Allpix² framework. Before starting

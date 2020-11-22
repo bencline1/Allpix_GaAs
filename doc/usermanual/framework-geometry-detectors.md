@@ -1,5 +1,7 @@
-Geometry and Detectors
-========================
+---
+template: overrides/main.html
+title: "Geometry and Detectors"
+---
 
 Simulations are frequently performed for a set of different detectors
 (such as a beam telescope and a device under test). All of these

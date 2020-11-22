@@ -1,5 +1,7 @@
-Structure & Components of the Framework
-=======================================
+---
+template: overrides/main.html
+title: "Structure & Components of the Framework"
+---
 
 This chapter details the technical implementation of the Allpix²
 framework and is mostly intended to provide insight into the gearbox to
@@ -225,10 +227,10 @@ value is retrieved as a C/C++ string and the string is fully enclosed by a
 pair of `"` characters, these are stripped before returning the value.
 Strings can thus also be provided with or without quotation marks.
 
-==It should be noted that a conversion from string to the requested type
+It should be noted that a conversion from string to the requested type
 is a comparatively heavy operation. For performance-critical sections of
 the code, one should consider fetching the configuration value once and
-caching it in a local variable.==
+caching it in a local variable.
 
 [^19]:Erwin Fehlberg. Low-order classical Runge-Kutta formulas with stepsize control and their application to some heat transfer problems. NASA Technical Report NASA-TR-R-315. [http://hdl.handle.net/2060/19690021375](http://hdl.handle.net/2060/19690021375). 1969.
 [^20]:Tom Preston-Werner. TOML. Tom’s Obvious, Minimal Language. url: [https://github.com/toml-lang/toml](https://github.com/toml-lang/toml).

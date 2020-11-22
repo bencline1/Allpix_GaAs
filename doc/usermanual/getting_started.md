@@ -1,5 +1,7 @@
-Getting Started
-===============
+---
+template: overrides/main.html
+title: "Getting Started"
+---
 
 This Getting Started guide is written with a default installation in
 mind, meaning that some parts may not apply if a custom installation was
@@ -83,11 +85,11 @@ apply:
     indicating the unit. The list of base units is shown in
     the table.
 
-==If no units are specified, values will always be interpreted in the base
+If no units are specified, values will always be interpreted in the base
 units of the framework. In some cases this can lead to unexpected
 results. E.g. specifying a bias voltage as `bias_voltage = 50` results
 in an applied voltage of . Therefore it is strongly recommended to
-always specify units in the configuration files.==
+always specify units in the configuration files.
 
 The internal base units of the framework are not chosen for user
 convenience but for maximum precision of the calculations and in order

@@ -1,5 +1,7 @@
-Objects
-=======
+---
+template: overrides/main.html
+title: "Objects"
+---
 
 Object Types 
 ------------

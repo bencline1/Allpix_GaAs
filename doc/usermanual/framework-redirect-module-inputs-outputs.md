@@ -1,5 +1,7 @@
-Redirect Module Inputs and Outputs
-====================================
+---
+template: overrides/main.html
+title: "Redirect Module Inputs and Outputs"
+---
 
 In the Allpix² framework, modules exchange messages typically based on
 their input and output message types and the detector type. It is,

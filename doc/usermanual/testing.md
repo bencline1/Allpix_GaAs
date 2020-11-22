@@ -1,5 +1,7 @@
-Development Tools & Continuous Integration
-==========================================
+---
+template: overrides/main.html
+title: "Development Tools & Continuous Integration"
+---
 
 The following chapter will introduce a few tools included in the
 framework to ease development and help to maintain a high code quality.
@@ -334,7 +336,7 @@ file `etc/docker/Dockerfile.deps` via:
 These images are created manually and only updated when necessary,
 i.e. if major new version of the underlying dependencies are available.
 
-==The dependencies Docker images should not be flattened with commands
+The dependencies Docker images should not be flattened with commands
 like
 
 `docker export <container id> | docker import - <tag name>`
@@ -342,7 +344,7 @@ like
 because it strips any `ENV` variables set or used during the build
 process. They are used to set up the ROOT6 and Geant4 environments. When
 flattening, their executables and data paths cannot be found in the
-final Allpix² image.==
+final Allpix² image.
 
 Finally, the latest revision of Allpix² is built using the file
 `etc/docker/Dockerfile`. This job is performed automatically by the
@@ -503,7 +505,7 @@ test_05-1_overwrite_same_denied.conf
 :   tests whether two modules writing to the same file is disallowed if
     overwriting is denied.
 
-test_05-2_configuration_cli_nochange.conf
+test_05-2_overwrite_module_allowed.conf
 :   tests whether two modules writing to the same file is allowed if the
     last one reenables overwriting locally.
 

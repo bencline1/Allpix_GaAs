@@ -1,5 +1,7 @@
-Additional Tools & Resources
-============================
+---
+template: overrides/main.html
+title: "Additional Tools & Resources"
+---
 
 This chapter briefly describes tools provided with the Allpix²
 framework, which might be re-used in new modules or in standalone code.
