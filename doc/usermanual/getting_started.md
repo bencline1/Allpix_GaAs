@@ -308,12 +308,11 @@ altering the actual detector model file.
 
 ![Visualization of a Pion passing through the telescope setup defined in
 the detector configuration file. A secondary particle is produced in the
-material of the detector in the center.](../assets/images/telescope.png "fig:")
-[fig:telescope]
+material of the detector in the center](../assets/images/telescope.png)
 
 An example configuration file describing a setup with one CLICpix2
 detector and two Timepix[^14] models is the following:
-Figure [fig:telescope] shows a visualization of the setup described in
+Figure Telescope shows a visualization of the setup described in
 the file. This configuration is used in the rest of this chapter for
 explaining concepts.
 

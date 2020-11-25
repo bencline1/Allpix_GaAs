@@ -30,7 +30,7 @@ A cylindrical tube which can be massive or have an hole in the middle along the 
 * (Optional) The `inner_radius` of the cylinder is the radius of the inner cylinder. Defaults to 0mm.
 * (Optional) The `starting_angle` of the cylinder is the angle at which circumference of the cylinder will start. 0 degrees refers to the point along the positive x-axis and the angle moves counter clockwise. Defaults to 0deg.
 * (Optional) The `arc_length` of the cylinder is the arc-length of the circumference that will be drawn, starting from the given `starting_angle`. Defaults to 360deg which is the full circumference.
-Note that the if the `arc_length` is set to 360 degrees, the \apsq framework will always draw the full circumference, regardless of the value of `starting_angle`.
+Note that the if the `arc_length` is set to 360 degrees, the Allpix² framework will always draw the full circumference, regardless of the value of `starting_angle`.
 
 #### Sphere:
 A full or partly made sphere with an inner- and outer radius.
@@ -40,10 +40,10 @@ A full or partly made sphere with an inner- and outer radius.
 * (Optional) The `starting_angle_phi` of the sphere is the azimuthal angle at which circumference of the sphere will start in the XY-plane. 0 degrees refers to the point along the positive x-axis and the angle moves counter clockwise. Defaults to 0deg.
 * (Optional) The `arc_length_phi` of the sphere is the arc-length of the circumference that will be drawn, starting from the given `starting_angle_phi` in the XY-plane. Defaults to 360deg which is the full circumference.
 * (Optional) The `starting_angle_theta` of the sphere is the polar angle at which the `arc_length_theta` will start. 0 degrees refers to the point along the positive z-axis. Defaults to 0deg.
-* (Optional) The `arc_length_theta` of the sphere is the arc-length of the polar angle which will be rotated around the z-axis to build the sphere, starting from the given `starting_angle_theta`. Defaults to 100deg which creates the full circle.\\
+* (Optional) The `arc_length_theta` of the sphere is the arc-length of the polar angle which will be rotated around the z-axis to build the sphere, starting from the given `starting_angle_theta`. Defaults to 100deg which creates the full circle.
 
 Note that `arc_length_phi` works the same as the `arc_length` from the cylinder, but the `arc_length_theta` works different.
-The \apsq framework will only draw the full circle if `starting_angle_theta` = 0deg, and `arc_length_theta` = 180deg. 
+The Allpix² framework will only draw the full circle if `starting_angle_theta` = 0deg, and `arc_length_theta` = 180deg. 
 In all other situations, the sphere will start at `starting_angle_theta` and continue the `arc_length_theta` until `arc_length_theta` + `starting_angle_theta` = 180deg. After this it will stop.
 The necessary module errors and warnings have been included to make sure the user will know will and won't be build.
 Note: If the VisualizationGeant4 module is used in conjunction with and `arc_length_theta` different from 180deg, the Visualization GUI will show an error "Inconsistency in bounding boxes for solid". The origin of this error is unknown but the error can be ignored.

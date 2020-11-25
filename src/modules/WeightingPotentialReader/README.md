@@ -35,7 +35,8 @@ where *N* limits the expansion of the series.
 In this implementation, a value of $`N = 100`$ is used.
 Following these calculations, the weighting potential is given by  
 
-$$`\phi_w/V_w = \frac{1}{2\pi}f(x, y, z) - \frac{1}{2\pi}\sum_{n = 1}^N\left[f(x, y, 2nd - z) - g_z(x, y, 2nd + z)\right]`$$
+$$`\phi_w/V_w = \frac{1}{2\pi}f(x, y, z) - \frac{1}{2\pi}\sum_{n = 1}^N\left[f(x, y, 2nd - z) - g_z(x, y, 2nd + z)\right]`$$ 
+
 with  
 
 $$`f(x, y, u) = \arctan\left( \frac{x_1 y_1}{u\sqrt{x_1^2 + y_1^2 + u^2}} \right) + \arctan\left( \frac{x_2 y_2}{u\sqrt{x_2^2 + y_2^2 + u^2}} \right) - \arctan\left( \frac{x_1 y_2}{u\sqrt{x_1^2 + y_2^2 + u^2}} \right) - \arctan\left( \frac{x_2 y_1}{u\sqrt{x_2^2 + y_1^2 + u^2}} \right)`$$

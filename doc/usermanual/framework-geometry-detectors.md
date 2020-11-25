@@ -101,7 +101,7 @@ be stated in absolute numbers or in fractions of the pixel pitch.
 
 A sketch of the actual coordinate transformations performed, including
 the order of transformations, is provided in
-Figure [fig:transformations]. The global coordinate system used for
+Figure Transformations. The global coordinate system used for
 tracking of particles through detetector setup is shown on the left
 side, while the local coordinate system used to describe the individual
 sensors is located at the right.  
