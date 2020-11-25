@@ -22,10 +22,9 @@ $ source /cvmfs/clicdp.cern.ch/software/allpix-squared/<version>/x86_64-<system>
 ```
 where `<version>` should be replaced with the desired Allpix<sup>2</sup> version and `<system>` with the operating system of the executing machine (either `slc6` or `centos7`). The compiler versions available via the `<compiler>` tag depend on the selected operating system.
 
-After this, the `allpix` executable is in the `$PATH` environment variable and can be used.
-It should be noted that the CVMFS cache of the executing machine has to be populated with all dependencies when running the program for the first time.
-This can lead to a significant start-up time for the first execution, but should not affect further executions with the cache already present.
-More information can be found in the [CVMFS documentation](https://cernvm.cern.ch/portal/filesystem).
+After this, the `allpix` executable is in the `$PATH` environment variable and can be used.   
+!!! note
+    The CVMFS cache of the executing machine has to be populated with all dependencies when running the program for the first time. This can lead to a significant start-up time for the first execution, but should not affect further executions with the cache already present. More information can be found in the [CVMFS documentation](https://cernvm.cern.ch/portal/filesystem).
 
 ## Installation
 The CMake build system is used for compilation and installation. The install directory can be specified by adding `-DCMAKE_INSTALL_PREFIX=<prefix>` as argument to the CMake command below. Other configuration options are explained in the manual (see the documentation section below).

@@ -154,5 +154,7 @@ no other copies of the shared message pointer are created, then these
 will be subsequently deleted, including the objects stored therein.
 Where a module requires access to data from a previous event (such as to
 simulate the effects of pile-up etc.), local copies of the data objects
-must be created. Note that at the point of creating copies the
-corresponding history will be lost.
+must be created. 
+
+!!! note
+    At the point of creating copies the corresponding history will be lost.

@@ -85,11 +85,8 @@ apply:
     indicating the unit. The list of base units is shown in
     the table.
 
-If no units are specified, values will always be interpreted in the base
-units of the framework. In some cases this can lead to unexpected
-results. E.g. specifying a bias voltage as `bias_voltage = 50` results
-in an applied voltage of . Therefore it is strongly recommended to
-always specify units in the configuration files.
+!!! warning
+    If no units are specified, values will always be interpreted in the base units of the framework. In some cases this can lead to unexpected results. E.g. specifying a bias voltage as `bias_voltage = 50` results in an applied voltage of . Therefore it is strongly recommended to always specify units in the configuration files.
 
 The internal base units of the framework are not chosen for user
 convenience but for maximum precision of the calculations and in order
@@ -352,14 +349,16 @@ Every passive material has to contain all of the following parameters:
 
 In addition, an optional string referring to the `mothervolume`, which
 defines another passive material the volume will be placed in, can be
-specified. Note: If a mother volume is chosen, the position defined in
-the configuration file will be relative to the center of the mother
-volume. An error will be given if the specified mother volume is too
-small for the specified size or position of this volume. Per default,
-the mother volume is the world frame. Note: if the `mothervolume` is a
-hollow material, only the non-hollow part of the material is considered
-part of the material. Placing a passive volume in the hollow part
-requires a different `mothervolume`.
+specified.  
+
+!!! note
+    If a mother volume is chosen, the position defined in the configuration file will be relative to the center of the mother volume. 
+
+An error will be given if the specified mother volume is too small for the specified size or position of this volume. Per default,
+the mother volume is the world frame.  
+
+!!! note 
+    If the `mothervolume` is a hollow material, only the non-hollow part of the material is considered part of the material. Placing a passive volume in the hollow part requires a different `mothervolume`.
 
 Similar to the detector configuration, the parameters `orientationmode`
 (see Section [Geometry and Detectors](framework-geometry-detectors.md)), `alignmentprecisionposition` and
@@ -529,10 +528,8 @@ The executable handles the following arguments:
         a particular instantiation for a detector named *dut* could be
         `allpix -c <file> -o GenericPropagation:dut.temperature=273K`.
 
-    Note that only the single argument directly following the `-o` is
-    interpreted as the option. If there is whitespace in the key/value
-    pair this should be properly enclosed in quotation marks to ensure
-    the argument is parsed correctly.
+    !!! note
+	    Only the single argument directly following the `-o` is interpreted as the option. If there is whitespace in the key/value pair this should be properly enclosed in quotation marks to ensure the argument is parsed correctly.
 
 -   `-g <option>`: Passes extra detector options which are added and
     overwritten in the detector configuration file. This argument can be
@@ -827,10 +824,8 @@ configuration section. The following log levels are supported:
     running. Mostly used for software debugging or determining
     performance bottlenecks in the simulations.
 
-==It is not recommended to set the `loglevel` higher than **WARNING** in a
-typical simulation as important messages may be missed. Setting too low
-logging levels should also be avoided since printing many log messages
-will significantly slow down the simulation.==
+!!! warning
+    It is not recommended to set the `loglevel` higher than **WARNING** in a typical simulation as important messages may be missed. Setting too low logging levels should also be avoided since printing many log messages will significantly slow down the simulation.
 
 The logging system supports several formats for displaying the log
 messages. The following formats are supported via the global parameter

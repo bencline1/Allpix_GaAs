@@ -436,8 +436,10 @@ detector model, the following steps should be taken:
     adding the `modelpaths` parameter to the general setting of the main
     configuration (see Section [Framework parameters](getting_started.md#framework-parameters)), pointing
     either directly to the detector model file or the directory
-    containing it. It should be noted that files in this path will
-    overwrite models with the same name in the default model folder.
+    containing it.  
+    	
+	!!! note
+	    Files in this path will overwrite models with the same name in the default model folder.
 
 Models should be contributed to the main repository to make them
 available to other users of the framework. To add the detector model to

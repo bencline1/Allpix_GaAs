@@ -57,8 +57,8 @@ are provided:
 <span>make cppcheck</span>
 :   runs the `cppcheck` command for additional static code analysis. The
     output is stored in the file `cppcheckresults.xml` in XML2.0 format.
-    It should be noted that some of the issues reported by the tool are
-    to be considered false positives.
+    !!! note
+	    Some of the issues reported by the tool are to be considered false positives.
 
 <span>make cppcheck-html</span>
 :   compiles a HTML report from the defects list gathered by
@@ -336,15 +336,10 @@ file `etc/docker/Dockerfile.deps` via:
 These images are created manually and only updated when necessary,
 i.e. if major new version of the underlying dependencies are available.
 
-The dependencies Docker images should not be flattened with commands
-like
-
-`docker export <container id> | docker import - <tag name>`
-
-because it strips any `ENV` variables set or used during the build
-process. They are used to set up the ROOT6 and Geant4 environments. When
-flattening, their executables and data paths cannot be found in the
-final Allpix² image.
+!!! note
+    The dependencies Docker images should not be flattened with commands like  
+	`docker export <container id> | docker import - <tag name>` 
+	because it strips any `ENV` variables set or used during the build process. They are used to set up the ROOT6 and Geant4 environments. When flattening, their executables and data paths cannot be found in the final Allpix² image.
 
 Finally, the latest revision of Allpix² is built using the file
 `etc/docker/Dockerfile`. This job is performed automatically by the

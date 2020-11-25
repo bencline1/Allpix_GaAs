@@ -14,9 +14,10 @@ Each detector has a set of properties attached to it:
 -   The `position` in the world frame. This is the position of the
     geometric center of the sensitive device (sensor) given in world
     coordinates as X, Y and Z as defined in
-    Section [Coordinate systems](framework-geometry-detectors.md#coordinate-systems) (note that any additional
-    components like the chip and possible support layers are ignored
-    when determining the geometric center).
+    Section [Coordinate systems](framework-geometry-detectors.md#coordinate-systems).   
+	
+	!!! note   
+        Any additional components like the chip and possible support layers are ignored when determining the geometric center.
 
 -   An `orientationmode` that determines the way that the orientation is
     applied. This can be either `xyz`, `zyx` or `zxz`, where **`xyz` is
@@ -42,8 +43,8 @@ Each detector has a set of properties attached to it:
         “x-convention” and the most widely used definition of Euler
         angles[^22].
 
-    It is highly recommended to always explicitly state the orientation
-    mode instead of relying on the default configuration.
+    !!! note
+	    It is highly recommended to always explicitly state the orientation mode instead of relying on the default configuration.
 
 -   The `orientation` to specify the Euler angles in logical order (e.g.
     first $X$, then $Y$, then $Z$ for the `xyz` method), interpreted
@@ -60,10 +61,8 @@ Each detector has a set of properties attached to it:
     rotation around the initial $Y$ axis, and finally a rotation of
     around the initial $X$ axis.
 
-    All supported rotations are extrinsic active rotations, i.e. the
-    vector itself is rotated, not the coordinate system. All angles in
-    configuration files should be specified in the order they will be
-    applied.
+    !!! note:
+        All supported rotations are extrinsic active rotations, i.e. the vector itself is rotated, not the coordinate system. All angles in     configuration files should be specified in the order they will be applied.
 
 -   A `type` parameter describing the detector model, for example
     `timepix` or `mimosa26`. These models define the geometry and
@@ -105,15 +104,17 @@ the order of transformations, is provided in
 Figure [fig:transformations]. The global coordinate system used for
 tracking of particles through detetector setup is shown on the left
 side, while the local coordinate system used to describe the individual
-sensors is located at the right.
+sensors is located at the right.  
 
-[fig:transformations]
-*Caption Coordinate transformations from global to local and revers. The first row shows the detector positions in the respective coordinate systems in top view, the second row in side view.*
+![Transformations](../assets/images/transformations.png)  
+*Coordinate transformations from global to local and revers. The first row shows the detector positions in the respective coordinate systems in top view, the second row in side view.*
 
 The global reference for time measurements is the beginning of the event, i.e. the start of the particle tracking through the setup.
 The local time reference is the time of entry of the *first* primary particle of the event into the sensor.
 This means that secondary particles created within the sensor inherit the local time reference from their parent particles in order to have a uniform time reference in the sensor.
-It should be noted that Monte Carlo particles that start the local time frame on different detectors do not necessarily have to belong to the same particle track.
+
+!!! note
+    Monte Carlo particles that start the local time frame on different detectors do not necessarily have to belong to the same particle track.
 
 
 ### Changing and accessing the geometry
@@ -338,11 +339,8 @@ parameter with the exact same key and the updated value to the detector
 configuration. The framework will then automatically create a copy of
 this model with the requested change.
 
-Before re-implementing models, it should be checked if the desired
-change can be achieved using the detector model specialization. For most
-cases this provides a quick and flexible way to adapt detectors to
-different needs and setups (for example, detectors with different sensor
-thicknesses).
+!!! note
+    Before re-implementing models, it should be checked if the desired change can be achieved using the detector model specialization. For most cases this provides a quick and flexible way to adapt detectors to different needs and setups (for example, detectors with different sensor thicknesses).
 
 To support different detector models and storage locations, the
 framework searches different paths for model files in the following
