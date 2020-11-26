@@ -56,18 +56,6 @@ For more detailed installation instructions, please refer to the documentation b
 The most recently published version of the User Manual is available online [here](https://cern.ch/allpix-squared/usermanual/allpix-manual.pdf).
 The Doxygen reference is published [online](https://cern.ch/allpix-squared/reference/) too.
 
-The latest PDF version of the User Manual can also be created from source by executing
-```
-$ make pdf
-```
-After running the manual is available under `usermanual/allpix-manual.pdf` in the build directory.
-
-To build the HTML version of the latest Doxygen reference, run the following command
-```
-$ make reference
-```
-The main page of the reference can then be found at `reference/html/index.html` in the build folder.
-
 ## Development of Allpix<sup>2</sup>
 
 Allpix<sup>2</sup> has been developed and is maintained by
