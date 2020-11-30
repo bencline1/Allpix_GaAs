@@ -41,7 +41,8 @@ types bound to a detector named `dut` is provided below. As usual, the
 message is dispatched at the end of the `run()` function of the module.
 
 ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-void run(unsigned int event_id) \texttt{
+void run(unsigned int event_id)  
+{
     std::vector<Object> data;
     // ..fill the data vector with objects ...
 
@@ -66,7 +67,8 @@ avoided in almost every instance.
     and is placed in the constructor of a detector-type `TestModule`:
 
     ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-    TestModule(Configuration&, Messenger* messenger, std::shared_ptr<Detector>) \texttt{
+    TestModule(Configuration&, Messenger* messenger, std::shared_ptr<Detector>)  
+	{
         messenger->bindSingle(this,
                               /* Pointer to the message variable */
                               &TestModule::message,
@@ -84,7 +86,8 @@ avoided in almost every instance.
     unique-type `TestModule` would be:
 
     ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-    TestModule(Configuration&, Messenger* messenger, GeometryManager* geo_manager) \texttt{
+    TestModule(Configuration&, Messenger* messenger, GeometryManager* geo_manager)  
+	{
         messenger->bindMulti(this,
                               /* Pointer to the message vector */
                               &TestModule::messages,
@@ -109,14 +112,16 @@ avoided in almost every instance.
     detector-specific `TestModule` could be performed as follows:
 
     ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-    TestModule(Configuration&, Messenger* messenger, std::shared_ptr<Detector>) \texttt{
+    TestModule(Configuration&, Messenger* messenger, std::shared_ptr<Detector>)  
+	{
         messenger->registerListener(this,
                                     /* Pointer to the listener method */
                                     &TestModule::listener,
                                     /* No special message flags */
                                     MsgFlags::NONE);
     }
-    void listener(std::shared_ptr<Message<Object>> message) \texttt{
+    void listener(std::shared_ptr<Message<Object>> message)  
+	{
         // Do something with the received message ...
     }
     ```
