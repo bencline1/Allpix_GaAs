@@ -56,7 +56,7 @@ Logging and other Utilities
 ---------------------------
 
 The Allpix² framework provides a set of utilities which improve the
-usability of the framework and extend the functionality provided by the
+usability of the framework and extend the functionality provided by the C++ 
 Standard Template Library (STL). The former includes a flexible and
 easy-to-use logging system, introduced in Section [Logging system](framework-redirect-module-inputs-outputs.md#logging-system) and an
 easy-to-use framework for units that supports converting arbitrary
@@ -138,8 +138,8 @@ Section [Logging and Verbosity Levels](getting_started.md#logging-and-verbosity
 ### Unit system
 
 Correctly handling units and conversions is of paramount importance.
-Having a separate type for every unit would however be too cumbersome
-for a lot of operations, therefore units are stored in standard floating
+Having a separate C++ type for every unit would however be too cumbersome
+for a lot of operations, therefore units are stored in standard C++ floating
 point types in a default unit which all code in the framework should use
 for calculations. In configuration files, as well as for logging, it is
 however very useful to provide quantities in different units.

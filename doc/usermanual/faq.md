@@ -187,11 +187,11 @@ How do I find out, which Monte Carlo particles are primary particles and which h
     to filter primary particles and create position-resolved graphs.
 
 How do I access data stored in a file produced with the ROOTObjectWriter from an analysis script?
-:   Allpix² uses ROOT trees to directly store the relevant objects as
+:   Allpix² uses ROOT trees to directly store the relevant C++ objects as
     binary data in the file. This retains all information present during
     the simulation run, including relations between different objects
     such as assignment of Monte Carlo particles. In order to read such a
-    data file in an analysis script, the relevant library as well as its
+    data file in an analysis script, the relevant C++ library as well as its
     header have to be loaded.
 
     In ROOT this can be done interactively by loading a data file, the
@@ -250,7 +250,7 @@ How do I access data stored in a file produced with the ROOTObjectWriter from an
     A more elaborate example for a data analysis script can be found in
     the `tools` directory of the repository and in
     Section [sec:root~a~nalysis~m~acros] of this user manual. Scripts
-    written in both and in Python are provided.
+    written in both C++ and in Python are provided.
 
 How can I convert data from the ROOTObject format to other formats?
 :   Since the ROOTObject format is the native format of Allpix², the
@@ -376,7 +376,7 @@ How can I produce nicely looking drift-diffusion line graphs?
 
     ![Drift and diffusion visualization of charge carrier groups being
     transported through a high-resistivity CMOS silicon sensor. The plot
-    shows the situation after an integration time of , only charge
+    shows the situation after an integration time of 20 ns, only charge
     carrier groups which reached the implant side of the sensor are
     drawn.](../assets/images/linegraph_hrcmos_collected.png)
 

@@ -4,7 +4,7 @@ title: "Introduction"
 ---
 
 Allpix² is a generic simulation framework for silicon tracker and vertex
-detectors written in modern , following the `C++11` and `C++14` standards. The
+detectors written in modern C++, following the `C++11` and `C++14` standards. The
 goal of the Allpix² framework is to provide an easy-to-use package for
 simulating the performance of Silicon detectors, starting with the
 passage of ionizing radiation through the sensor and finishing with the

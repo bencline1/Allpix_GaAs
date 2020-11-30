@@ -52,7 +52,7 @@ interaction with the rest of the Allpix² framework. The different
 subcomponents such as configuration, modules and messages are discussed
 in Sections [Configuration and Parameters](framework.md#configuration-and-parameters)–[Passing Objects using Messages](framework-passing-objects-using-messages.md). The
 chapter closes with a description of the available framework tools in
-Section [Logging and other Utilities](framework-redirect-module-inputs-outputs.md#logging-and-other-utilities). Some code will be provided in the
+Section [Logging and other Utilities](framework-redirect-module-inputs-outputs.md#logging-and-other-utilities). Some C++ code will be provided in the
 text, but readers not interested may skip the technical details.
 
 Architecture of the Core
@@ -97,7 +97,7 @@ general utilities. The systems provided are:
 5.  **Utilities**: The framework provides a set of utilities for
     logging, file and directory access, and unit conversion. An
     explanation on how to use of these utilities can be found in
-    Section [Logging and other Utilities](framework-redirect-module-inputs-outputs.md#logging-and-other-utilities). A set of exceptions is also
+    Section [Logging and other Utilities](framework-redirect-module-inputs-outputs.md#logging-and-other-utilities). A set of C++ exceptions is also
     provided in the utilities, which are inherited and extended by the
     other components. Proper use of exceptions, together with logging
     information and reporting errors, makes the framework easier to use
@@ -189,7 +189,7 @@ follows:
 
 Values are accessed via the configuration object. In the following
 example, the key is a string called `key`, the object is named `config`
-and the type `TYPE` is a valid type the value should represent. The
+and the type `TYPE` is a valid C++ type the value should represent. The
 values can be accessed via the following methods:
 
 ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
@@ -222,7 +222,7 @@ config.setAlias("new_key", "old_key")
 Conversions to the requested type are using the `fromstring` and
 `tostring` methods provided by the string utility library described in
 Section [Internal utilities](framework-redirect-module-inputs-outputs.md#internal-utilities). These conversions largely follow
-standard parsing, with one important exception. If (and only if) the
+standard C++ parsing, with one important exception. If (and only if) the
 value is retrieved as a C/C++ string and the string is fully enclosed by a
 pair of `"` characters, these are stripped before returning the value.
 Strings can thus also be provided with or without quotation marks.

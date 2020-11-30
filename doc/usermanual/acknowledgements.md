@@ -26,6 +26,8 @@ Allpix²:
 
 -   Koen van den Brandt, Nikhef
 
+-   Carsten Daniel Burgard, DESY
+
 -   Liejian Chen, Institute of High Energy Physics Beijing
 
 -   Katharina Dort, University of Gießen

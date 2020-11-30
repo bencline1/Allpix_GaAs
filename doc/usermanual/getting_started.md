@@ -86,7 +86,7 @@ apply:
     the table.
 
 !!! warning
-    If no units are specified, values will always be interpreted in the base units of the framework. In some cases this can lead to unexpected results. E.g. specifying a bias voltage as `bias_voltage = 50` results in an applied voltage of . Therefore it is strongly recommended to always specify units in the configuration files.
+    If no units are specified, values will always be interpreted in the base units of the framework. In some cases this can lead to unexpected results. E.g. specifying a bias voltage as `bias_voltage = 50` results in an applied voltage of 50 MV. Therefore it is strongly recommended to always specify units in the configuration files.
 
 The internal base units of the framework are not chosen for user
 convenience but for maximum precision of the calculations and in order
@@ -344,7 +344,7 @@ Every passive material has to contain all of the following parameters:
     means the radius will extend from the `position` on both sides,
     making its total size two times the radius in the given direction.
     The size parameters for the specific models are described in
-    Section [GeometryBuilderGeant4](modules/GeometryBuilderGeant4.md).
+    Section [GeometryBuilderGeant4](../../modules/GeometryBuilderGeant4.md).
 
 In addition, an optional string referring to the `mothervolume`, which
 defines another passive material the volume will be placed in, can be
@@ -433,7 +433,7 @@ and alter its behavior:
 
 -   `randomseed`: Seed for the global random seed generator used to
     initialize seeds for module instantiations. The 64-bit Mersenne
-    Twister `mt1993764` from the Standard Library is used to generate
+    Twister `mt1993764` from the C++ Standard Library is used to generate
     seeds. A random seed from multiple entropy sources will be generated
     if the parameter is not specified. Can be used to reproduce an
     earlier simulation run.

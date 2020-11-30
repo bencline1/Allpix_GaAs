@@ -57,11 +57,9 @@ Each detector has a set of properties attached to it:
     orientation = 45deg 10deg 12deg
     ```
 
-    which describes the rotation of around the $Z$ axis, followed by a
-    rotation around the initial $Y$ axis, and finally a rotation of
-    around the initial $X$ axis.
+    which describes the rotation of 45º around the $Z$ axis, followed by a 10º rotation around the initial $Y$ axis, and finally a rotation of 12º around the initial $X$ axis.
 
-    !!! note:
+    !!! note
         All supported rotations are extrinsic active rotations, i.e. the vector itself is rotated, not the coordinate system. All angles in     configuration files should be specified in the order they will be applied.
 
 -   A `type` parameter describing the detector model, for example
@@ -312,7 +310,7 @@ layers allow for the following parameters.
     of materials to choose from; it is up to the modules using this
     parameter to implement the materials such that they can use it.
     Chapter [Modules](modules.md) provides details about the materials supported
-    by the geometry builder module (<span>GeometryBuilderGeant4</span>).
+    by the geometry builder module `GeometryBuilderGeant4`).
 
 Some modules are written to act on only a particular type of detector
 model. In order to ensure that a specific detector model has been used,

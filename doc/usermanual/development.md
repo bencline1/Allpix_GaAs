@@ -49,7 +49,7 @@ Member functions
     reading code.
 
     In general, public member function names should follow the
-    `get`/<span>set</span> convention, i.e. functions which retrieve
+    `get`/`set` convention, i.e. functions which retrieve
     information and alter the state of an object should be marked
     accordingly. Getter functions should be made `const` where possible
     to allow usage of constant objects of the respective class.
