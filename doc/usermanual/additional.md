@@ -46,7 +46,8 @@ the next step.
 ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
 // Define lambda functions to compute the charge carrier velocity at each step
 std::function<Eigen::Vector3d(double, Eigen::Vector3d)> carrier_velocity =
-    [&](double, Eigen::Vector3d cur_pos) -> Eigen::Vector3d \texttt{...};
+    [&](double, Eigen::Vector3d cur_pos) -> Eigen::Vector3d 
+	{...};
 
 // Create the Runge-Kutta solver with a RK5 tableau, the carrier velocity function to be used
 // as well as the initial timestep and position of the charge carrier
@@ -73,7 +74,8 @@ instance of the field parser class in a module, this allows to share
 field data across multiple module instances.
 
 ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-class MyVectorFieldModule(...) : Module(...) \texttt{
+class MyVectorFieldModule(...) : Module(...) 
+{
 private:
     void some_function(std::string canonical_path);
     // Define static field parser instance
@@ -83,7 +85,8 @@ private:
 // Create static instance of field parser in the translation unit:
 FieldParser<double> MyVectorFieldModule::field_parser_(FieldQuantity::VECTOR);
 
-void MyVectorFieldModule::some_function(std::string canonical_path) \texttt{
+void MyVectorFieldModule::some_function(std::string canonical_path) 
+{
     // Get vector field from file:
     auto field_data = field_parser_.getByFileName(canonical_path, "V/cm");
 }

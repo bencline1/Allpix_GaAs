@@ -259,7 +259,7 @@ components:
     defined. The internal name of the module is automatically saved in
     the variable
     `{MODULE_NAME}} which should be used as an argument to other functions.
-    Another name can be used by overwriting the variable content, but in the examples below, \texttt{MODULENAME`
+    Another name can be used by overwriting the variable content, but in the examples below, `{MODULENAME`
     is used exclusively and is the preferred method of implementation.
 
 2.  The following lines should contain the logic to load possible
@@ -368,7 +368,8 @@ unique and detector modules.
 For unique modules, the constructor for a `TestModule` should be:
 
 ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-TestModule(Configuration& config, Messenger* messenger, GeometryManager* geo_manager): Module(config) \texttt{}
+TestModule(Configuration& config, Messenger* messenger, GeometryManager* geo_manager): Module(config) 
+{}
 ```
 
 For detector modules, the first two arguments are the same, but the last
@@ -377,7 +378,8 @@ forward this detector to the base class together with the configuration
 object. Thus, the constructor of a detector module is:
 
 ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-TestModule(Configuration& config, Messenger* messenger, std::shared_ptr<Detector> detector): Module(config, std::move(detector)) \texttt{}
+TestModule(Configuration& config, Messenger* messenger, std::shared_ptr<Detector> detector): Module(config, std::move(detector)) 
+{}
 ```
 
 The pointer to a Messenger can be used to bind variables to either

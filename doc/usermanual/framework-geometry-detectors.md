@@ -141,7 +141,8 @@ accessed through the `getDetector` method of the module base class
 instead (returns a null pointer for unique modules) as follows:
 
 ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-void run(unsigned int event_id) \texttt{
+void run(unsigned int event_id) 
+{
     // Returns the linked detector
     std::shared_ptr<Detector> detector = this->getDetector();
 }
@@ -325,7 +326,8 @@ class is not of the appropriate type. An example for fetching a
 // "detector" is a pointer to a Detector object
 auto model = detector->getModel();
 auto hybrid_model = std::dynamic_pointer_cast<HybridPixelDetectorModel>(model);
-if(hybrid_model != nullptr) \texttt{
+if(hybrid_model != nullptr) 
+{
     // The model of this Detector is a HybridPixelDetectorModel
 }
 ```
@@ -359,8 +361,8 @@ order:
     Section [Conﬁguration via CMake](installation.md#configuration-via-cmake)).
 
 3.  The standard data paths on the system as given by the environmental
-    variable ``` XDG_DATA_DIRS} with ``\project/models'' appended.
-    The \texttt{XDGDATADIRS ``` variable defaults to */usr/local/share/*
+    variable ` XDG_DATA_DIRS}` with `\project/models` appended.
+    The `{XDGDATADIRS ``` variable defaults to */usr/local/share/*
     (thus effectively */usr/local/share//models*) followed by
     */usr/share/* (effectively */usr/share//models*).
 

@@ -108,7 +108,7 @@ Units::get(1, "m/ns");
 Units::convert(1, "m/ns");
 // Return the unit in the best type (lowest number larger than one) as string.
 // The input is in default units 2000mm/ns and the 'best' output is 2m/ns (string)
-Units::display(2e3, \texttt{"mm/ns", "m/ns"});
+Units::display(2e3, {"mm/ns", "m/ns"});
 ```
 
 A description of the use of units in config files within Allpix² was

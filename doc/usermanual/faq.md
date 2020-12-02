@@ -171,9 +171,11 @@ How do I find out, which Monte Carlo particles are primary particles and which h
     std::vector<const MCParticle*> primaries;
 
     // Loop over all MCParticles available
-    for(auto& mc_particle : my_mc_particles) \texttt{
+    for(auto& mc_particle : my_mc_particles) 
+	{
         // Check for possible parents:
-        if(mc_particle.getParent() != nullptr) \texttt{
+        if(mc_particle.getParent() != nullptr) 
+		{
             // Has a parent, thus was created inside this sensor.
             continue;
         }
@@ -215,17 +217,20 @@ How do I access data stored in a file produced with the ROOTObjectWriter from an
     #include "/path/to/your/allpix-squared/DepositedCharge.hpp"
 
     // Read data from tree
-    void readTree(TFile* file, std::string detector) \texttt{
+    void readTree(TFile* file, std::string detector) 
+	{
 
         // Read tree of deposited charges:
         TTree* dc_tree = static_cast<TTree*>(file->Get("DepositedCharge"));
-        if(!dc_tree) \texttt{
+        if(!dc_tree) 
+		{
             throw std::runtime_error("Could not read tree");
         }
 
         // Find branch for the detector requested:
         TBranch* dc_branch = dc_tree->FindBranch(detector.c_str());
-        if(!dc_branch) \texttt{
+        if(!dc_branch) 
+		{
             throw std::runtime_error("Could not find detector branch");
         }
 
@@ -234,10 +239,12 @@ How do I access data stored in a file produced with the ROOTObjectWriter from an
         dc_branch->SetObject(&deposited_charges);
 
         // Go through the tree event-by-event:
-        for(int i = 0; i < dc_tree->GetEntries(); ++i) \texttt{
+        for(int i = 0; i < dc_tree->GetEntries(); ++i) 
+		{
             dc_tree->GetEntry(i);
             // Loop over all deposited charge objects
-            for(auto& charge : deposited_charges) \texttt{
+            for(auto& charge : deposited_charges) 
+			{
                 std::cout << "Event " << i << ": "
                           << "charge = " << charge->getCharge() << ", "
                           << "position = " << charge->getGlobalPosition()
@@ -302,7 +309,8 @@ How do I process data from multiple detectors?
     `PixelHit` messages, an example code would be:
 
     ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-    TrackTriggerModule(Configuration&, Messenger* messenger, GeometryManager* geo_manager) \texttt{
+    TrackTriggerModule(Configuration&, Messenger* messenger, GeometryManager* geo_manager) 
+	{
         messenger->bindMulti(this,
                              &TrackTriggerModule::messages,
                              MsgFlags::NONE);
@@ -326,7 +334,8 @@ How do I calculate an efficiency in a module?
 
     ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
     MyModule::MyModule(Configuration& config, Messenger* messenger, std::shared_ptr<Detector> detector)
-        : Module(config, detector), detector_(std::move(detector)) \texttt{
+        : Module(config, detector), detector_(std::move(detector)) 
+		{
 
         // Bind messages
         messenger->bindSingle(this, &MyModule::pixels_message_);
