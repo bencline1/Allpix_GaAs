@@ -40,7 +40,7 @@ following four main components that together form Allpix²:
     Chapter [Additional Tools & Resources](additional.md). This set of tools is
     different from the set of core utilities the framework itself
     provides, which is part of the core and explained in
-    Section [Logging and other Utilities](framework-redirect-module-inputs-outputs.md#logging-and-other-utilities).
+    Section [Logging and other Utilities](framework-logging-other-utilities.md).
 
 Finally, Allpix² provides an executable which instantiates the core of
 the framework, receives and distributes the configuration object and
@@ -52,7 +52,7 @@ interaction with the rest of the Allpix² framework. The different
 subcomponents such as configuration, modules and messages are discussed
 in Sections [Configuration and Parameters](framework.md#configuration-and-parameters)–[Passing Objects using Messages](framework-passing-objects-using-messages.md). The
 chapter closes with a description of the available framework tools in
-Section [Logging and other Utilities](framework-redirect-module-inputs-outputs.md#logging-and-other-utilities). Some C++ code will be provided in the
+Section [Logging and other Utilities](framework-logging-other-utilities.md). Some C++ code will be provided in the
 text, but readers not interested may skip the technical details.
 
 Architecture of the Core
@@ -97,7 +97,7 @@ general utilities. The systems provided are:
 5.  **Utilities**: The framework provides a set of utilities for
     logging, file and directory access, and unit conversion. An
     explanation on how to use of these utilities can be found in
-    Section [Logging and other Utilities](framework-redirect-module-inputs-outputs.md#logging-and-other-utilities). A set of C++ exceptions is also
+    Section [Logging and other Utilities](framework-logging-other-utilities.md). A set of C++ exceptions is also
     provided in the utilities, which are inherited and extended by the
     other components. Proper use of exceptions, together with logging
     information and reporting errors, makes the framework easier to use

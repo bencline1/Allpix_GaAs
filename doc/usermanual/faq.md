@@ -106,7 +106,7 @@ Can I import an electric field from TCAD and use it for simulating propagation?
 :   Yes, the framework includes a tool to convert DF-ISE files from TCAD
     to an internal format which Allpix² can parse. More information
     about this tool can be found in
-    Section [sec:tcad~e~lectric~f~ield~c~onverter], instructions to
+    Section [Octree](../tools/mesh_converter.md#octree), instructions to
     import the generated field are provided in
     Section [Electric Fields](getting_started.md#electric-fields).
 
@@ -249,7 +249,7 @@ How do I access data stored in a file produced with the ROOTObjectWriter from an
 
     A more elaborate example for a data analysis script can be found in
     the `tools` directory of the repository and in
-    Section [sec:root~a~nalysis~m~acros] of this user manual. Scripts
+    Section [ROOT Analysis & Helper Macros](../../tools/root_analysis_macros/) of this user manual. Scripts
     written in both C++ and in Python are provided.
 
 How can I convert data from the ROOTObject format to other formats?

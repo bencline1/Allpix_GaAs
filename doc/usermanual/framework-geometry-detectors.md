@@ -174,6 +174,7 @@ the sensor, and the `HybridPixelDetectorModel`, which in addition to the
 features described above also includes a separate readout chip with
 configurable size and bump bonds between the sensor and readout chip.
 
+#### Detector model parameters
 Models are defined in configuration files which are used to instantiate
 the actual model classes; these files contain various types of
 parameters, some of which are required for all models while others are
@@ -258,7 +259,8 @@ treated as a separate entity. The additional parameters for the
     are by default positioned at the center of each single pixel in the
     grid.
 
-[sec:support~l~ayers] In addition to the active layer, multiple layers
+#### Support Layers
+In addition to the active layer, multiple layers
 of support material can be added to the detector description. It is
 possible to place support layers at arbitrary positions relative to the
 sensor, while the default position is behind the readout chip (or
@@ -312,6 +314,7 @@ layers allow for the following parameters.
     Chapter [Modules](modules.md) provides details about the materials supported
     by the geometry builder module `GeometryBuilderGeant4`).
 
+#### Accessing speciﬁc detector models within the framework
 Some modules are written to act on only a particular type of detector
 model. In order to ensure that a specific detector model has been used,
 the model should be downcast: the downcast returns a null pointer if the
@@ -327,6 +330,7 @@ if(hybrid_model != nullptr) \texttt{
 }
 ```
 
+#### Specializing detector models
 A detector model contains default values for all parameters. Some
 parameters like the sensor thickness can however vary between different
 detectors of the same model. To allow for easy adjustment of these
@@ -340,6 +344,7 @@ this model with the requested change.
 !!! note
     Before re-implementing models, it should be checked if the desired change can be achieved using the detector model specialization. For most cases this provides a quick and flexible way to adapt detectors to different needs and setups (for example, detectors with different sensor thicknesses).
 
+#### Search order for models
 To support different detector models and storage locations, the
 framework searches different paths for model files in the following
 order:

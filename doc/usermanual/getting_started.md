@@ -344,7 +344,7 @@ Every passive material has to contain all of the following parameters:
     means the radius will extend from the `position` on both sides,
     making its total size two times the radius in the given direction.
     The size parameters for the specific models are described in
-    Section [GeometryBuilderGeant4](../../modules/GeometryBuilderGeant4.md).
+    Section [GeometryBuilderGeant4](../../modules/GeometryBuilderGeant4/).
 
 In addition, an optional string referring to the `mothervolume`, which
 defines another passive material the volume will be placed in, can be
@@ -539,7 +539,7 @@ The executable handles the following arguments:
     the detector and the actual key as it would be given in the detector
     configuration file (thus *detector*.*key*). This method also works
     for customizing detector models as described in Section
-    [sec:detector~m~odels]. An example to overwrite the sensor thickness
+    [Detector Models](framework-geometry-detectors.md#detector-models). An example to overwrite the sensor thickness
     for a particular detector named `detector1` to `50um` would be
     `allpix -c <file> -g detector1.sensor_thickness=50um`.
 
@@ -727,7 +727,7 @@ transformed into a regular grid with configurable feature size before
 use. Allpix² comes with a converter tool which reads TCAD DF-ISE files
 from the sensor simulation, interpolates the field, and writes this out
 in an appropriate format. A more detailed description of the tool can be
-found in Section [sec:tcad~e~lectric~f~ield~c~onverter]. An example
+found in Section [Octree](../tools/mesh_converter.md#octree). An example
 electric field (with the file name used in the example below) can be
 found in the *etc* directory of the Allpix² repository.
 
@@ -884,7 +884,7 @@ file_name = "data"
 
 The generated output file can be analyzed using ROOT macros. A simple
 macro for converting the results to a tree with standard branches for
-comparison is described in Section [sec:root~a~nalysis~m~acros].
+comparison is described in Section [ROOT Analysis & Helper Macros](../../tools/root_analysis_macros/).
 
 It is also possible to read object data back in, in order to dispatch
 them as messages to further modules. This feature is intended to allow

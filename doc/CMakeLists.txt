@@ -67,7 +67,7 @@ FOREACH(subdir ${subdirs})
         CONFIGURE_FILE(${tool_dir}/${subdir}/README.md ${CMAKE_BINARY_DIR}/mkdocs/tools/${subdir}.md)
         FILE(READ ${CMAKE_BINARY_DIR}/mkdocs/tools/${subdir}.md markdown_file)
         # Chang GitLab-flavord markdown syntax to MkDocs formula style:
-        string(REGEX REPLACE "(\n\\$` *| *`\\$)+" "\$\$" markdown_file "${markdown_file}")
+        string(REGEX REPLACE "(\n\\$` *| *`\\$)+" "\$" markdown_file "${markdown_file}")
         string(REGEX REPLACE "(\\$` *| *`\\$)+" "\$" markdown_file "${markdown_file}")
         # Get Title:
         string(REGEX MATCH "^# ([A-Za-z0-9 ]+)\n" _ ${markdown_file})
@@ -75,6 +75,6 @@ FOREACH(subdir ${subdirs})
         FILE(WRITE ${CMAKE_BINARY_DIR}/mkdocs/tools/${subdir}.md "---\ntemplate: overrides/main.html\ntitle: \"${CMAKE_MATCH_1}\"\n---\n")
         # Write out updated file
         FILE(APPEND ${CMAKE_BINARY_DIR}/mkdocs/tools/${subdir}.md "${markdown_file}")
-        SET(example_md_files ${example_md_files} ${CMAKE_BINARY_DIR}/usermanual/tools/${subdir}.md)
+        SET(tool_md_files ${tool_md_files} ${CMAKE_BINARY_DIR}/usermanual/tools/${subdir}.md)
     ENDIF()
 ENDFOREACH()
