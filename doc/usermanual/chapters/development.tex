@@ -241,13 +241,13 @@ Unique modules can access the GeometryManager to fetch all detector descriptions
 
 In addition to the constructor, each module can override the following methods:
 \begin{itemize}
-\item \parameter{init()}: Called for each worker thread after loading and constructing all modules and before starting the event loop.
+\item \parameter{init()}: Called once per module from the main thread after loading and constructing all modules and before starting the event loop.
 This method can for example be used to initialize histograms.
-\item \parameter{initializeThread()}: Called after global initialization but before event processing and gives the possibility to initialize worker thread-specific members for modules if multi-threading is to be used.
-\item \parameter{run(Event* event)}: Called for every event in the simulation, with the event number (starting from one).
+\item \parameter{initializeThread()}: Called after global initialization but before event processing and gives the possibility to initialize worker thread-specific members for modules if multi-threading is used.
+\item \parameter{run(Event* event)}: Called for every event in the simulation, with a pointer to the current event object as parameter.
 An exception should be thrown for serious errors, otherwise a warning should be logged.
-\item \parameter{finalizeThread()}: Called for each worker thread after processing all events in the run by each worker thread separately if multi-threading was used.
-\item \parameter{finalize()}: Called after processing all events in the run and before destructing the module.
+\item \parameter{finalizeThread()}: Called for each worker thread after processing all events in the run by each worker thread separately if multi-threading is used.
+\item \parameter{finalize()}: Called once per module from the main thread after processing all events in the run and before destructing the module.
 Typically used to save the output data (like histograms).
 Any exceptions should be thrown from here instead of the destructor.
 \end{itemize}
@@ -255,7 +255,8 @@ Any exceptions should be thrown from here instead of the destructor.
 If necessary, modules can also access the ConfigurationManager directly in order to obtain configuration information from other module instances or other modules in the framework using the \parameter{getConfigManager()} call.
 This allows to retrieve and e.g. store the configuration actually used for the simulation alongside the data.
 
-If a module is interested to run using multi-threading but prefers to execute its run method in the order of event numbers, for example a module that writes to an output file, then the module can inherit from the \textit{BufferedModule} class, without implementing additional functionality, which will take care of sorting the events in the correct order before calling the run method.
+If a module should be run using multi-threading but requires to execute its run method in the order of event numbers, for example a module that writes to an output file, then the module can inherit from the \textit{BufferedModule} class, without implementing additional functionality.
+This will ensure a sorting of the events before calling the run method.
 It should be noted that such modules cannot dispatch messages to the framework.
 
 
@@ -263,7 +264,7 @@ It should be noted that such modules cannot dispatch messages to the framework.
 \label{sec:module_multithreading}
 
 In \apsq events are processed fully parallel which requires some consideration when writing module code.
-This section briefly lists the most important point to take into account.
+This section briefly lists the most important aspects to take into account.
 
 \subsection{Member Variables}
 \label{sec:multithreading_members}
@@ -295,7 +296,7 @@ my_histogram->Write();
 
 \subsection{Declaring a Module Thread-Safe}
 
-If a module is thread-safe, i.e. its \command{run()} function can be called from different threads in parallel without locking, it can be declraed as thread-safe to the framework.
+If a module is thread-safe, i.e. its \command{run()} function can be called from different threads in parallel without locking, it can be declared as thread-safe to the framework.
 In this case the ModuleManager will allow parallelization of calls to this module.
 
 This declaration is done by placing the following call in the constructor of the module:
@@ -305,12 +306,12 @@ This declaration is done by placing the following call in the constructor of the
       // This module is thread-safe and can be called from different threads simultaneously:
       enable_parallelization();
 }
+\end{minted}
 
-By adding this, the module promises that it will work correctly if its \command{run()} method is executed multiple times in parallel, for different events.
+By adding this statement, the module certifies to work correctly if its \command{run()} method is executed multiple times in parallel, for different events.
 This means in particular that the module will safely handle access to shared (for example static) variables as described in Section~\ref{sec:multithreading_members} and that it will properly assign and bind ROOT histograms to their respective directories in the output ROOT file before the event processing starts and the \parameter{run()} method is called the first time.
 Access to constant operations in the GeometryManager, Detector and DetectorModel is always valid between various threads. In addition, sending and receiving messages is thread-safe.
 
-\end{minted}
 
 \section{Adding a New Detector Model}
 \label{sec:adding_detector_model}

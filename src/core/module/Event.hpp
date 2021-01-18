@@ -49,7 +49,7 @@ namespace allpix {
 
         /// @{
         /**
-         * @brief Disallow move because of mutexes and atomics (?)
+         * @brief Disallow move because of mutexes and atomics
          */
         Event(Event&&) = delete;
         Event& operator=(Event&&) = delete;
@@ -67,7 +67,7 @@ namespace allpix {
         RandomNumberGenerator& getRandomEngine();
 
         /**
-         * @brief Advances the random engine's state one step
+         * @brief Advances the random engine's state by one step
          * @return The generated value
          */
         uint64_t getRandomNumber() { return getRandomEngine()(); }
