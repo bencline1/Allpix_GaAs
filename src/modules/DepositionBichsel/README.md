@@ -1,27 +1,31 @@
+# DepositionBichsel
+**Maintainer**: Simon Spannagel (<simon.spannagel@desy.de>), Daniel Pitzl (<daniel.pitz@desy.de>)  
+**Status**: Functional  
+**Output**: DepositedCharge, MCParticle
 
-# ionizer
+### Description
 
-## simulation of ionization by charged particle tracks in silicon
+[@bichsel], [@mazziotta]
 
-based on  
-Hans Bichsel: Straggling in thin silicon detectors  
-Rev. Mod. Phys. 60 (1988) 663-99  
-http://prola.aps.org/abstract/RMP/v60/i3/p663_1
+### Parameters
+* `temperature`:
+* `delta_energy_cut`
+* `energy_threshold`
+* `source_energy`
+* `data_paths`
+* `fast`
+* `output_plots`
 
-and  
-M. Brigida, M.N. Mazziotta et al:  
-A new Monte Carlo code for full simulation of silicon strip detectors  
-Nuclear Instruments and Methods in Physics Research A 533 (2004) 322–343  
-https://doi.org/10.1016/j.nima.2004.05.127
+### Usage
 
-here translated to C++
-- ionizer.cc incidence with turn angle, produces ionizer.root
-- ionizer3.cc for edge-on triplets
+```toml
+[DepositionBichsel]
+number_of_steps = 100
+position = -10um 10um 0um
+model = "fixed"
+source_type = "mip"
+```
 
-example plots: 5 GeV electrons passing 150 um Si
 
-![energy loss](teh.png "ionization in 150 um Si")
-
-![energy loss](xy.png "x-y ionization map")
-
-![energy loss](rz.png "R-z ionization map")
+[@bichsel]: http://prola.aps.org/abstract/RMP/v60/i3/p663_1
+[@mazziotta]: https://doi.org/10.1016/j.nima.2004.05.127

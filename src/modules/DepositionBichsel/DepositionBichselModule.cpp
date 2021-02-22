@@ -26,20 +26,20 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config,
     config_.setDefault("delta_energy_cut", 9);
     config_.setDefault<bool>("fast", true);
     config_.setDefault<bool>("output_plots", false);
-
     temperature_ = config_.get<double>("temperature");
     explicit_delta_energy_cut_keV_ = config_.get<double>("delta_energy_cut");
     fast_ = config_.get<bool>("fast");
     output_plots_ = config_.get<bool>("output_plots");
 
-    initial_energy_ = config.get<double>("source_energy");
+    initial_energy_ = config_.get<double>("source_energy");
 
     // EGAP = GAP ENERGY IN eV
     // EMIN = THRESHOLD ENERGY (ALIG ET AL., PRB22 (1980), 5565)
     energy_threshold_ =
-        config_.get<double>("energy_threshold_", 1.5 * 1.17 - 4.73e-4 * temperature_ * temperature_ / (636 + temperature_));
+        config_.get<double>("energy_threshold", 1.5 * 1.17 - 4.73e-4 * temperature_ * temperature_ / (636 + temperature_));
 
-    particle_type_ = ParticleType::ELECTRON;
+    // FIXME make sure particle exists
+    particle_type_ = static_cast<ParticleType>(config_.get<unsigned int>("particle_type", 4));
 
     // Register lookup paths for cross-section and oscillator strength data files:
     if(config_.has("data_paths")) {
@@ -72,7 +72,7 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config,
 void DepositionBichselModule::init() {
 
     // Booking histograms:
-    if(config_.get<bool>("output_plots")) {
+    if(output_plots_) {
         auto model = detector_->getModel();
         auto depth = model->getSensorSize().z();
 
@@ -614,14 +614,14 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
             } // elastic
         }     // while steps
 
-        // Finished treating this particle, let's store it:
-
         // Start and end position of MCParticle:
         auto start_global = detector_->getGlobalPosition(particle.position_start());
         auto end_global = detector_->getGlobalPosition(particle.position());
 
+        // Finished treating this particle, let's store it:
         // Create MCParticle:
         // FIXME time missing.
+        // FIXME references between particles missing.
         mcparticles.emplace_back(particle.position_start(),
                                  start_global,
                                  particle.position(),
