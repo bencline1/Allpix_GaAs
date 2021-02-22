@@ -33,6 +33,7 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config,
 
     temperature_ = config_.get<double>("temperature");
     explicit_delta_energy_cut_keV_ = config_.get<double>("delta_energy_cut");
+    output_plots_ = config_.get<bool>("output_plots");
 
     // EGAP = GAP ENERGY IN eV
     // EMIN = THRESHOLD ENERGY (ALIG ET AL., PRB22 (1980), 5565)
@@ -150,8 +151,6 @@ void DepositionBichselModule::run(unsigned int event) {
     double depth = DEPTH; // [mu] pixel depth
     double pitch = 25;    // [mu] pixels size
     double angle = 999;   // flag
-    double thr = 500;     // threshold [e]
-    double cx = 0;        // cross talk
     double Ekin0 = EKIN;  // [MeV] kinetic energy
 
     double turn = atan(pitch / depth); // [rad] default
@@ -169,8 +168,6 @@ void DepositionBichselModule::run(unsigned int event) {
     LOG(DEBUG) << "  incident angle    " << turn * 180 / M_PI << " deg";
     LOG(DEBUG) << "  track width       " << width << " um";
     LOG(DEBUG) << "  temperature       " << temperature_ << " K";
-    LOG(DEBUG) << "  readout threshold " << thr << " e";
-    LOG(DEBUG) << "  cross talk        " << cx * 100 << "%";
 
     LOG(INFO) << event;
 
@@ -186,10 +183,10 @@ void DepositionBichselModule::run(unsigned int event) {
 
     unsigned ndelta = 0; // number of deltas generated
 
-    auto clusters = stepping(initial, event, depth, ndelta);
+    auto clusters = stepping(std::move(initial), event, depth, ndelta);
 }
 
-std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, unsigned iev, double depth, unsigned& ndelta) {
+std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, unsigned& ndelta) {
 
     MazziottaIonizer ionizer(&random_generator_);
     std::uniform_real_distribution<double> unirnd(0, 1);
@@ -208,8 +205,9 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
     while(!deltas.empty()) {
         double Ekprev = 9e9; // update flag for next delta
 
-        auto t = deltas.top();
+        auto particle = deltas.top();
         deltas.pop();
+        LOG(TRACE) << "Picked up particle of type " << particle.type();
 
         auto nlast = E.size() - 1;
 
@@ -218,30 +216,32 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
         double gn = 1;
         table totsig;
 
-        LOG(DEBUG) << "  delta " << t.E() * 1e3 << " keV"
-                   << ", cost " << t.direction().Z() << ", u " << t.direction().X() << ", v " << t.direction().Y() << ", z "
-                   << t.position().Z() * 1e4;
+        LOG(DEBUG) << "  delta " << Units::display(particle.E(), {"keV", "MeV", "GeV"}) << ", cost "
+                   << particle.direction().Z() << ", u " << particle.direction().X() << ", v " << particle.direction().Y()
+                   << ", z " << particle.position().Z() * 1e4;
 
         while(1) { // steps
-
-            if(t.E() < 0.9 * Ekprev) { // update
-
+            LOG(TRACE) << "Stepping...";
+            if(particle.E() < 0.9 * Ekprev) { // update
+                LOG(TRACE) << "Updating...";
                 // Emax = maximum energy loss, see Uehling, also Sternheimer & Peierls Eq.(53)
-                double Emax = t.mass() * (t.gamma() * t.gamma() - 1) /
-                              (0.5 * t.mass() / electron_mass + 0.5 * electron_mass / t.mass() + t.gamma());
+                double Emax =
+                    particle.mass() * (particle.gamma() * particle.gamma() - 1) /
+                    (0.5 * particle.mass() / electron_mass + 0.5 * electron_mass / particle.mass() + particle.gamma());
 
                 // maximum energy loss for incident electrons
-                if(t.type() == ParticleType::ELECTRON) {
-                    Emax = 0.5 * t.E();
+                if(particle.type() == ParticleType::ELECTRON) {
+                    Emax = 0.5 * particle.E();
                 }
                 Emax = 1e6 * Emax; // eV
 
+                LOG(TRACE) << "Emax = " << Emax;
                 // Define parameters and calculate Inokuti"s sums,
                 // S ect 3.3 in Rev Mod Phys 43, 297 (1971)
 
                 double zi = 1.0;
-                double dec = zi * zi * atnu * fac / t.betasquared();
-                double EkeV = t.E() * 1e6; // [eV]
+                double dec = zi * zi * atnu * fac / particle.betasquared();
+                double EkeV = particle.E() * 1e6; // [eV]
 
                 // Generate collision spectrum sigma(E) from df/dE, epsilon and AE.
                 // sig(*,j) actually is E**2 * sigma(E)
@@ -268,7 +268,8 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
                         Q1 = pow(0.025, 2) * rydberg_constant;
                     }
 
-                    double qmin = E[j] * E[j] / (2 * electron_mass * 1e6 * t.betasquared()); // twombb = 2 m beta**2 [eV]
+                    double qmin =
+                        E[j] * E[j] / (2 * electron_mass * 1e6 * particle.betasquared()); // twombb = 2 m beta**2 [eV]
                     if(E[j] < 11.9 && Q1 < qmin) {
                         sig[1][j] = 0;
                     } else {
@@ -276,28 +277,29 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
                     }
                     // longitudinal excitation, Eq. (46) in Fano; Eq. (2.9) in RMP
 
-                    double epbe = std::max(1 - t.betasquared() * dielectric_const_real[j], 1e-20); // Fano Eq. (47)
-                    double sgg =
-                        E[j] * dfdE[j] * (-0.5) * log(epbe * epbe + pow(t.betasquared() * dielectric_const_imag[j], 2));
+                    double epbe = std::max(1 - particle.betasquared() * dielectric_const_real[j], 1e-20); // Fano Eq. (47)
+                    double sgg = E[j] * dfdE[j] * (-0.5) *
+                                 log(epbe * epbe + pow(particle.betasquared() * dielectric_const_imag[j], 2));
 
-                    double thet = atan(dielectric_const_imag[j] * t.betasquared() / epbe);
+                    double thet = atan(dielectric_const_imag[j] * particle.betasquared() / epbe);
                     if(thet < 0) {
                         thet = thet + M_PI; // plausible-otherwise I"d have a jump
                     }
                     // Fano says [p 21]: "arctan approaches pi for betasq*eps1 > 1 "
 
                     double sgh = 0.0092456 * E[j] * E[j] * thet *
-                                 (t.betasquared() - dielectric_const_real[j] / (pow(dielectric_const_real[j], 2) +
-                                                                                pow(dielectric_const_imag[j], 2)));
+                                 (particle.betasquared() - dielectric_const_real[j] / (pow(dielectric_const_real[j], 2) +
+                                                                                       pow(dielectric_const_imag[j], 2)));
 
                     sig[2][j] = sgg;
                     sig[3][j] = sgh; // small, negative
 
                     // uef from  Eqs. 9 & 2 in Uehling, Ann Rev Nucl Sci 4, 315 (1954)
-                    double uef = 1 - E[j] * t.betasquared() / Emax;
-                    if(t.type() == ParticleType::ELECTRON) {
-                        uef = 1 + pow(E[j] / (EkeV - E[j]), 2) + pow((t.gamma() - 1) / t.gamma() * E[j] / EkeV, 2) -
-                              (2 * t.gamma() - 1) * E[j] / (t.gamma() * t.gamma() * (EkeV - E[j]));
+                    double uef = 1 - E[j] * particle.betasquared() / Emax;
+                    if(particle.type() == ParticleType::ELECTRON) {
+                        uef = 1 + pow(E[j] / (EkeV - E[j]), 2) +
+                              pow((particle.gamma() - 1) / particle.gamma() * E[j] / EkeV, 2) -
+                              (2 * particle.gamma() - 1) * E[j] / (particle.gamma() * particle.gamma() * (EkeV - E[j]));
                     }
                     // there is a factor of 2 because the integral was over d(lnK) rather than d(lnQ)
                     sig[4][j] = 2 * oscillator_strength_ae[j] * uef;
@@ -334,28 +336,32 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
                 }
 
                 // elastic:
-                if(t.type() == ParticleType::ELECTRON) {
+                if(particle.type() == ParticleType::ELECTRON) {
                     // gn = 2*2.61 * pow( atomic_number, 2.0/3.0 ) / EkeV; // Mazziotta
-                    gn = 2 * 2.61 * pow(atomic_number, 2.0 / 3.0) / (t.momentum() * t.momentum()) * 1e-6; // Moliere
-                    double E2 = 14.4e-14;                                                                 // [MeV*cm]
-                    double FF = 0.5 * M_PI * E2 * E2 * atomic_number * atomic_number / (t.E() * t.E());
+                    gn = 2 * 2.61 * pow(atomic_number, 2.0 / 3.0) / (particle.momentum() * particle.momentum()) *
+                         1e-6;            // Moliere
+                    double E2 = 14.4e-14; // [MeV*cm]
+                    double FF = 0.5 * M_PI * E2 * E2 * atomic_number * atomic_number / (particle.E() * particle.E());
                     double S0EL = 2 * FF / (gn * (2 + gn));
                     // elastic total cross section  [cm2/atom]
                     xlel = atnu * S0EL; // ATNU = N_A * density / A = atoms/cm3
                 } else {
-                    double getot = t.E() + t.mass();
-                    xlel = std::min(2232.0 * radiation_length * pow(t.momentum() * t.momentum() / (getot * zi), 2),
+                    double getot = particle.E() + particle.mass();
+                    xlel = std::min(2232.0 * radiation_length *
+                                        pow(particle.momentum() * particle.momentum() / (getot * zi), 2),
                                     10.0 * radiation_length);
                     // units ?
                 }
 
-                elvse->Fill(log(t.E()) / log(10), 1e4 / xlel);
-                invse->Fill(log(t.E()) / log(10), 1e4 / xm0);
+                if(output_plots_) {
+                    elvse->Fill(log(particle.E()) / log(10), 1e4 / xlel);
+                    invse->Fill(log(particle.E()) / log(10), 1e4 / xm0);
+                }
 
-                Ekprev = t.E();
+                Ekprev = particle.E();
 
-                LOG(TRACE) << "  ev " << iev << " type " << t.type() << ", Ekin " << t.E() * 1e3 << " keV"
-                           << ", beta " << sqrt(t.betasquared()) << ", gam " << t.gamma() << std::endl
+                LOG(TRACE) << "  ev " << iev << " type " << particle.type() << ", Ekin " << particle.E() * 1e3 << " keV"
+                           << ", beta " << sqrt(particle.betasquared()) << ", gam " << particle.gamma() << std::endl
                            << "  Emax " << Emax << ", nlast " << nlast << ", Elast " << E[nlast] << ", norm "
                            << totsig[nlast] << std::endl
                            << "  inelastic " << 1e4 / xm0 << "  " << 1e4 / sst << ", elastic " << 1e4 / xlel << " um"
@@ -367,14 +373,17 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
 
             double tlam = 1 / (xm0 + xlel);                           // [cm] TOTAL MEAN FREE PATH (MFP)
             double step = -log(1 - unirnd(random_generator_)) * tlam; // exponential step length
-            double pos_z = t.position().Z() + step * t.direction().Z();
+            double pos_z = particle.position().Z() + step * particle.direction().Z();
 
-            if(t.E() < 1) {
+            if(particle.E() < 1) {
                 LOG(TRACE) << "step " << step * 1e4 << ", z " << pos_z * 1e4;
             }
-            hstep5->Fill(step * 1e4);
-            hstep0->Fill(step * 1e4);
-            hzz->Fill(pos_z * 1e4);
+
+            if(output_plots_) {
+                hstep5->Fill(step * 1e4);
+                hstep0->Fill(step * 1e4);
+                hzz->Fill(pos_z * 1e4);
+            }
 
             // Outside the sensor
             if(pos_z < 0 || pos_z > depth * 1e-4) {
@@ -382,9 +391,9 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
             }
 
             // Update position after step
-            t.setPosition(t.position() + step * t.direction());
+            particle.setPosition(particle.position() + step * particle.direction());
 
-            if(fabs(t.position().Y()) > 0.0200) {
+            if(fabs(particle.position().Y()) > 0.0200) {
                 break; // save time
             }
 
@@ -405,17 +414,19 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
 
                 double energy_gamma = E[je - 1] + (E[je] - E[je - 1]) * unirnd(random_generator_); // [eV]
 
-                hde0->Fill(energy_gamma); // M and L shells
-                hde1->Fill(energy_gamma); // K shell
-                hde2->Fill(energy_gamma * 1e-3);
-                hdel->Fill(log(energy_gamma) / log(10));
+                if(output_plots_) {
+                    hde0->Fill(energy_gamma); // M and L shells
+                    hde1->Fill(energy_gamma); // K shell
+                    hde2->Fill(energy_gamma * 1e-3);
+                    hdel->Fill(log(energy_gamma) / log(10));
+                }
 
-                double residual_kin_energy = t.E() - energy_gamma * 1E-6; // [ MeV]
+                double residual_kin_energy = particle.E() - energy_gamma * 1E-6; // [ MeV]
 
                 // cut off for further movement: [MeV]
                 if(residual_kin_energy < explicit_delta_energy_cut_keV_ * 1e-3) {
-                    energy_gamma = t.E() * 1E6;                 // [eV]
-                    residual_kin_energy = t.E() - energy_gamma; // zero
+                    energy_gamma = particle.E() * 1E6;                 // [eV]
+                    residual_kin_energy = particle.E() - energy_gamma; // zero
                     // LOG(TRACE) << "LAST ENERGY LOSS" << energy_gamma << residual_kin_energy
                 }
 
@@ -428,11 +439,11 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
                 // COST = SQRT(1.-SINT*SINT)
                 // STORE INFORMATION ABOUT DELTA-RAY:
                 // SINT = COST ! flip
-                // COST = SQRT(1.-SINT**2) ! sqrt( 1 - ER*1e-6 / t.E() ) ! wrong
+                // COST = SQRT(1.-SINT**2) ! sqrt( 1 - ER*1e-6 / particle.E() ) ! wrong
 
                 // double cost = sqrt( energy_gamma / (2*electron_mass_ev + energy_gamma) ); // M. Swartz
-                double cost =
-                    sqrt(energy_gamma / (2 * electron_mass * 1e6 + energy_gamma) * (t.E() + 2 * electron_mass) / t.E());
+                double cost = sqrt(energy_gamma / (2 * electron_mass * 1e6 + energy_gamma) *
+                                   (particle.E() + 2 * electron_mass) / particle.E());
                 // Penelope, Geant4
                 double sint = 0;
                 if(cost * cost <= 1) {
@@ -462,12 +473,15 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
                 // CDTS = SQRT( DE * RB / ( E * ( DE + TME ) ) ) // like Geant
 
                 std::vector<double> din{sint * cos(phi), sint * sin(phi), cost};
-                htet->Fill(180 / M_PI * asin(sint)); // peak at 90, tail to 45, elastic forward
+
+                if(output_plots_) {
+                    htet->Fill(180 / M_PI * asin(sint)); // peak at 90, tail to 45, elastic forward
+                }
 
                 // transform into detector system:
-                double cz = t.direction().Z(); // delta direction
+                double cz = particle.direction().Z(); // delta direction
                 double sz = sqrt(1 - cz * cz);
-                double phif = atan2(t.direction().Y(), t.direction().X());
+                double phif = atan2(particle.direction().Y(), particle.direction().X());
                 ROOT::Math::XYZVector delta_direction(cz * cos(phif) * din[0] - sin(phif) * din[1] + sz * cos(phif) * din[2],
                                                       cz * sin(phif) * din[0] + cos(phif) * din[1] + sz * sin(phif) * din[2],
                                                       -sz * din[0] + cz * din[2]);
@@ -492,7 +506,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
 
                     if(Eeh > explicit_delta_energy_cut_keV_ * 1e3) {
                         // Put new delta on std::stack:
-                        deltas.emplace(Eeh * 1E-6, t.position(), delta_direction, ParticleType::ELECTRON);
+                        deltas.emplace(Eeh * 1E-6, particle.position(), delta_direction, ParticleType::ELECTRON);
 
                         ++ndelta;
                         total_energy_loss -= Eeh; // [eV], avoid double counting
@@ -539,32 +553,34 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
 
                 // Store charge cluster:
                 if(neh > 0) {
-                    clusters.emplace_back(neh, t.position(), energy_gamma);
+                    clusters.emplace_back(neh, particle.position(), energy_gamma);
 
-                    hlogn->Fill(log(neh) / log(10));
+                    if(output_plots_) {
+                        hlogn->Fill(log(neh) / log(10));
+                    }
                 }
 
                 // Update particle energy
-                t.setE(t.E() - energy_gamma * 1E-6); // [MeV]
+                particle.setE(particle.E() - energy_gamma * 1E-6); // [MeV]
 
-                if(t.E() < 1) {
-                    LOG(TRACE) << "    Ek " << t.E() * 1e3 << " keV, z " << t.position().Z() * 1e4 << ", neh " << neh
-                               << ", steps " << nsteps << ", ion " << nloss << ", elas " << nscat << ", cl "
+                if(particle.E() < 1) {
+                    LOG(TRACE) << "    Ek " << particle.E() * 1e3 << " keV, z " << particle.position().Z() * 1e4 << ", neh "
+                               << neh << ", steps " << nsteps << ", ion " << nloss << ", elas " << nscat << ", cl "
                                << clusters.size();
                 }
 
-                if(t.E() < 1E-6 || residual_kin_energy < 1E-6) {
+                if(particle.E() < 1E-6 || residual_kin_energy < 1E-6) {
                     LOG(TRACE) << "  absorbed";
                     break;
                 }
 
                 // For electrons, update elastic cross section at new energy
-                if(t.type() == ParticleType::ELECTRON) {
-                    // gn = 2*2.61 * pow( atomic_number, 2.0/3.0 ) / (t.E()*1E6); // Mazziotta
-                    double pmom = sqrt(t.E() * (t.E() + 2 * t.mass()));                   // [MeV/c] 2nd binomial
-                    gn = 2 * 2.61 * pow(atomic_number, 2.0 / 3.0) / (pmom * pmom) * 1e-6; // Moliere
-                    double E2 = 14.4e-14;                                                 // [MeV*cm]
-                    double FF = 0.5 * M_PI * E2 * E2 * atomic_number * atomic_number / (t.E() * t.E());
+                if(particle.type() == ParticleType::ELECTRON) {
+                    // gn = 2*2.61 * pow( atomic_number, 2.0/3.0 ) / (particle.E()*1E6); // Mazziotta
+                    double pmom = sqrt(particle.E() * (particle.E() + 2 * particle.mass())); // [MeV/c] 2nd binomial
+                    gn = 2 * 2.61 * pow(atomic_number, 2.0 / 3.0) / (pmom * pmom) * 1e-6;    // Moliere
+                    double E2 = 14.4e-14;                                                    // [MeV*cm]
+                    double FF = 0.5 * M_PI * E2 * E2 * atomic_number * atomic_number / (particle.E() * particle.E());
                     double S0EL = 2 * FF / (gn * (2 + gn));
                     // elastic total cross section  [cm2/atom]
                     xlel = atnu * S0EL; // ATNU = N_A * density / A = atoms/cm3
@@ -579,15 +595,18 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
                 double phi = 2 * M_PI * unirnd(random_generator_);
                 std::vector<double> din{sint * cos(phi), sint * sin(phi), cost};
 
-                hscat->Fill(180 / M_PI * asin(sint)); // forward peak, tail to 90
+                if(output_plots_) {
+                    hscat->Fill(180 / M_PI * asin(sint)); // forward peak, tail to 90
+                }
 
                 // Change direction of particle:
-                double cz = t.direction().Z(); // delta direction
+                double cz = particle.direction().Z(); // delta direction
                 double sz = sqrt(1.0 - cz * cz);
-                double phif = atan2(t.direction().Y(), t.direction().X());
-                t.setDirection(ROOT::Math::XYZVector(cz * cos(phif) * din[0] - sin(phif) * din[1] + sz * cos(phif) * din[2],
-                                                     cz * sin(phif) * din[0] + cos(phif) * din[1] + sz * sin(phif) * din[2],
-                                                     -sz * din[0] + cz * din[2]));
+                double phif = atan2(particle.direction().Y(), particle.direction().X());
+                particle.setDirection(
+                    ROOT::Math::XYZVector(cz * cos(phif) * din[0] - sin(phif) * din[1] + sz * cos(phif) * din[2],
+                                          cz * sin(phif) * din[0] + cos(phif) * din[1] + sz * sin(phif) * din[2],
+                                          -sz * din[0] + cz * din[2]));
             } // elastic
         }     // while steps
 
@@ -657,12 +676,12 @@ void DepositionBichselModule::read_hepstab() {
     size_t numt;
     header >> n2t >> numt;
 
-    LOG(INFO) << " HEPS.TAB: n2t " << n2t << ", numt " << numt;
+    LOG(DEBUG) << "HEPS.TAB: n2t " << n2t << ", numt " << numt;
     if(N2 != n2t) {
-        LOG(WARNING) << " CAUTION: n2 & n2t differ";
+        LOG(WARNING) << "HEPS: n2 & n2t differ";
     }
     if(E.size() - 1 != numt) {
-        LOG(WARNING) << " CAUTION: nume & numt differ";
+        LOG(WARNING) << "HEPS: nume & numt differ";
     }
     if(numt > E.size() - 1) {
         numt = E.size() - 1;
@@ -680,7 +699,7 @@ void DepositionBichselModule::read_hepstab() {
         dfdE[jt] = rimt * 0.0092456 * E[jt];
     }
 
-    LOG(INFO) << "read " << jt << " data lines from HEPS.TAB";
+    LOG(INFO) << "Read " << jt << " data lines from HEPS.TAB";
     // MAZZIOTTA: 0.0 at 864
     // EP( 2, 864 ) = 0.5 * ( EP(2, 863) + EP(2, 865) )
     // RIM(864) = 0.5 * ( RIM(863) + RIM(865) )
@@ -700,11 +719,11 @@ void DepositionBichselModule::read_macomtab() {
     header >> n2t >> numt;
 
     auto nume = E.size() - 1;
-    LOG(INFO) << " MACOM.TAB: n2t " << n2t << ", numt " << numt;
+    LOG(DEBUG) << "MACOM.TAB: n2t " << n2t << ", numt " << numt;
     if(N2 != n2t)
-        LOG(WARNING) << " CAUTION: n2 & n2t differ";
+        LOG(WARNING) << "MACOM: n2 & n2t differ";
     if(nume != numt)
-        LOG(WARNING) << " CAUTION: nume & numt differ";
+        LOG(WARNING) << "MACOM: nume & numt differ";
     if(numt > nume)
         numt = nume;
 
@@ -716,14 +735,11 @@ void DepositionBichselModule::read_macomtab() {
         double etbl;
         tokenizer >> jt >> etbl >> oscillator_strength_ae[jt];
     }
-    LOG(INFO) << "read " << jt << " data lines from MACOM.TAB";
+    LOG(INFO) << "Read " << jt << " data lines from MACOM.TAB";
 }
 
 void DepositionBichselModule::read_emerctab() {
     auto emerc = open_data_file("EMERC");
-    if(emerc.bad() || !emerc.is_open()) {
-        throw ModuleError("Error opening EMERC.TAB");
-    }
 
     std::string line;
     getline(emerc, line); // header lines
@@ -739,7 +755,7 @@ void DepositionBichselModule::read_emerctab() {
         double etbl;
         tokenizer >> jt >> etbl >> oscillator_strength_ae[jt] >> xkmn[jt];
     }
-    LOG(INFO) << "  read " << jt << " data lines from EMERC.TAB";
+    LOG(INFO) << "Read " << jt << " data lines from EMERC.TAB";
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

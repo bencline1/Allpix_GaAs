@@ -56,10 +56,7 @@ namespace allpix {
             update();
         };
 
-        /**
-         * Default constructor
-         */
-        Particle() = default;
+        Particle() = delete;
 
         ROOT::Math::XYZVector position() const { return position_end_; }
         void setPosition(ROOT::Math::XYZVector pos) { position_end_ = pos; }
@@ -91,8 +88,8 @@ namespace allpix {
         ROOT::Math::XYZVector position_end_;
         ROOT::Math::XYZVector direction_;
 
-        double energy_;     // [MeV]
-        ParticleType type_; // particle type
+        double energy_{};                       // [MeV]
+        ParticleType type_{ParticleType::NONE}; // particle type
 
         void update() {
             gamma_ = energy_ / mass() + 1.0;                // W = total energy / restmass
@@ -123,7 +120,7 @@ namespace allpix {
         /**
          * @ brief default constructor
          */
-        Cluster() = default;
+        Cluster() = delete;
 
         /**
          * Constructor for e/h pair cluster
@@ -172,7 +169,7 @@ namespace allpix {
         std::vector<std::string> data_paths_;
         std::ifstream open_data_file(const std::string& file_name);
 
-        std::vector<Cluster> stepping(const Particle& init, unsigned iev, double depth, unsigned& ndelta);
+        std::vector<Cluster> stepping(Particle init, unsigned iev, double depth, unsigned& ndelta);
 
         using table = std::array<double, HEPS_ENTRIES>;
         table E, dE;
@@ -188,6 +185,7 @@ namespace allpix {
         double explicit_delta_energy_cut_keV_;
         ParticleType particle_type_{};
         double temperature_{};
+        bool output_plots_{};
 
         // Constants
         const double electron_mass = 0.51099906; // e mass [MeV]
