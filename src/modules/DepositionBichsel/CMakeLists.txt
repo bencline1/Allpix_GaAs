@@ -31,5 +31,7 @@ ALLPIX_MODULE_SOURCES(${MODULE_NAME}
     MazziottaIonizer.cpp
 )
 
+TARGET_LINK_LIBRARIES(${MODULE_NAME} ROOT::Graf3d)
+
 # Provide standard install target
 ALLPIX_MODULE_INSTALL(${MODULE_NAME})

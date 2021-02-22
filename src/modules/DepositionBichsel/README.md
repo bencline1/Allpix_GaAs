@@ -14,7 +14,14 @@
 * `source_energy`: Kinetic energy of the incoming particle.
 * `data_paths`: Paths that should be searched for the tabulated data files in addition to the standard installation path.
 * `fast`
+
+#### Plotting
 * `output_plots`
+* `output_event_displays`
+* `output_plots_use_equal_scaling`
+* `output_plots_align_pixels`
+* `output_plots_theta`
+* `output_plots_phi`
 
 ### Usage
 

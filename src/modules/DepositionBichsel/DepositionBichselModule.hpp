@@ -162,6 +162,11 @@ namespace allpix {
          */
         void init() override;
 
+        /**
+         * @brief Write statistical summary
+         */
+        void finalize() override;
+
     private:
         std::mt19937_64 random_generator_;
         std::shared_ptr<const Detector> detector_;
@@ -172,6 +177,8 @@ namespace allpix {
         std::ifstream open_data_file(const std::string& file_name);
 
         std::vector<Cluster> stepping(Particle init, unsigned iev, double depth, unsigned& ndelta);
+
+        void create_output_plots(unsigned int event_num, const std::vector<Cluster>& clusters);
 
         using table = std::array<double, HEPS_ENTRIES>;
         table E, dE;
@@ -188,6 +195,7 @@ namespace allpix {
         ParticleType particle_type_{};
         double temperature_{};
         bool output_plots_{};
+        bool output_event_displays_{};
         double initial_energy_{};
         double energy_threshold_{};
 

@@ -11,6 +11,9 @@
 #include "objects/DepositedCharge.hpp"
 #include "objects/MCParticle.hpp"
 
+#include <TCanvas.h>
+#include <TH3F.h>
+
 using namespace allpix;
 
 DepositionBichselModule::DepositionBichselModule(Configuration& config,
@@ -26,10 +29,16 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config,
     config_.setDefault("delta_energy_cut", 0.009);
     config_.setDefault<bool>("fast", true);
     config_.setDefault<bool>("output_plots", false);
+    config_.setDefault<bool>("output_event_displays", false);
+    config_.setDefault<bool>("output_plots_align_pixels", false);
+    config_.setDefault<double>("output_plots_theta", 0.0f);
+    config_.setDefault<double>("output_plots_phi", 0.0f);
+
     temperature_ = config_.get<double>("temperature");
     explicit_delta_energy_cut_ = config_.get<double>("delta_energy_cut");
     fast_ = config_.get<bool>("fast");
     output_plots_ = config_.get<bool>("output_plots");
+    output_event_displays_ = config_.get<bool>("output_event_displays");
 
     initial_energy_ = config_.get<double>("source_energy");
 
@@ -74,14 +83,14 @@ void DepositionBichselModule::init() {
     // Booking histograms:
     if(output_plots_) {
         auto model = detector_->getModel();
-        auto depth = model->getSensorSize().z();
+        auto depth = Units::convert(model->getSensorSize().z(), "um");
 
         elvse = new TProfile("elvse", "elastic mfp;log_{10}(E_{kin}[MeV]);elastic mfp [#mum]", 140, -3, 4);
         invse = new TProfile("invse", "inelastic mfp;log_{10}(E_{kin}[MeV]);inelastic mfp [#mum]", 140, -3, 4);
 
         hstep5 = new TH1I("step5", "step length;step length [#mum];steps", 500, 0, 5);
         hstep0 = new TH1I("step0", "step length;step length [#mum];steps", 500, 0, 0.05);
-        hzz = new TH1I("zz", "z;depth z [#mum];steps", depth, 0, depth);
+        hzz = new TH1I("zz", "z;depth z [#mum];steps", depth, -depth / 2, depth / 2);
 
         hde0 = new TH1I("de0", "step E loss;step E loss [eV];steps", 200, 0, 200);
         hde1 = new TH1I("de1", "step E loss;step E loss [eV];steps", 100, 0, 5000);
@@ -144,6 +153,82 @@ void DepositionBichselModule::init() {
     read_emerctab();
 }
 
+void DepositionBichselModule::create_output_plots(unsigned int event_num, const std::vector<Cluster>& clusters) {
+    LOG(TRACE) << "Writing output plots";
+    auto model = detector_->getModel();
+
+    // Calculate the axis limits
+    double minX = FLT_MAX, maxX = FLT_MIN;
+    double minY = FLT_MAX, maxY = FLT_MIN;
+    for(const auto& point : clusters) {
+        minX = std::min(minX, point.position.x());
+        maxX = std::max(maxX, point.position.x());
+
+        minY = std::min(minY, point.position.y());
+        maxY = std::max(maxY, point.position.y());
+    }
+
+    // Compute frame axis sizes if equal scaling is requested
+    if(config_.get<bool>("output_plots_use_equal_scaling", true)) {
+        double centerX = (minX + maxX) / 2.0;
+        double centerY = (minY + maxY) / 2.0;
+        minX = centerX - model->getSensorSize().z() / 2.0;
+        maxX = centerX + model->getSensorSize().z() / 2.0;
+
+        minY = centerY - model->getSensorSize().z() / 2.0;
+        maxY = centerY + model->getSensorSize().z() / 2.0;
+    }
+
+    // Align on pixels if requested
+    if(config_.get<bool>("output_plots_align_pixels")) {
+        double div = minX / model->getPixelSize().x();
+        minX = (std::floor(div - 0.5) + 0.5) * model->getPixelSize().x();
+        div = minY / model->getPixelSize().y();
+        minY = (std::floor(div - 0.5) + 0.5) * model->getPixelSize().y();
+        div = maxX / model->getPixelSize().x();
+        maxX = (std::ceil(div + 0.5) - 0.5) * model->getPixelSize().x();
+        div = maxY / model->getPixelSize().y();
+        maxY = (std::ceil(div + 0.5) - 0.5) * model->getPixelSize().y();
+    }
+
+    // Use a histogram to create the underlying frame
+    auto* histogram_frame = new TH3F(("frame_" + getUniqueName() + "_" + std::to_string(event_num)).c_str(),
+                                     "",
+                                     100,
+                                     minX,
+                                     maxX,
+                                     100,
+                                     minY,
+                                     maxY,
+                                     100,
+                                     model->getSensorCenter().z() - model->getSensorSize().z() / 2.0,
+                                     model->getSensorCenter().z() + model->getSensorSize().z() / 2.0);
+    histogram_frame->SetDirectory(getROOTDirectory());
+
+    // Create the canvas for the line plot and set orientation
+    auto canvas = std::make_unique<TCanvas>(("event_" + std::to_string(event_num)).c_str(),
+                                            ("Particle trajectories for event " + std::to_string(event_num)).c_str(),
+                                            1280,
+                                            1024);
+    canvas->cd();
+    canvas->SetTheta(config_.get<float>("output_plots_theta") * 180.0f / ROOT::Math::Pi());
+    canvas->SetPhi(config_.get<float>("output_plots_phi") * 180.0f / ROOT::Math::Pi());
+
+    for(const auto& point : clusters) {
+        histogram_frame->Fill(point.position.X(), point.position.Y(), point.position.Z(), point.neh);
+    }
+
+    // Draw the frame on the canvas
+    histogram_frame->GetXaxis()->SetTitle((std::string("x ") + "(mm)").c_str());
+    histogram_frame->GetYaxis()->SetTitle((std::string("y ") + "(mm)").c_str());
+    histogram_frame->GetZaxis()->SetTitle("z (mm)");
+    histogram_frame->Draw("BOX2");
+
+    // Draw and write canvas to module output file, then clear the stored lines
+    canvas->Draw();
+    getROOTDirectory()->WriteTObject(canvas.get());
+}
+
 void DepositionBichselModule::run(unsigned int event) {
     std::uniform_real_distribution<double> unirnd(0, 1);
 
@@ -170,7 +255,7 @@ void DepositionBichselModule::run(unsigned int event) {
     LOG(TRACE) << "  track width       " << width << " um";
     LOG(TRACE) << "  temperature       " << temperature_ << " K";
 
-    LOG(INFO) << event;
+    LOG(DEBUG) << event;
 
     // put track on std::stack:
     double xm = pitch * (unirnd(random_generator_) - 0.5);       // [mu] -p/2..p/2 at track mid
@@ -184,6 +269,10 @@ void DepositionBichselModule::run(unsigned int event) {
     unsigned ndelta = 0; // number of deltas generated
 
     auto clusters = stepping(std::move(initial), event, depth, ndelta);
+
+    if(output_event_displays_) {
+        create_output_plots(event, clusters);
+    }
 }
 
 std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, unsigned& ndelta) {
@@ -391,7 +480,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
 
             // Outside the sensor
             if(!detector_->isWithinSensor(particle.position())) {
-                LOG(INFO) << "Left the sensor at " << Units::display(particle.position(), {"mm", "um"});
+                LOG(DEBUG) << "Left the sensor at " << Units::display(particle.position(), {"mm", "um"});
                 break;
             }
 
@@ -573,7 +662,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                 }
 
                 if(particle.E() < 1E-6 || residual_kin_energy < 1E-6) {
-                    LOG(INFO) << "Absorbed at " << Units::display(particle.position(), {"mm", "um"});
+                    LOG(DEBUG) << "Absorbed at " << Units::display(particle.position(), {"mm", "um"});
                     break;
                 }
 
@@ -635,9 +724,9 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                    << " and end " << Units::display(particle.position(), {"um", "mm"});
     } // while deltas
 
-    LOG(DEBUG) << "  steps " << nsteps << ", ion " << nloss << ", elas " << nscat << ", dE " << total_energy_loss * 1e-3
-               << " keV"
-               << ", eh " << nehpairs << ", cl " << clusters.size();
+    LOG(INFO) << "  steps " << nsteps << ", ion " << nloss << ", elas " << nscat << ", dE " << total_energy_loss * 1e-3
+              << " keV"
+              << ", eh " << nehpairs << ", cl " << clusters.size();
 
     if(output_plots_) {
         hncl->Fill(static_cast<double>(clusters.size()));
@@ -808,4 +897,30 @@ double DepositionBichselModule::gena2() {
     } while(alph2 > 1.27324 * r2); // rejection method
 
     return r1;
+}
+
+void DepositionBichselModule::finalize() {
+    if(output_plots_) {
+        elvse->Write();
+        invse->Write();
+        hstep5->Write();
+        hstep0->Write();
+        hzz->Write();
+        hde0->Write();
+        hde1->Write();
+        hde2->Write();
+        hdel->Write();
+        htet->Write();
+        hnprim->Write();
+        hlogE->Write();
+        hlogn->Write();
+        hscat->Write();
+        hncl->Write();
+        htde->Write();
+        htde0->Write();
+        htde1->Write();
+        hteh->Write();
+        hq0->Write();
+        hrms->Write();
+    }
 }
