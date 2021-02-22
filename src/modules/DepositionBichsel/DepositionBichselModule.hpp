@@ -186,6 +186,7 @@ namespace allpix {
         ParticleType particle_type_{};
         double temperature_{};
         bool output_plots_{};
+        double initial_energy_{};
 
         // Constants
         const double electron_mass = 0.51099906; // e mass [MeV]

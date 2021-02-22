@@ -11,10 +11,6 @@
 #include "objects/DepositedCharge.hpp"
 #include "objects/MCParticle.hpp"
 
-// CONFIGURATION
-#define DEPTH 285
-#define EKIN 5000
-
 using namespace allpix;
 
 DepositionBichselModule::DepositionBichselModule(Configuration& config,
@@ -35,6 +31,8 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config,
     explicit_delta_energy_cut_keV_ = config_.get<double>("delta_energy_cut");
     fast_ = config_.get<bool>("fast");
     output_plots_ = config_.get<bool>("output_plots");
+
+    initial_energy_ = config.get<double>("source_energy");
 
     // EGAP = GAP ENERGY IN eV
     // EMIN = THRESHOLD ENERGY (ALIG ET AL., PRB22 (1980), 5565)
@@ -75,13 +73,15 @@ void DepositionBichselModule::init() {
 
     // Booking histograms:
     if(config_.get<bool>("output_plots")) {
+        auto model = detector_->getModel();
+        auto depth = model->getSensorSize().z();
 
         elvse = new TProfile("elvse", "elastic mfp;log_{10}(E_{kin}[MeV]);elastic mfp [#mum]", 140, -3, 4);
         invse = new TProfile("invse", "inelastic mfp;log_{10}(E_{kin}[MeV]);inelastic mfp [#mum]", 140, -3, 4);
 
         hstep5 = new TH1I("step5", "step length;step length [#mum];steps", 500, 0, 5);
         hstep0 = new TH1I("step0", "step length;step length [#mum];steps", 500, 0, 0.05);
-        hzz = new TH1I("zz", "z;depth z [#mum];steps", DEPTH, 0, DEPTH);
+        hzz = new TH1I("zz", "z;depth z [#mum];steps", depth, 0, depth);
 
         hde0 = new TH1I("de0", "step E loss;step E loss [eV];steps", 200, 0, 200);
         hde1 = new TH1I("de1", "step E loss;step E loss [eV];steps", 100, 0, 5000);
@@ -92,9 +92,9 @@ void DepositionBichselModule::init() {
         hlogE = new TH1I("logE", "log Eeh;log_{10}(E_{eh}) [eV]);eh", 140, 0, 7);
         hlogn = new TH1I("logn", "log neh;log_{10}(n_{eh});clusters", 80, 0, 4);
         hscat = new TH1I("scat", "elastic scattering angle;scattering angle [deg];elastic steps", 180, 0, 180);
-        hncl = new TH1I("ncl", "clusters;e-h clusters;tracks", 4 * DEPTH * 5, 0, 4 * DEPTH * 5);
+        hncl = new TH1I("ncl", "clusters;e-h clusters;tracks", 4 * depth * 5, 0, 4 * depth * 5);
 
-        double lastbin = EKIN < 1.1 ? 1.05 * EKIN * 1e3 : 5 * 0.35 * DEPTH; // 350 eV/micron
+        double lastbin = initial_energy_ < 1.1 ? 1.05 * initial_energy_ * 1e3 : 5 * 0.35 * depth; // 350 eV/micron
         htde = new TH1I("tde", "sum E loss;sum E loss [keV];tracks / keV", std::max(100, int(lastbin)), 0, int(lastbin));
         htde0 = new TH1I(
             "tde0", "sum E loss, no delta;sum E loss [keV];tracks, no delta", std::max(100, int(lastbin)), 0, int(lastbin));
@@ -106,15 +106,15 @@ void DepositionBichselModule::init() {
 
         hteh = new TH1I("teh",
                         "total e-h;total charge [ke];tracks",
-                        std::max(100, int(50 * 0.1 * DEPTH)),
+                        std::max(100, int(50 * 0.1 * depth)),
                         0,
-                        std::max(1, int(10 * 0.1 * DEPTH)));
+                        std::max(1, int(10 * 0.1 * depth)));
         hq0 = new TH1I("q0",
                        "normal charge;normal charge [ke];tracks",
-                       std::max(100, int(50 * 0.1 * DEPTH)),
+                       std::max(100, int(50 * 0.1 * depth)),
                        0,
-                       std::max(1, int(10 * 0.1 * DEPTH)));
-        hrms = new TH1I("rms", "RMS e-h;charge RMS [e];tracks", 100, 0, 50 * DEPTH);
+                       std::max(1, int(10 * 0.1 * depth)));
+        hrms = new TH1I("rms", "RMS e-h;charge RMS [e];tracks", 100, 0, 50 * depth);
     }
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     // INITIALIZE ENERGY BINS
@@ -161,7 +161,7 @@ void DepositionBichselModule::run(unsigned int event) {
     double width = depth * tan(turn); // [mu] projected track, default: pitch
 
     LOG(TRACE) << "  particle type     " << particle_type_;
-    LOG(TRACE) << "  kinetic energy    " << Ekin0 << " MeV";
+    LOG(TRACE) << "  kinetic energy    " << initial_energy_ << " MeV";
     LOG(TRACE) << "  pixel pitch       " << pitch << " um";
     LOG(TRACE) << "  pixel depth       " << depth << " um";
     LOG(TRACE) << "  incident angle    " << turn * 180 / M_PI << " deg";
