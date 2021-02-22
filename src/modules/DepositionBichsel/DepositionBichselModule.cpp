@@ -148,10 +148,12 @@ void DepositionBichselModule::run(unsigned int event) {
     std::uniform_real_distribution<double> unirnd(0, 1);
 
     // defaults:
-    double depth = DEPTH; // [mu] pixel depth
-    double pitch = 25;    // [mu] pixels size
-    double angle = 999;   // flag
-    double Ekin0 = EKIN;  // [MeV] kinetic energy
+    auto model = detector_->getModel();
+    auto depth = model->getSensorSize().z();
+
+    // double depth = 285; // [mu] pixel depth
+    double pitch = 25 * 1e-3; // [mu] pixels size
+    double angle = 999;       // flag
 
     double turn = atan(pitch / depth); // [rad] default
     if(fabs(angle) < 91) {
@@ -163,7 +165,7 @@ void DepositionBichselModule::run(unsigned int event) {
     LOG(TRACE) << "  particle type     " << particle_type_;
     LOG(TRACE) << "  kinetic energy    " << initial_energy_ << " MeV";
     LOG(TRACE) << "  pixel pitch       " << pitch << " um";
-    LOG(TRACE) << "  pixel depth       " << depth << " um";
+    LOG(TRACE) << "  pixel depth       " << depth << " mm";
     LOG(TRACE) << "  incident angle    " << turn * 180 / M_PI << " deg";
     LOG(TRACE) << "  track width       " << width << " um";
     LOG(TRACE) << "  temperature       " << temperature_ << " K";
@@ -171,11 +173,10 @@ void DepositionBichselModule::run(unsigned int event) {
     LOG(INFO) << event;
 
     // put track on std::stack:
-    double xm = pitch * (unirnd(random_generator_) - 0.5); // [mu] -p/2..p/2 at track mid
-    ROOT::Math::XYZVector pos((xm - 0.5 * width) * 1e-4, 0, 0);
+    double xm = pitch * (unirnd(random_generator_) - 0.5);        // [mu] -p/2..p/2 at track mid
+    ROOT::Math::XYZVector pos((xm - 0.5 * width), 0, -depth / 2); // local coord: z [-d/2, +d/2]
     ROOT::Math::XYZVector dir(sin(turn), 0, cos(turn));
-    Particle initial(Ekin0, pos, dir, particle_type_); // beam particle is first "delta"
-    // E : Ekin0; // [MeV]
+    Particle initial(initial_energy_, pos, dir, particle_type_); // beam particle is first "delta"
     // x : entry point is left;
     // y :  [cm]
     // z :  pixel from 0 to depth [cm]
@@ -217,7 +218,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
 
         LOG(DEBUG) << "  delta " << Units::display(particle.E(), {"keV", "MeV", "GeV"}) << ", cost "
                    << particle.direction().Z() << ", u " << particle.direction().X() << ", v " << particle.direction().Y()
-                   << ", z " << particle.position().Z() * 1e4;
+                   << ", z " << particle.position().Z();
 
         while(1) { // steps
             LOG(TRACE) << "Stepping...";
@@ -363,35 +364,35 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                            << "  Emax " << Emax << ", nlast " << nlast << ", Elast " << E[nlast] << ", norm "
                            << totsig[nlast] << std::endl
                            << "  inelastic " << 1e4 / xm0 << "  " << 1e4 / sst << ", elastic " << 1e4 / xlel << " um"
-                           << ", mean dE " << stpw * depth * 1e-4 * 1e-3 << " keV";
+                           << ", mean dE " << stpw * depth * 1e-3 << " keV";
             } // update
 
             // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             // step:
 
-            double tlam = 1 / (xm0 + xlel);                           // [cm] TOTAL MEAN FREE PATH (MFP)
-            double step = -log(1 - unirnd(random_generator_)) * tlam; // exponential step length
+            double tlam = 1 / (xm0 + xlel);                                // [cm] TOTAL MEAN FREE PATH (MFP)
+            double step = -log(1 - unirnd(random_generator_)) * tlam * 10; // exponential step length, in MM
 
             // Update position after step
             particle.setPosition(particle.position() + step * particle.direction());
 
             if(particle.E() < 1) {
-                LOG(TRACE) << "step " << step * 1e4 << ", z " << particle.position().Z() * 1e4;
+                LOG(TRACE) << "step " << step << ", z " << particle.position().Z();
             }
 
             if(output_plots_) {
-                hstep5->Fill(step * 1e4);
-                hstep0->Fill(step * 1e4);
-                hzz->Fill(particle.position().Z() * 1e4);
+                hstep5->Fill(step);
+                hstep0->Fill(step);
+                hzz->Fill(particle.position().Z());
             }
 
             // Outside the sensor
-            if(particle.position().Z() < 0 || particle.position().Z() > depth * 1e-4) {
+            if(particle.position().Z() < -depth / 2 || particle.position().Z() > depth / 2) {
                 LOG(INFO) << "Left the sensor at " << Units::display(particle.position(), {"mm", "um"});
                 break; // exit back or front
             }
 
-            if(fabs(particle.position().Y()) > 0.0200) {
+            if(fabs(particle.position().Y()) > 0.200) {
                 LOG(INFO) << "Left the sensor at " << Units::display(particle.position(), {"mm", "um"});
                 break; // save time
             }
@@ -568,8 +569,8 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                 particle.setE(particle.E() - energy_gamma * 1E-6); // [MeV]
 
                 if(particle.E() < 1) {
-                    LOG(TRACE) << "    Ek " << particle.E() * 1e3 << " keV, z " << particle.position().Z() * 1e4 << ", neh "
-                               << neh << ", steps " << nsteps << ", ion " << nloss << ", elas " << nscat << ", cl "
+                    LOG(TRACE) << "    Ek " << particle.E() * 1e3 << " keV, z " << particle.position().Z() << ", neh " << neh
+                               << ", steps " << nsteps << ", ion " << nloss << ", elas " << nscat << ", cl "
                                << clusters.size();
                 }
 
