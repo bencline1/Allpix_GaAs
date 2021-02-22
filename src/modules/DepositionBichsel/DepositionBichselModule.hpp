@@ -21,7 +21,7 @@ namespace allpix {
     /**
      * @brief Type of particles
      */
-    enum class ParticleType {
+    enum class ParticleType : unsigned int {
         NONE = 0, ///< No particle
         PROTON,
         PION,
@@ -183,8 +183,8 @@ namespace allpix {
         bool fast;
         // delta ray range: 1 um at 10 keV (Mazziotta 2004)
         double explicit_delta_energy_cut_keV_;
-        ParticleType default_particle_type;
-        double temperature_; // [K]
+        ParticleType particle_type_{};
+        double temperature_{};
 
         // Constants
         const double electron_mass = 0.51099906; // e mass [MeV]

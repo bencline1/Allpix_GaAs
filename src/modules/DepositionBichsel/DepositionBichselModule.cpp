@@ -11,11 +11,8 @@
 #include "objects/MCParticle.hpp"
 
 // CONFIGURATION
-#define TEMPERATURE 298
-#define PARTICLE_TYPE ParticleType::ELECTRON
 #define DEPTH 285
 #define EKIN 5000
-#define DELTA_ENERGY_CUT 9
 #define FAST true
 
 using namespace allpix;
@@ -38,9 +35,10 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config,
 
     // EGAP = GAP ENERGY IN eV
     // EMIN = THRESHOLD ENERGY (ALIG ET AL., PRB22 (1980), 5565)
-    double energy_gap = 1.17 - 4.73e-4 * temperature_ * temperature_ / (636 + temperature_);
-    energy_threshold_ = 1.5 * energy_gap; // energy conservation
-    default_particle_type = PARTICLE_TYPE;
+    energy_threshold_ =
+        config_.get<double>("energy_threshold_", 1.5 * 1.17 - 4.73e-4 * temperature_ * temperature_ / (636 + temperature_));
+
+    particle_type_ = ParticleType::ELECTRON;
     fast = FAST;
 }
 
@@ -94,7 +92,7 @@ void DepositionBichselModule::init() {
 
     double u = log(2.0) / N2;
     double um = exp(u);
-    int ken = log(1839.0 / 1.5) / u;         // intger
+    int ken = static_cast<int>(log(1839.0 / 1.5) / u);
     double Emin = 1839.0 / pow(2, ken / N2); // integer division intended
 
     // EMIN is chosen to give an E-value exactly at the K-shell edge, 1839 eV
@@ -129,18 +127,13 @@ void DepositionBichselModule::run(unsigned int event) {
     double Ekin0 = EKIN;  // [MeV] kinetic energy
 
     double turn = atan(pitch / depth); // [rad] default
-    if(fabs(angle) < 91)
+    if(fabs(angle) < 91) {
         turn = angle / 180 * M_PI;
+    }
 
     double width = depth * tan(turn); // [mu] projected track, default: pitch
 
-    // [V/cm] mean electric field: Vbias-Vdepletion/2
-    double Efield = (120 - 30) / depth * 1e4; // UHH
-
-    // from config:
-    ParticleType default_particle_type = PARTICLE_TYPE;
-
-    LOG(DEBUG) << "  particle type     " << default_particle_type;
+    LOG(DEBUG) << "  particle type     " << particle_type_;
     LOG(DEBUG) << "  kinetic energy    " << Ekin0 << " MeV";
     LOG(DEBUG) << "  number of events  " << event;
     LOG(DEBUG) << "  pixel pitch       " << pitch << " um";
@@ -157,7 +150,7 @@ void DepositionBichselModule::run(unsigned int event) {
     double xm = pitch * (unirnd(random_generator_) - 0.5); // [mu] -p/2..p/2 at track mid
     ROOT::Math::XYZVector pos((xm - 0.5 * width) * 1e-4, 0, 0);
     ROOT::Math::XYZVector dir(sin(turn), 0, cos(turn));
-    Particle initial(Ekin0, pos, dir, default_particle_type); // beam particle is first "delta"
+    Particle initial(Ekin0, pos, dir, particle_type_); // beam particle is first "delta"
     // E : Ekin0; // [MeV]
     // x : entry point is left;
     // y :  [cm]
@@ -190,7 +183,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
         auto t = deltas.top();
         deltas.pop();
 
-        unsigned nlast = E.size() - 1;
+        auto nlast = E.size() - 1;
 
         double xm0 = 1;
         double xlel = 1;
@@ -457,7 +450,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
                     veh = ionizer.getIonization(energy_gamma);
                 }
 
-                hnprim->Fill(veh.size());
+                hnprim->Fill(static_cast<double>(veh.size()));
 
                 double sumEeh{0};
                 unsigned neh{0};
@@ -507,7 +500,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
                 }     // while veh
 
                 if(fast) {
-                    std::poisson_distribution<int> poisson(sumEeh / 3.645);
+                    std::poisson_distribution<unsigned int> poisson(sumEeh / 3.645);
                     neh = poisson(random_generator_);
                 }
 
@@ -576,7 +569,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
                << " keV"
                << ", eh " << nehpairs << ", cl " << clusters.size();
 
-    hncl->Fill(clusters.size());
+    hncl->Fill(static_cast<double>(clusters.size()));
     htde->Fill(total_energy_loss * 1e-3); // [keV] energy conservation - binding energy
     if(ndelta) {
         htde1->Fill(total_energy_loss * 1e-3); // [keV]
@@ -598,11 +591,11 @@ void DepositionBichselModule::read_hepstab() {
 
     std::string line;
     getline(heps, line);
-    std::istringstream tokenizer(line);
+    std::istringstream header(line);
 
     int n2t;
-    unsigned numt;
-    tokenizer >> n2t >> numt;
+    size_t numt;
+    header >> n2t >> numt;
 
     LOG(INFO) << " HEPS.TAB: n2t " << n2t << ", numt " << numt;
     if(N2 != n2t) {
@@ -643,13 +636,13 @@ void DepositionBichselModule::read_macomtab() {
 
     std::string line;
     getline(macom, line);
-    std::istringstream tokenizer(line);
+    std::istringstream header(line);
 
     int n2t;
-    unsigned numt;
-    tokenizer >> n2t >> numt;
+    size_t numt;
+    header >> n2t >> numt;
 
-    unsigned int nume = E.size() - 1;
+    auto nume = E.size() - 1;
     LOG(INFO) << " MACOM.TAB: n2t " << n2t << ", numt " << numt;
     if(N2 != n2t)
         LOG(WARNING) << " CAUTION: n2 & n2t differ";
@@ -680,8 +673,6 @@ void DepositionBichselModule::read_emerctab() {
     getline(emerc, line);
     getline(emerc, line);
     getline(emerc, line);
-
-    std::istringstream tokenizer(line);
 
     unsigned jt = 1;
     while(!emerc.eof() && jt < 200) {
