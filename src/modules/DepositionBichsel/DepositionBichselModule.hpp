@@ -189,11 +189,12 @@ namespace allpix {
         double temperature_{};
         bool output_plots_{};
         double initial_energy_{};
+        double energy_threshold_{};
 
         // Constants
-        const double electron_mass = 0.51099906; // e mass [MeV]
-        const double rydberg_constant = 13.6056981;
-        const double fac = 8.0 * M_PI * rydberg_constant * rydberg_constant * pow(0.529177e-8, 2) / electron_mass / 1e6;
+        const double electron_mass_ = 0.51099906; // e mass [MeV]
+        const double rydberg_constant_ = 13.6056981;
+        const double fac_ = 8.0 * M_PI * rydberg_constant_ * rydberg_constant_ * pow(0.529177e-8, 2) / electron_mass_ / 1e6;
 
         // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
         // silicon:
@@ -206,8 +207,6 @@ namespace allpix {
 
         const double eom0 = 0.063; // phonons
         const double aaa = 5.2;    // Alig 1980
-
-        double energy_threshold_{};
 
         // Histograms:
         TProfile *elvse, *invse;

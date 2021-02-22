@@ -229,7 +229,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                 // Emax = maximum energy loss, see Uehling, also Sternheimer & Peierls Eq.(53)
                 double Emax =
                     particle.mass() * (particle.gamma() * particle.gamma() - 1) /
-                    (0.5 * particle.mass() / electron_mass + 0.5 * electron_mass / particle.mass() + particle.gamma());
+                    (0.5 * particle.mass() / electron_mass_ + 0.5 * electron_mass_ / particle.mass() + particle.gamma());
 
                 // maximum energy loss for incident electrons
                 if(particle.type() == ParticleType::ELECTRON) {
@@ -241,7 +241,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                 // S ect 3.3 in Rev Mod Phys 43, 297 (1971)
 
                 double zi = 1.0;
-                double dec = zi * zi * atnu * fac / particle.betasquared();
+                double dec = zi * zi * atnu * fac_ / particle.betasquared();
                 double EkeV = particle.E() * 1e6; // [eV]
 
                 // Generate collision spectrum sigma(E) from df/dE, epsilon and AE.
@@ -262,15 +262,15 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                     }
 
                     // Eq. (3.1) in RMP and red notebook CCS-33, 39 & 47
-                    double Q1 = rydberg_constant;
+                    double Q1 = rydberg_constant_;
                     if(E[j] < 11.9) {
-                        Q1 = pow(xkmn[j], 2) * rydberg_constant;
+                        Q1 = pow(xkmn[j], 2) * rydberg_constant_;
                     } else if(E[j] < 100.0) {
-                        Q1 = pow(0.025, 2) * rydberg_constant;
+                        Q1 = pow(0.025, 2) * rydberg_constant_;
                     }
 
                     double qmin =
-                        E[j] * E[j] / (2 * electron_mass * 1e6 * particle.betasquared()); // twombb = 2 m beta**2 [eV]
+                        E[j] * E[j] / (2 * electron_mass_ * 1e6 * particle.betasquared()); // twombb = 2 m beta**2 [eV]
                     if(E[j] < 11.9 && Q1 < qmin) {
                         sig[1][j] = 0;
                     } else {
@@ -441,8 +441,8 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                 // COST = SQRT(1.-SINT**2) ! sqrt( 1 - ER*1e-6 / particle.E() ) ! wrong
 
                 // double cost = sqrt( energy_gamma / (2*electron_mass_ev + energy_gamma) ); // M. Swartz
-                double cost = sqrt(energy_gamma / (2 * electron_mass * 1e6 + energy_gamma) *
-                                   (particle.E() + 2 * electron_mass) / particle.E());
+                double cost = sqrt(energy_gamma / (2 * electron_mass_ * 1e6 + energy_gamma) *
+                                   (particle.E() + 2 * electron_mass_) / particle.E());
                 // Penelope, Geant4
                 double sint = 0;
                 if(cost * cost <= 1) {

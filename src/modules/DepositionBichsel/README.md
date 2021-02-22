@@ -9,10 +9,10 @@
 
 ### Parameters
 * `temperature`:
-* `delta_energy_cut`
-* `energy_threshold`
-* `source_energy`
-* `data_paths`
+* `delta_energy_cut`: Lower cut-off energy for the production of delta rays.
+* `energy_threshold`: Energy threshold above which ionization is considered in inelastic scatterings. Defaults to 1.5 times the band gap energy at the given temperature.
+* `source_energy`: Kinetic energy of the incoming particle.
+* `data_paths`: Paths that should be searched for the tabulated data files in addition to the standard installation path.
 * `fast`
 * `output_plots`
 
