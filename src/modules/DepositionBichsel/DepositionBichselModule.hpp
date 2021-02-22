@@ -1,19 +1,20 @@
+/**
+ * @file
+ * @brief Definition of a module to deposit charges using Hans Bichsel's stragelling description
+ * @copyright Copyright (c) 2021 CERN and the Allpix Squared authors.
+ * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE.md".
+ * In applying this license, CERN does not waive the privileges and immunities granted to it by virtue of its status as an
+ * Intergovernmental Organization or submit itself to any jurisdiction.
+ */
+
 #include <random>
 
-#include <Math/Vector3D.h>
-#include <TH1.h>
+#include "core/module/Module.hpp"
+
+#include <TH1I.h>
 #include <TProfile.h>
 
-// CONFIGURATION
-#define TEMPERATURE 298
-#define PARTICLE_TYPE ParticleType::ELECTRON
-#define DEPTH 285
-#define EKIN 5000
-#define DELTA_ENERGY_CUT 9
-#define FAST true
-
 namespace allpix {
-
 #define HEPS_ENTRIES 1251
 #define N2 64
 
@@ -72,6 +73,7 @@ namespace allpix {
             update();
         }
         ParticleType type() const { return type_; }
+
         /**
          * Helper to obtain particle rest mass in units of MeV
          * @return Particle rest mass in MeV
@@ -135,19 +137,39 @@ namespace allpix {
         double E; // [eV] generating particle
     };
 
-    class DepositionBichsel {
-
+    /**
+     * @ingroup Modules
+     * @brief Module to deposit charges at predefined positions in the sensor volume
+     *
+     * This module can deposit charge carriers at defined positions inside the sensitive volume of the detector
+     */
+    class DepositionBichselModule : public Module {
     public:
-        DepositionBichsel() = default;
+        /**
+         * @brief Constructor for a module to deposit charges at a specific point in the detector's active sensor volume
+         * @param config Configuration object for this module as retrieved from the steering file
+         * @param messenger Pointer to the messenger object to allow binding to messages on the bus
+         * @param detector Pointer to the detector for this module instance
+         */
+        DepositionBichselModule(Configuration& config, Messenger* messenger, std::shared_ptr<Detector> detector);
 
-        void init();
-        std::vector<Cluster> stepping(const Particle& init, unsigned iev, double depth, unsigned& ndelta);
+        /**
+         * @brief Deposit charge carriers for every simulated event
+         */
+        void run(unsigned int) override;
 
-        void setRandomEngine(std::ranlux24* generator) { random_engine_ = generator; }
-        std::ranlux24& getRandomEngine() { return *random_engine_; }
+        /**
+         * @brief Initialize the histograms
+         */
+        void init() override;
 
     private:
-        std::ranlux24* random_engine_;
+        std::mt19937_64 random_generator_;
+        std::shared_ptr<const Detector> detector_;
+
+        Messenger* messenger_;
+
+        std::vector<Cluster> stepping(const Particle& init, unsigned iev, double depth, unsigned& ndelta);
 
         using table = std::array<double, HEPS_ENTRIES>;
         table E, dE;
@@ -160,9 +182,9 @@ namespace allpix {
         // FIXME possible config parameters
         bool fast;
         // delta ray range: 1 um at 10 keV (Mazziotta 2004)
-        double explicit_delta_energy_cut_keV;
+        double explicit_delta_energy_cut_keV_;
         ParticleType default_particle_type;
-        double temperature; // [K]
+        double temperature_; // [K]
 
         // FIXME to be removed
         const bool ldb = false;
@@ -184,8 +206,7 @@ namespace allpix {
         const double eom0 = 0.063; // phonons
         const double aaa = 5.2;    // Alig 1980
 
-        double energy_gap;
-        double energy_threshold;
+        double energy_threshold_{};
 
         // Histograms:
         TProfile *elvse, *invse;

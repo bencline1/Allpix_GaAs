@@ -2,7 +2,7 @@
 
 using namespace allpix;
 
-MazziottaIonizer::MazziottaIonizer(std::ranlux24* random_engine) : random_engine_(random_engine) {
+MazziottaIonizer::MazziottaIonizer(std::mt19937_64* random_engine) : random_engine_(random_engine) {
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     // SHELL INITIALIZATION
 

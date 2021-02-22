@@ -7,13 +7,13 @@ namespace allpix {
 
     class MazziottaIonizer {
     public:
-        MazziottaIonizer(std::ranlux24* random_engine);
+        MazziottaIonizer(std::mt19937_64* random_engine);
         std::stack<double> getIonization(double energy_gamma);
 
     private:
         void transition(double energy_valence, double energy_auger, std::stack<double>& veh);
 
-        std::ranlux24* random_engine_{nullptr};
+        std::mt19937_64* random_engine_{nullptr};
         std::uniform_real_distribution<double> uniform_dist_{0, 1};
         double uniform() {
             if(random_engine_ == nullptr) {
@@ -22,9 +22,10 @@ namespace allpix {
             return uniform_dist_(*random_engine_);
         };
 
-        std::vector<double> i{-1, 0, 1};
-        std::vector<double> w{1, 0, 1};
-        std::piecewise_linear_distribution<double> triangular_dist_{i.begin(), i.end(), w.begin()};
+        std::vector<double> intervals{-1, 0, 1};
+        std::vector<double> probabilities{1, 0, 1};
+        std::piecewise_linear_distribution<double> triangular_dist_{
+            intervals.begin(), intervals.end(), probabilities.begin()};
         double triangular() {
             if(random_engine_ == nullptr) {
                 exit(1);

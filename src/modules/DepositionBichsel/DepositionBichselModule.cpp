@@ -1,53 +1,94 @@
-#include "DepositionBichsel.hpp"
+#include "DepositionBichselModule.hpp"
 #include "MazziottaIonizer.hpp"
 
 #include <fstream>
 #include <sstream>
 #include <stack>
 
+#include "core/messenger/Messenger.hpp"
+#include "core/utils/log.h"
+#include "objects/DepositedCharge.hpp"
+#include "objects/MCParticle.hpp"
+
+// CONFIGURATION
+#define TEMPERATURE 298
+#define PARTICLE_TYPE ParticleType::ELECTRON
+#define DEPTH 285
+#define EKIN 5000
+#define DELTA_ENERGY_CUT 9
+#define FAST true
+
 using namespace allpix;
 
-void DepositionBichsel::init() {
+DepositionBichselModule::DepositionBichselModule(Configuration& config,
+                                                 Messenger* messenger,
+                                                 std::shared_ptr<Detector> detector)
+    : Module(config, detector), detector_(std::move(detector)), messenger_(messenger) {
+
+    // Seed the random generator with the global seed
+    random_generator_.seed(getRandomSeed());
+
+    config_.setDefault("source_position", ROOT::Math::XYZPoint(0., 0., 0.));
+    config_.setDefault<double>("temperature", 293.15);
+    config_.setDefault("delta_energy_cut", Units::get(9, "keV"));
+    config_.setDefault<bool>("output_plots", false);
+
+    temperature_ = config_.get<double>("temperature");
+    explicit_delta_energy_cut_keV_ = config_.get<double>("delta_energy_cut");
+
+    // EGAP = GAP ENERGY IN eV
+    // EMIN = THRESHOLD ENERGY (ALIG ET AL., PRB22 (1980), 5565)
+    double energy_gap = 1.17 - 4.73e-4 * temperature_ * temperature_ / (636 + temperature_);
+    energy_threshold_ = 1.5 * energy_gap; // energy conservation
+    default_particle_type = PARTICLE_TYPE;
+    fast = FAST;
+}
+
+void DepositionBichselModule::init() {
 
     // Booking histograms:
+    if(config_.get<bool>("output_plots")) {
 
-    elvse = new TProfile("elvse", "elastic mfp;log_{10}(E_{kin}[MeV]);elastic mfp [#mum]", 140, -3, 4);
-    invse = new TProfile("invse", "inelastic mfp;log_{10}(E_{kin}[MeV]);inelastic mfp [#mum]", 140, -3, 4);
+        elvse = new TProfile("elvse", "elastic mfp;log_{10}(E_{kin}[MeV]);elastic mfp [#mum]", 140, -3, 4);
+        invse = new TProfile("invse", "inelastic mfp;log_{10}(E_{kin}[MeV]);inelastic mfp [#mum]", 140, -3, 4);
 
-    hstep5 = new TH1I("step5", "step length;step length [#mum];steps", 500, 0, 5);
-    hstep0 = new TH1I("step0", "step length;step length [#mum];steps", 500, 0, 0.05);
-    hzz = new TH1I("zz", "z;depth z [#mum];steps", DEPTH, 0, DEPTH);
+        hstep5 = new TH1I("step5", "step length;step length [#mum];steps", 500, 0, 5);
+        hstep0 = new TH1I("step0", "step length;step length [#mum];steps", 500, 0, 0.05);
+        hzz = new TH1I("zz", "z;depth z [#mum];steps", DEPTH, 0, DEPTH);
 
-    hde0 = new TH1I("de0", "step E loss;step E loss [eV];steps", 200, 0, 200);
-    hde1 = new TH1I("de1", "step E loss;step E loss [eV];steps", 100, 0, 5000);
-    hde2 = new TH1I("de2", "step E loss;step E loss [keV];steps", 200, 0, 20);
-    hdel = new TH1I("del", "log step E loss;log_{10}(step E loss [eV]);steps", 140, 0, 7);
-    htet = new TH1I("tet", "delta emission angle;delta emission angle [deg];inelasic steps", 180, 0, 90);
-    hnprim = new TH1I("nprim", "primary eh;primary e-h;scatters", 21, -0.5, 20.5);
-    hlogE = new TH1I("logE", "log Eeh;log_{10}(E_{eh}) [eV]);eh", 140, 0, 7);
-    hlogn = new TH1I("logn", "log neh;log_{10}(n_{eh});clusters", 80, 0, 4);
-    hscat = new TH1I("scat", "elastic scattering angle;scattering angle [deg];elastic steps", 180, 0, 180);
-    hncl = new TH1I("ncl", "clusters;e-h clusters;tracks", 4 * DEPTH * 5, 0, 4 * DEPTH * 5);
+        hde0 = new TH1I("de0", "step E loss;step E loss [eV];steps", 200, 0, 200);
+        hde1 = new TH1I("de1", "step E loss;step E loss [eV];steps", 100, 0, 5000);
+        hde2 = new TH1I("de2", "step E loss;step E loss [keV];steps", 200, 0, 20);
+        hdel = new TH1I("del", "log step E loss;log_{10}(step E loss [eV]);steps", 140, 0, 7);
+        htet = new TH1I("tet", "delta emission angle;delta emission angle [deg];inelasic steps", 180, 0, 90);
+        hnprim = new TH1I("nprim", "primary eh;primary e-h;scatters", 21, -0.5, 20.5);
+        hlogE = new TH1I("logE", "log Eeh;log_{10}(E_{eh}) [eV]);eh", 140, 0, 7);
+        hlogn = new TH1I("logn", "log neh;log_{10}(n_{eh});clusters", 80, 0, 4);
+        hscat = new TH1I("scat", "elastic scattering angle;scattering angle [deg];elastic steps", 180, 0, 180);
+        hncl = new TH1I("ncl", "clusters;e-h clusters;tracks", 4 * DEPTH * 5, 0, 4 * DEPTH * 5);
 
-    double lastbin = EKIN < 1.1 ? 1.05 * EKIN * 1e3 : 5 * 0.35 * DEPTH; // 350 eV/micron
-    htde = new TH1I("tde", "sum E loss;sum E loss [keV];tracks / keV", std::max(100, int(lastbin)), 0, int(lastbin));
-    htde0 = new TH1I(
-        "tde0", "sum E loss, no delta;sum E loss [keV];tracks, no delta", std::max(100, int(lastbin)), 0, int(lastbin));
-    htde1 = new TH1I(
-        "tde1", "sum E loss, with delta;sum E loss [keV];tracks, with delta", std::max(100, int(lastbin)), 0, int(lastbin));
+        double lastbin = EKIN < 1.1 ? 1.05 * EKIN * 1e3 : 5 * 0.35 * DEPTH; // 350 eV/micron
+        htde = new TH1I("tde", "sum E loss;sum E loss [keV];tracks / keV", std::max(100, int(lastbin)), 0, int(lastbin));
+        htde0 = new TH1I(
+            "tde0", "sum E loss, no delta;sum E loss [keV];tracks, no delta", std::max(100, int(lastbin)), 0, int(lastbin));
+        htde1 = new TH1I("tde1",
+                         "sum E loss, with delta;sum E loss [keV];tracks, with delta",
+                         std::max(100, int(lastbin)),
+                         0,
+                         int(lastbin));
 
-    hteh = new TH1I("teh",
-                    "total e-h;total charge [ke];tracks",
-                    std::max(100, int(50 * 0.1 * DEPTH)),
-                    0,
-                    std::max(1, int(10 * 0.1 * DEPTH)));
-    hq0 = new TH1I("q0",
-                   "normal charge;normal charge [ke];tracks",
-                   std::max(100, int(50 * 0.1 * DEPTH)),
-                   0,
-                   std::max(1, int(10 * 0.1 * DEPTH)));
-    hrms = new TH1I("rms", "RMS e-h;charge RMS [e];tracks", 100, 0, 50 * DEPTH);
-
+        hteh = new TH1I("teh",
+                        "total e-h;total charge [ke];tracks",
+                        std::max(100, int(50 * 0.1 * DEPTH)),
+                        0,
+                        std::max(1, int(10 * 0.1 * DEPTH)));
+        hq0 = new TH1I("q0",
+                       "normal charge;normal charge [ke];tracks",
+                       std::max(100, int(50 * 0.1 * DEPTH)),
+                       0,
+                       std::max(1, int(10 * 0.1 * DEPTH)));
+        hrms = new TH1I("rms", "RMS e-h;charge RMS [e];tracks", 100, 0, 50 * DEPTH);
+    }
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     // INITIALIZE ENERGY BINS
 
@@ -74,20 +115,62 @@ void DepositionBichsel::init() {
     read_macomtab();
 
     read_emerctab();
-
-    // EGAP = GAP ENERGY IN eV
-    // EMIN = THRESHOLD ENERGY (ALIG ET AL., PRB22 (1980), 5565)
-    energy_gap = 1.17 - 4.73e-4 * temperature * temperature / (636 + temperature);
-    energy_threshold = 1.5 * energy_gap; // energy conservation
-    temperature = TEMPERATURE;
-    default_particle_type = PARTICLE_TYPE;
-    explicit_delta_energy_cut_keV = DELTA_ENERGY_CUT;
-    fast = FAST;
 }
 
-std::vector<Cluster> DepositionBichsel::stepping(const Particle& init, unsigned iev, double depth, unsigned& ndelta) {
+void DepositionBichselModule::run(unsigned int event) {
+    std::uniform_real_distribution<double> unirnd(0, 1);
 
-    MazziottaIonizer ionizer(random_engine_);
+    // defaults:
+    double depth = DEPTH; // [mu] pixel depth
+    double pitch = 25;    // [mu] pixels size
+    double angle = 999;   // flag
+    double thr = 500;     // threshold [e]
+    double cx = 0;        // cross talk
+    double Ekin0 = EKIN;  // [MeV] kinetic energy
+
+    double turn = atan(pitch / depth); // [rad] default
+    if(fabs(angle) < 91)
+        turn = angle / 180 * M_PI;
+
+    double width = depth * tan(turn); // [mu] projected track, default: pitch
+
+    // [V/cm] mean electric field: Vbias-Vdepletion/2
+    double Efield = (120 - 30) / depth * 1e4; // UHH
+
+    // from config:
+    ParticleType default_particle_type = PARTICLE_TYPE;
+
+    std::cout << "  particle type     " << default_particle_type << std::endl;
+    std::cout << "  kinetic energy    " << Ekin0 << " MeV" << std::endl;
+    std::cout << "  number of events  " << event << std::endl;
+    std::cout << "  pixel pitch       " << pitch << " um" << std::endl;
+    std::cout << "  pixel depth       " << depth << " um" << std::endl;
+    std::cout << "  incident angle    " << turn * 180 / M_PI << " deg" << std::endl;
+    std::cout << "  track width       " << width << " um" << std::endl;
+    std::cout << "  temperature       " << temperature_ << " K" << std::endl;
+    std::cout << "  readout threshold " << thr << " e" << std::endl;
+    std::cout << "  cross talk        " << cx * 100 << "%" << std::endl;
+
+    std::cout << event << std::endl;
+
+    // put track on std::stack:
+    double xm = pitch * (unirnd(random_generator_) - 0.5); // [mu] -p/2..p/2 at track mid
+    ROOT::Math::XYZVector pos((xm - 0.5 * width) * 1e-4, 0, 0);
+    ROOT::Math::XYZVector dir(sin(turn), 0, cos(turn));
+    Particle initial(Ekin0, pos, dir, default_particle_type); // beam particle is first "delta"
+    // E : Ekin0; // [MeV]
+    // x : entry point is left;
+    // y :  [cm]
+    // z :  pixel from 0 to depth [cm]
+
+    unsigned ndelta = 0; // number of deltas generated
+
+    auto clusters = stepping(initial, event, depth, ndelta);
+}
+
+std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, unsigned iev, double depth, unsigned& ndelta) {
+
+    MazziottaIonizer ionizer(&random_generator_);
     std::uniform_real_distribution<double> unirnd(0, 1);
 
     std::vector<Cluster> clusters;
@@ -264,7 +347,7 @@ std::vector<Cluster> DepositionBichsel::stepping(const Particle& init, unsigned 
             // step:
 
             double tlam = 1 / (xm0 + xlel);                           // [cm] TOTAL MEAN FREE PATH (MFP)
-            double step = -log(1 - unirnd(getRandomEngine())) * tlam; // exponential step length
+            double step = -log(1 - unirnd(random_generator_)) * tlam; // exponential step length
             double pos_z = t.position().Z() + step * t.direction().Z();
 
             if(ldb && t.E() < 1) {
@@ -289,11 +372,11 @@ std::vector<Cluster> DepositionBichsel::stepping(const Particle& init, unsigned 
             ++nsteps;
 
             // INELASTIC (ionization) PROCESS
-            if(unirnd(getRandomEngine()) > tlam * xlel) {
+            if(unirnd(random_generator_) > tlam * xlel) {
                 ++nloss;
 
                 // GENERATE VIRTUAL GAMMA:
-                double yr = unirnd(getRandomEngine()); // inversion method
+                double yr = unirnd(random_generator_); // inversion method
                 unsigned je = 2;
                 for(; je <= nlast; ++je) {
                     if(yr < totsig[je]) {
@@ -301,7 +384,7 @@ std::vector<Cluster> DepositionBichsel::stepping(const Particle& init, unsigned 
                     }
                 }
 
-                double energy_gamma = E[je - 1] + (E[je] - E[je - 1]) * unirnd(getRandomEngine()); // [eV]
+                double energy_gamma = E[je - 1] + (E[je] - E[je - 1]) * unirnd(random_generator_); // [eV]
 
                 hde0->Fill(energy_gamma); // M and L shells
                 hde1->Fill(energy_gamma); // K shell
@@ -311,7 +394,7 @@ std::vector<Cluster> DepositionBichsel::stepping(const Particle& init, unsigned 
                 double residual_kin_energy = t.E() - energy_gamma * 1E-6; // [ MeV]
 
                 // cut off for further movement: [MeV]
-                if(residual_kin_energy < explicit_delta_energy_cut_keV * 1e-3) {
+                if(residual_kin_energy < explicit_delta_energy_cut_keV_ * 1e-3) {
                     energy_gamma = t.E() * 1E6;                 // [eV]
                     residual_kin_energy = t.E() - energy_gamma; // zero
                     // std::cout << "LAST ENERGY LOSS" << energy_gamma << residual_kin_energy
@@ -329,14 +412,14 @@ std::vector<Cluster> DepositionBichsel::stepping(const Particle& init, unsigned 
                 // COST = SQRT(1.-SINT**2) ! sqrt( 1 - ER*1e-6 / t.E() ) ! wrong
 
                 // double cost = sqrt( energy_gamma / (2*electron_mass_ev + energy_gamma) ); // M. Swartz
-                double cost = sqrt(energy_gamma / (2 * electron_mass * 1e6 + energy_gamma) *
-                                   (t.E() + 2 * electron_mass) / t.E());
+                double cost =
+                    sqrt(energy_gamma / (2 * electron_mass * 1e6 + energy_gamma) * (t.E() + 2 * electron_mass) / t.E());
                 // Penelope, Geant4
                 double sint = 0;
                 if(cost * cost <= 1) {
                     sint = sqrt(1 - cost * cost); // mostly 90 deg
                 }
-                double phi = 2 * M_PI * unirnd(getRandomEngine());
+                double phi = 2 * M_PI * unirnd(random_generator_);
 
                 // G4PenelopeIonisationModel.cc
 
@@ -372,7 +455,7 @@ std::vector<Cluster> DepositionBichsel::stepping(const Particle& init, unsigned 
 
                 // GENERATE PRIMARY e-h:
                 std::stack<double> veh;
-                if(energy_gamma > energy_threshold) {
+                if(energy_gamma > energy_threshold_) {
                     veh = ionizer.getIonization(energy_gamma);
                 }
 
@@ -388,7 +471,7 @@ std::vector<Cluster> DepositionBichsel::stepping(const Particle& init, unsigned 
 
                     hlogE->Fill(Eeh > 1 ? log(Eeh) / log(10) : 0);
 
-                    if(Eeh > explicit_delta_energy_cut_keV * 1e3) {
+                    if(Eeh > explicit_delta_energy_cut_keV_ * 1e3) {
                         // Put new delta on std::stack:
                         deltas.emplace(Eeh * 1E-6, t.position(), delta_direction, ParticleType::ELECTRON);
 
@@ -401,25 +484,25 @@ std::vector<Cluster> DepositionBichsel::stepping(const Particle& init, unsigned 
                     sumEeh += Eeh;
 
                     // slow down low energy e and h: 95% of CPU time
-                    while(!fast && Eeh > energy_threshold) {
+                    while(!fast && Eeh > energy_threshold_) {
                         // for e and h
                         double p_ionization =
-                            1 / (1 + aaa * 105 / 2 / M_PI * sqrt(Eeh - eom0) / pow(Eeh - energy_threshold, 3.5));
+                            1 / (1 + aaa * 105 / 2 / M_PI * sqrt(Eeh - eom0) / pow(Eeh - energy_threshold_, 3.5));
 
-                        if(unirnd(getRandomEngine()) < p_ionization) { // ionization
+                        if(unirnd(random_generator_) < p_ionization) { // ionization
                             ++neh;
-                            double E1 = gena1() * (Eeh - energy_threshold);
-                            double E2 = gena2() * (Eeh - energy_threshold - E1);
+                            double E1 = gena1() * (Eeh - energy_threshold_);
+                            double E2 = gena2() * (Eeh - energy_threshold_ - E1);
                             // cout << "      ion " << Eeh << " => " << E1 << " + " << E2 << std::endl;
 
-                            if(E1 > energy_threshold) {
+                            if(E1 > energy_threshold_) {
                                 veh.push(E1);
                             }
-                            if(E2 > energy_threshold) {
+                            if(E2 > energy_threshold_) {
                                 veh.push(E2);
                             }
 
-                            Eeh = Eeh - E1 - E2 - energy_threshold;
+                            Eeh = Eeh - E1 - E2 - energy_threshold_;
                         } else {
                             Eeh -= eom0; // phonon emission
                         }
@@ -428,7 +511,7 @@ std::vector<Cluster> DepositionBichsel::stepping(const Particle& init, unsigned 
 
                 if(fast) {
                     std::poisson_distribution<int> poisson(sumEeh / 3.645);
-                    neh = poisson(getRandomEngine());
+                    neh = poisson(random_generator_);
                 }
 
                 nehpairs += neh;
@@ -472,10 +555,10 @@ std::vector<Cluster> DepositionBichsel::stepping(const Particle& init, unsigned 
             } else { // ELASTIC SCATTERING: Chaoui 2006
                 ++nscat;
 
-                double r = unirnd(getRandomEngine());
+                double r = unirnd(random_generator_);
                 double cost = 1 - 2 * gn * r / (2 + gn - 2 * r);
                 double sint = sqrt(1 - cost * cost);
-                double phi = 2 * M_PI * unirnd(getRandomEngine());
+                double phi = 2 * M_PI * unirnd(random_generator_);
                 std::vector<double> din{sint * cos(phi), sint * sin(phi), cost};
 
                 hscat->Fill(180 / M_PI * asin(sint)); // forward peak, tail to 90
@@ -511,7 +594,7 @@ std::vector<Cluster> DepositionBichsel::stepping(const Particle& init, unsigned 
     return clusters;
 }
 
-void DepositionBichsel::read_hepstab() {
+void DepositionBichselModule::read_hepstab() {
     std::ifstream heps("HEPS.TAB");
     if(heps.bad() || !heps.is_open()) {
         std::cout << "Error opening HEPS.TAB" << std::endl;
@@ -557,7 +640,7 @@ void DepositionBichsel::read_hepstab() {
     // DP: fixed in HEPS.TAB
 }
 
-void DepositionBichsel::read_macomtab() {
+void DepositionBichselModule::read_macomtab() {
     std::ifstream macom("MACOM.TAB");
     if(macom.bad() || !macom.is_open()) {
         std::cout << "Error opening MACOM.TAB" << std::endl;
@@ -592,7 +675,7 @@ void DepositionBichsel::read_macomtab() {
     std::cout << "read " << jt << " data lines from MACOM.TAB" << std::endl;
 }
 
-void DepositionBichsel::read_emerctab() {
+void DepositionBichselModule::read_emerctab() {
     std::ifstream emerc("EMERC.TAB");
     if(emerc.bad() || !emerc.is_open()) {
         std::cout << "Error opening EMERC.TAB" << std::endl;
@@ -619,13 +702,13 @@ void DepositionBichsel::read_emerctab() {
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-double DepositionBichsel::gena1() {
+double DepositionBichselModule::gena1() {
     std::uniform_real_distribution<double> uniform_dist(0, 1);
 
     double r1 = 0, r2 = 0, alph1 = 0;
     do {
-        r1 = uniform_dist(getRandomEngine());
-        r2 = uniform_dist(getRandomEngine());
+        r1 = uniform_dist(random_generator_);
+        r2 = uniform_dist(random_generator_);
         alph1 = 105. / 16. * (1. - r1) * (1 - r1) * sqrt(r1); // integral = 1, max = 1.8782971
     } while(alph1 > 1.8783 * r2);                             // rejection method
 
@@ -633,13 +716,13 @@ double DepositionBichsel::gena1() {
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-double DepositionBichsel::gena2() {
+double DepositionBichselModule::gena2() {
     std::uniform_real_distribution<double> uniform_dist(0, 1);
 
     double r1 = 0, r2 = 0, alph2 = 0;
     do {
-        r1 = uniform_dist(getRandomEngine());
-        r2 = uniform_dist(getRandomEngine());
+        r1 = uniform_dist(random_generator_);
+        r2 = uniform_dist(random_generator_);
         alph2 = 8 / M_PI * sqrt(r1 * (1 - r1));
     } while(alph2 > 1.27324 * r2); // rejection method
 
