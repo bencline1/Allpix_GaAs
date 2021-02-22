@@ -281,6 +281,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
     std::uniform_real_distribution<double> unirnd(0, 1);
 
     std::vector<MCParticle> mcparticles;
+    std::vector<DepositedCharge> charges;
 
     std::vector<Cluster> clusters;
     std::stack<Particle> deltas;
@@ -358,8 +359,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                         Q1 = pow(0.025, 2) * rydberg_constant_;
                     }
 
-                    double qmin =
-                        E[j] * E[j] / (2 * electron_mass_ * 1e6 * particle.betasquared()); // twombb = 2 m beta**2 [eV]
+                    double qmin = E[j] * E[j] / (2 * electron_mass_ * 1e6 * particle.betasquared());
                     if(E[j] < 11.9 && Q1 < qmin) {
                         sig[1][j] = 0;
                     } else {
@@ -740,6 +740,25 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
         hq0->Fill(nehpairs * 1e-3);  // [ke]
         hrms->Fill(sqrt(sumeh2));
     }
+
+    // Generate deposited charges
+    for(const auto cluster : clusters) {
+        auto position_global = detector_->getGlobalPosition(cluster.position);
+
+        // FIXME time, MCParticle reference
+        charges.emplace_back(cluster.position, position_global, CarrierType::ELECTRON, cluster.neh, 0., 0., nullptr);
+        charges.emplace_back(cluster.position, position_global, CarrierType::HOLE, cluster.neh, 0., 0., nullptr);
+        LOG(DEBUG) << "Deposited " << cluster.neh << " charge carriers of both types at global position "
+                   << Units::display(position_global, {"um", "mm"}) << " in detector " << detector_->getName();
+    }
+
+    // Dispatch the messages to the framework
+    auto mcparticle_message = std::make_shared<MCParticleMessage>(std::move(mcparticles), detector_);
+    messenger_->dispatchMessage(this, mcparticle_message);
+
+    auto deposit_message = std::make_shared<DepositedChargeMessage>(std::move(charges), detector_);
+    messenger_->dispatchMessage(this, deposit_message);
+
     return clusters;
 }
 
