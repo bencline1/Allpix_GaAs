@@ -169,6 +169,9 @@ namespace allpix {
 
         Messenger* messenger_;
 
+        std::vector<std::string> data_paths_;
+        std::ifstream open_data_file(const std::string& file_name);
+
         std::vector<Cluster> stepping(const Particle& init, unsigned iev, double depth, unsigned& ndelta);
 
         using table = std::array<double, HEPS_ENTRIES>;

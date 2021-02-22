@@ -6,6 +6,7 @@
 #include <stack>
 
 #include "core/messenger/Messenger.hpp"
+#include "core/utils/file.h"
 #include "core/utils/log.h"
 #include "objects/DepositedCharge.hpp"
 #include "objects/MCParticle.hpp"
@@ -40,6 +41,33 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config,
 
     particle_type_ = ParticleType::ELECTRON;
     fast = FAST;
+
+    // Register lookup paths for cross-section and oscillator strength data files:
+    if(config_.has("data_paths")) {
+        auto extra_paths = config_.getPathArray("data_paths", true);
+        data_paths_.insert(data_paths_.end(), extra_paths.begin(), extra_paths.end());
+        LOG(TRACE) << "Registered data paths from configuration.";
+    }
+    if(path_is_directory(ALLPIX_BICHSEL_DATA_DIRECTORY)) {
+        data_paths_.emplace_back(ALLPIX_BICHSEL_DATA_DIRECTORY);
+        LOG(TRACE) << "Registered data path: " << ALLPIX_BICHSEL_DATA_DIRECTORY;
+    }
+    const char* data_dirs_env = std::getenv("XDG_DATA_DIRS");
+    if(data_dirs_env == nullptr || strlen(data_dirs_env) == 0) {
+        data_dirs_env = "/usr/local/share/:/usr/share/:";
+    }
+    std::vector<std::string> data_dirs = split<std::string>(data_dirs_env, ":");
+    for(auto data_dir : data_dirs) {
+        if(data_dir.back() != '/') {
+            data_dir += "/";
+        }
+
+        data_dir += std::string(ALLPIX_PROJECT_NAME) + std::string("/data");
+        if(path_is_directory(data_dir)) {
+            data_paths_.emplace_back(data_dir);
+            LOG(TRACE) << "Registered global data path: " << data_dir;
+        }
+    }
 }
 
 void DepositionBichselModule::init() {
@@ -583,11 +611,43 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
     return clusters;
 }
 
-void DepositionBichselModule::read_hepstab() {
-    std::ifstream heps("HEPS.TAB");
-    if(heps.bad() || !heps.is_open()) {
-        throw ModuleError("Error opening HEPS.TAB");
+std::ifstream DepositionBichselModule::open_data_file(const std::string& file_name) {
+
+    std::string file_path{};
+    for(auto& path : data_paths_) {
+        // Check if file or directory
+        if(allpix::path_is_directory(path)) {
+            std::vector<std::string> sub_paths = allpix::get_files_in_directory(path);
+            for(auto& sub_path : sub_paths) {
+                auto name = allpix::get_file_name_extension(sub_path);
+
+                // Accept only with correct suffix and file name
+                std::string suffix(ALLPIX_BICHSEL_DATA_SUFFIX);
+                if(name.first != file_name || name.second != suffix) {
+                    continue;
+                }
+
+                file_path = sub_path;
+                break;
+            }
+        } else {
+            // Always a file because paths are already checked
+            file_path = path;
+            break;
+        }
     }
+
+    LOG(TRACE) << "Reading data file " << file_path;
+    std::ifstream file(file_path);
+    if(file.bad() || !file.is_open()) {
+        throw ModuleError("Error opening data file \"" + file_name + "\"");
+    }
+
+    return file;
+}
+
+void DepositionBichselModule::read_hepstab() {
+    auto heps = open_data_file("HEPS");
 
     std::string line;
     getline(heps, line);
@@ -629,10 +689,7 @@ void DepositionBichselModule::read_hepstab() {
 }
 
 void DepositionBichselModule::read_macomtab() {
-    std::ifstream macom("MACOM.TAB");
-    if(macom.bad() || !macom.is_open()) {
-        throw ModuleError("Error opening MACOM.TAB");
-    }
+    auto macom = open_data_file("MACOM");
 
     std::string line;
     getline(macom, line);
@@ -663,7 +720,7 @@ void DepositionBichselModule::read_macomtab() {
 }
 
 void DepositionBichselModule::read_emerctab() {
-    std::ifstream emerc("EMERC.TAB");
+    auto emerc = open_data_file("EMERC");
     if(emerc.bad() || !emerc.is_open()) {
         throw ModuleError("Error opening EMERC.TAB");
     }
