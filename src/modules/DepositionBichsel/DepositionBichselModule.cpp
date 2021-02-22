@@ -387,14 +387,9 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
             }
 
             // Outside the sensor
-            if(particle.position().Z() < -depth / 2 || particle.position().Z() > depth / 2) {
+            if(!detector_->isWithinSensor(ROOT::Math::XYZPoint(particle.position()))) {
                 LOG(INFO) << "Left the sensor at " << Units::display(particle.position(), {"mm", "um"});
-                break; // exit back or front
-            }
-
-            if(fabs(particle.position().Y()) > 0.200) {
-                LOG(INFO) << "Left the sensor at " << Units::display(particle.position(), {"mm", "um"});
-                break; // save time
+                break;
             }
 
             ++nsteps;
