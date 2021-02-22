@@ -23,11 +23,11 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config,
 
     config_.setDefault("source_position", ROOT::Math::XYZPoint(0., 0., 0.));
     config_.setDefault<double>("temperature", 293.15);
-    config_.setDefault("delta_energy_cut", 9);
+    config_.setDefault("delta_energy_cut", 0.009);
     config_.setDefault<bool>("fast", true);
     config_.setDefault<bool>("output_plots", false);
     temperature_ = config_.get<double>("temperature");
-    explicit_delta_energy_cut_keV_ = config_.get<double>("delta_energy_cut");
+    explicit_delta_energy_cut_ = config_.get<double>("delta_energy_cut");
     fast_ = config_.get<bool>("fast");
     output_plots_ = config_.get<bool>("output_plots");
 
@@ -423,7 +423,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                 double residual_kin_energy = particle.E() - energy_gamma * 1E-6; // [ MeV]
 
                 // cut off for further movement: [MeV]
-                if(residual_kin_energy < explicit_delta_energy_cut_keV_ * 1e-3) {
+                if(residual_kin_energy < explicit_delta_energy_cut_) {
                     energy_gamma = particle.E() * 1E6;                 // [eV]
                     residual_kin_energy = particle.E() - energy_gamma; // zero
                     // LOG(TRACE) << "LAST ENERGY LOSS" << energy_gamma << residual_kin_energy
@@ -507,7 +507,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                         hlogE->Fill(Eeh > 1 ? log(Eeh) / log(10) : 0);
                     }
 
-                    if(Eeh > explicit_delta_energy_cut_keV_ * 1e3) {
+                    if(Eeh > explicit_delta_energy_cut_ * 1e6) {
                         // Put new delta on std::stack:
                         deltas.emplace(Eeh * 1E-6, particle.position(), delta_direction, ParticleType::ELECTRON);
 
