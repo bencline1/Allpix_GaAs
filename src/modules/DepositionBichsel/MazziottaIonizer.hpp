@@ -14,8 +14,23 @@ namespace allpix {
         void transition(double energy_valence, double energy_auger, std::stack<double>& veh);
 
         std::ranlux24* random_engine_{nullptr};
-        std::uniform_real_distribution<double> uniform_dist{0, 1};
-        double get_uniform_prn();
+        std::uniform_real_distribution<double> uniform_dist_{0, 1};
+        double uniform() {
+            if(random_engine_ == nullptr) {
+                exit(1);
+            }
+            return uniform_dist_(*random_engine_);
+        };
+
+        std::vector<double> i{-1, 0, 1};
+        std::vector<double> w{1, 0, 1};
+        std::piecewise_linear_distribution<double> triangular_dist_{i.begin(), i.end(), w.begin()};
+        double triangular() {
+            if(random_engine_ == nullptr) {
+                exit(1);
+            }
+            return triangular_dist_(*random_engine_);
+        };
 
         // Shells
         // Possible transitions to this shell:
