@@ -371,27 +371,28 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
 
             double tlam = 1 / (xm0 + xlel);                           // [cm] TOTAL MEAN FREE PATH (MFP)
             double step = -log(1 - unirnd(random_generator_)) * tlam; // exponential step length
-            double pos_z = particle.position().Z() + step * particle.direction().Z();
+
+            // Update position after step
+            particle.setPosition(particle.position() + step * particle.direction());
 
             if(particle.E() < 1) {
-                LOG(TRACE) << "step " << step * 1e4 << ", z " << pos_z * 1e4;
+                LOG(TRACE) << "step " << step * 1e4 << ", z " << particle.position().Z() * 1e4;
             }
 
             if(output_plots_) {
                 hstep5->Fill(step * 1e4);
                 hstep0->Fill(step * 1e4);
-                hzz->Fill(pos_z * 1e4);
+                hzz->Fill(particle.position().Z() * 1e4);
             }
 
             // Outside the sensor
-            if(pos_z < 0 || pos_z > depth * 1e-4) {
+            if(particle.position().Z() < 0 || particle.position().Z() > depth * 1e-4) {
+                LOG(INFO) << "Left the sensor at " << Units::display(particle.position(), {"mm", "um"});
                 break; // exit back or front
             }
 
-            // Update position after step
-            particle.setPosition(particle.position() + step * particle.direction());
-
             if(fabs(particle.position().Y()) > 0.0200) {
+                LOG(INFO) << "Left the sensor at " << Units::display(particle.position(), {"mm", "um"});
                 break; // save time
             }
 
@@ -573,7 +574,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                 }
 
                 if(particle.E() < 1E-6 || residual_kin_energy < 1E-6) {
-                    LOG(TRACE) << "  absorbed";
+                    LOG(INFO) << "Absorbed at " << Units::display(particle.position(), {"mm", "um"});
                     break;
                 }
 
