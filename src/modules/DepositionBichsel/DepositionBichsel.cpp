@@ -329,8 +329,8 @@ std::vector<Cluster> DepositionBichsel::stepping(const Particle& init, unsigned 
                 // COST = SQRT(1.-SINT**2) ! sqrt( 1 - ER*1e-6 / t.E() ) ! wrong
 
                 // double cost = sqrt( energy_gamma / (2*electron_mass_ev + energy_gamma) ); // M. Swartz
-                double cost =
-                    sqrt(energy_gamma / (2 * electron_mass * 1e6 + energy_gamma) * (t.E() + 2 * electron_mass) / t.E());
+                double cost = sqrt(energy_gamma / (2 * electron_mass * 1e6 + energy_gamma) *
+                                   (t.E() + 2 * electron_mass) / t.E());
                 // Penelope, Geant4
                 double sint = 0;
                 if(cost * cost <= 1) {
