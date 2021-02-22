@@ -173,8 +173,8 @@ void DepositionBichselModule::run(unsigned int event) {
     LOG(INFO) << event;
 
     // put track on std::stack:
-    double xm = pitch * (unirnd(random_generator_) - 0.5);        // [mu] -p/2..p/2 at track mid
-    ROOT::Math::XYZVector pos((xm - 0.5 * width), 0, -depth / 2); // local coord: z [-d/2, +d/2]
+    double xm = pitch * (unirnd(random_generator_) - 0.5);       // [mu] -p/2..p/2 at track mid
+    ROOT::Math::XYZPoint pos((xm - 0.5 * width), 0, -depth / 2); // local coord: z [-d/2, +d/2]
     ROOT::Math::XYZVector dir(sin(turn), 0, cos(turn));
     Particle initial(initial_energy_, pos, dir, particle_type_); // beam particle is first "delta"
     // x : entry point is left;
@@ -190,6 +190,8 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
 
     MazziottaIonizer ionizer(&random_generator_);
     std::uniform_real_distribution<double> unirnd(0, 1);
+
+    std::vector<MCParticle> mcparticles;
 
     std::vector<Cluster> clusters;
     std::stack<Particle> deltas;
@@ -374,7 +376,8 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
             double step = -log(1 - unirnd(random_generator_)) * tlam * 10; // exponential step length, in MM
 
             // Update position after step
-            particle.setPosition(particle.position() + step * particle.direction());
+            particle.setPosition(
+                ROOT::Math::XYZPoint(ROOT::Math::XYZVector(particle.position()) + step * particle.direction()));
 
             if(particle.E() < 1) {
                 LOG(TRACE) << "step " << step << ", z " << particle.position().Z();
@@ -387,7 +390,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
             }
 
             // Outside the sensor
-            if(!detector_->isWithinSensor(ROOT::Math::XYZPoint(particle.position()))) {
+            if(!detector_->isWithinSensor(particle.position())) {
                 LOG(INFO) << "Left the sensor at " << Units::display(particle.position(), {"mm", "um"});
                 break;
             }
@@ -611,6 +614,25 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
             } // elastic
         }     // while steps
 
+        // Finished treating this particle, let's store it:
+
+        // Start and end position of MCParticle:
+        auto start_global = detector_->getGlobalPosition(particle.position_start());
+        auto end_global = detector_->getGlobalPosition(particle.position());
+
+        // Create MCParticle:
+        // FIXME time missing.
+        mcparticles.emplace_back(particle.position_start(),
+                                 start_global,
+                                 particle.position(),
+                                 end_global,
+                                 static_cast<std::underlying_type<ParticleType>::type>(particle.type()),
+                                 0.,
+                                 0.);
+        LOG(DEBUG) << "Generated MCParticle with start " << Units::display(start_global, {"um", "mm"}) << " and end "
+                   << Units::display(end_global, {"um", "mm"}) << " in detector " << detector_->getName();
+        LOG(DEBUG) << "                    local start " << Units::display(particle.position_start(), {"um", "mm"})
+                   << " and end " << Units::display(particle.position(), {"um", "mm"});
     } // while deltas
 
     LOG(DEBUG) << "  steps " << nsteps << ", ion " << nloss << ", elas " << nscat << ", dE " << total_energy_loss * 1e-3

@@ -51,15 +51,17 @@ namespace allpix {
          * @param dir           Direction of motion
          * @param particle_type Type of particle
          */
-        Particle(double energy, ROOT::Math::XYZVector pos, ROOT::Math::XYZVector dir, ParticleType type)
+        Particle(double energy, ROOT::Math::XYZPoint pos, ROOT::Math::XYZVector dir, ParticleType type)
             : position_start_(pos), position_end_(std::move(pos)), direction_(std::move(dir)), energy_(energy), type_(type) {
             update();
         };
 
         Particle() = delete;
 
-        ROOT::Math::XYZVector position() const { return position_end_; }
-        void setPosition(ROOT::Math::XYZVector pos) { position_end_ = pos; }
+        ROOT::Math::XYZPoint position() const { return position_end_; }
+        void setPosition(ROOT::Math::XYZPoint pos) { position_end_ = pos; }
+
+        ROOT::Math::XYZPoint position_start() const { return position_start_; }
 
         ROOT::Math::XYZVector direction() const { return direction_; }
         void setDirection(ROOT::Math::XYZVector dir) { direction_ = dir; }
@@ -84,8 +86,8 @@ namespace allpix {
         double momentum() const { return momentum_; }
 
     private:
-        ROOT::Math::XYZVector position_start_;
-        ROOT::Math::XYZVector position_end_;
+        ROOT::Math::XYZPoint position_start_;
+        ROOT::Math::XYZPoint position_end_;
         ROOT::Math::XYZVector direction_;
 
         double energy_{};                       // [MeV]
@@ -128,9 +130,9 @@ namespace allpix {
          * @param pos      Position of the cluster in local coordinates
          * @param energy   Energy of the generating particle
          */
-        Cluster(int eh_pairs, ROOT::Math::XYZVector pos, double energy) : neh(eh_pairs), position(pos), E(energy){};
+        Cluster(int eh_pairs, ROOT::Math::XYZPoint pos, double energy) : neh(eh_pairs), position(pos), E(energy){};
         int neh;
-        ROOT::Math::XYZVector position;
+        ROOT::Math::XYZPoint position;
         double E; // [eV] generating particle
     };
 
