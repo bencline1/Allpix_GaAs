@@ -180,9 +180,9 @@ namespace allpix {
         table xkmn;
 
         // FIXME possible config parameters
-        bool fast;
+        bool fast_{};
         // delta ray range: 1 um at 10 keV (Mazziotta 2004)
-        double explicit_delta_energy_cut_keV_;
+        double explicit_delta_energy_cut_keV_{};
         ParticleType particle_type_{};
         double temperature_{};
         bool output_plots_{};

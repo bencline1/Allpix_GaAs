@@ -123,6 +123,7 @@ std::stack<double> MazziottaIonizer::getIonization(double energy_gamma) {
 
     // PHOTOABSORPTION IN VALENCE BAND
     if(is <= 1) {
+        LOG(TRACE) << "Process: photoabsorption in valence band";
         if(energy_gamma < 0.1) {
             return veh;
         }
@@ -140,6 +141,7 @@ std::stack<double> MazziottaIonizer::getIonization(double energy_gamma) {
 
     // PHOTOABSORPTION IN AN INNER SHELL
     double Ephe = energy_gamma - energy_shell[is];
+    LOG(TRACE) << "Process: photoabsorption in an inner shell";
     if(Ephe <= 0) {
         LOG(DEBUG) << "shells: photoelectron with negative energy " << energy_gamma << ", shell " << is << " at "
                    << energy_shell[is] << " eV";

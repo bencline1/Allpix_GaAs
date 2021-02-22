@@ -14,7 +14,6 @@
 // CONFIGURATION
 #define DEPTH 285
 #define EKIN 5000
-#define FAST true
 
 using namespace allpix;
 
@@ -28,11 +27,13 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config,
 
     config_.setDefault("source_position", ROOT::Math::XYZPoint(0., 0., 0.));
     config_.setDefault<double>("temperature", 293.15);
-    config_.setDefault("delta_energy_cut", Units::get(9, "keV"));
+    config_.setDefault("delta_energy_cut", 9);
+    config_.setDefault<bool>("fast", true);
     config_.setDefault<bool>("output_plots", false);
 
     temperature_ = config_.get<double>("temperature");
     explicit_delta_energy_cut_keV_ = config_.get<double>("delta_energy_cut");
+    fast_ = config_.get<bool>("fast");
     output_plots_ = config_.get<bool>("output_plots");
 
     // EGAP = GAP ENERGY IN eV
@@ -41,7 +42,6 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config,
         config_.get<double>("energy_threshold_", 1.5 * 1.17 - 4.73e-4 * temperature_ * temperature_ / (636 + temperature_));
 
     particle_type_ = ParticleType::ELECTRON;
-    fast = FAST;
 
     // Register lookup paths for cross-section and oscillator strength data files:
     if(config_.has("data_paths")) {
@@ -160,14 +160,13 @@ void DepositionBichselModule::run(unsigned int event) {
 
     double width = depth * tan(turn); // [mu] projected track, default: pitch
 
-    LOG(DEBUG) << "  particle type     " << particle_type_;
-    LOG(DEBUG) << "  kinetic energy    " << Ekin0 << " MeV";
-    LOG(DEBUG) << "  number of events  " << event;
-    LOG(DEBUG) << "  pixel pitch       " << pitch << " um";
-    LOG(DEBUG) << "  pixel depth       " << depth << " um";
-    LOG(DEBUG) << "  incident angle    " << turn * 180 / M_PI << " deg";
-    LOG(DEBUG) << "  track width       " << width << " um";
-    LOG(DEBUG) << "  temperature       " << temperature_ << " K";
+    LOG(TRACE) << "  particle type     " << particle_type_;
+    LOG(TRACE) << "  kinetic energy    " << Ekin0 << " MeV";
+    LOG(TRACE) << "  pixel pitch       " << pitch << " um";
+    LOG(TRACE) << "  pixel depth       " << depth << " um";
+    LOG(TRACE) << "  incident angle    " << turn * 180 / M_PI << " deg";
+    LOG(TRACE) << "  track width       " << width << " um";
+    LOG(TRACE) << "  temperature       " << temperature_ << " K";
 
     LOG(INFO) << event;
 
@@ -235,7 +234,6 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                 }
                 Emax = 1e6 * Emax; // eV
 
-                LOG(TRACE) << "Emax = " << Emax;
                 // Define parameters and calculate Inokuti"s sums,
                 // S ect 3.3 in Rev Mod Phys 43, 297 (1971)
 
@@ -401,6 +399,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
 
             // INELASTIC (ionization) PROCESS
             if(unirnd(random_generator_) > tlam * xlel) {
+                LOG(TRACE) << "Inelastic scattering";
                 ++nloss;
 
                 // GENERATE VIRTUAL GAMMA:
@@ -492,7 +491,9 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                     veh = ionizer.getIonization(energy_gamma);
                 }
 
-                hnprim->Fill(static_cast<double>(veh.size()));
+                if(output_plots_) {
+                    hnprim->Fill(static_cast<double>(veh.size()));
+                }
 
                 double sumEeh{0};
                 unsigned neh{0};
@@ -502,7 +503,9 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                     double Eeh = veh.top();
                     veh.pop();
 
-                    hlogE->Fill(Eeh > 1 ? log(Eeh) / log(10) : 0);
+                    if(output_plots_) {
+                        hlogE->Fill(Eeh > 1 ? log(Eeh) / log(10) : 0);
+                    }
 
                     if(Eeh > explicit_delta_energy_cut_keV_ * 1e3) {
                         // Put new delta on std::stack:
@@ -517,7 +520,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                     sumEeh += Eeh;
 
                     // slow down low energy e and h: 95% of CPU time
-                    while(!fast && Eeh > energy_threshold_) {
+                    while(!fast_ && Eeh > energy_threshold_) {
                         // for e and h
                         double p_ionization =
                             1 / (1 + aaa * 105 / 2 / M_PI * sqrt(Eeh - eom0) / pow(Eeh - energy_threshold_, 3.5));
@@ -541,7 +544,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                     } // slow: while Eeh
                 }     // while veh
 
-                if(fast) {
+                if(fast_) {
                     std::poisson_distribution<unsigned int> poisson(sumEeh / 3.645);
                     neh = poisson(random_generator_);
                 }
@@ -587,6 +590,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                 }
 
             } else { // ELASTIC SCATTERING: Chaoui 2006
+                LOG(TRACE) << "Elastic scattering";
                 ++nscat;
 
                 double r = unirnd(random_generator_);
@@ -616,17 +620,18 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                << " keV"
                << ", eh " << nehpairs << ", cl " << clusters.size();
 
-    hncl->Fill(static_cast<double>(clusters.size()));
-    htde->Fill(total_energy_loss * 1e-3); // [keV] energy conservation - binding energy
-    if(ndelta) {
-        htde1->Fill(total_energy_loss * 1e-3); // [keV]
-    } else {
-        htde0->Fill(total_energy_loss * 1e-3); // [keV]
+    if(output_plots_) {
+        hncl->Fill(static_cast<double>(clusters.size()));
+        htde->Fill(total_energy_loss * 1e-3); // [keV] energy conservation - binding energy
+        if(ndelta) {
+            htde1->Fill(total_energy_loss * 1e-3); // [keV]
+        } else {
+            htde0->Fill(total_energy_loss * 1e-3); // [keV]
+        }
+        hteh->Fill(nehpairs * 1e-3); // [ke]
+        hq0->Fill(nehpairs * 1e-3);  // [ke]
+        hrms->Fill(sqrt(sumeh2));
     }
-    hteh->Fill(nehpairs * 1e-3); // [ke]
-    hq0->Fill(nehpairs * 1e-3);  // [ke]
-    hrms->Fill(sqrt(sumeh2));
-
     return clusters;
 }
 
