@@ -104,7 +104,7 @@ void DepositionBichselModule::init() {
         dE[j - 1] = E[j] - E[j - 1];
     }
 
-    std::cout << std::endl << "  n2 " << N2 << ", Emin " << Emin << ", um " << um << ", E[nume] " << E.back() << std::endl;
+    LOG(DEBUG) << std::endl << "  n2 " << N2 << ", Emin " << Emin << ", um " << um << ", E[nume] " << E.back();
 
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     // READ DIELECTRIC CONSTANTS
@@ -140,18 +140,18 @@ void DepositionBichselModule::run(unsigned int event) {
     // from config:
     ParticleType default_particle_type = PARTICLE_TYPE;
 
-    std::cout << "  particle type     " << default_particle_type << std::endl;
-    std::cout << "  kinetic energy    " << Ekin0 << " MeV" << std::endl;
-    std::cout << "  number of events  " << event << std::endl;
-    std::cout << "  pixel pitch       " << pitch << " um" << std::endl;
-    std::cout << "  pixel depth       " << depth << " um" << std::endl;
-    std::cout << "  incident angle    " << turn * 180 / M_PI << " deg" << std::endl;
-    std::cout << "  track width       " << width << " um" << std::endl;
-    std::cout << "  temperature       " << temperature_ << " K" << std::endl;
-    std::cout << "  readout threshold " << thr << " e" << std::endl;
-    std::cout << "  cross talk        " << cx * 100 << "%" << std::endl;
+    LOG(DEBUG) << "  particle type     " << default_particle_type;
+    LOG(DEBUG) << "  kinetic energy    " << Ekin0 << " MeV";
+    LOG(DEBUG) << "  number of events  " << event;
+    LOG(DEBUG) << "  pixel pitch       " << pitch << " um";
+    LOG(DEBUG) << "  pixel depth       " << depth << " um";
+    LOG(DEBUG) << "  incident angle    " << turn * 180 / M_PI << " deg";
+    LOG(DEBUG) << "  track width       " << width << " um";
+    LOG(DEBUG) << "  temperature       " << temperature_ << " K";
+    LOG(DEBUG) << "  readout threshold " << thr << " e";
+    LOG(DEBUG) << "  cross talk        " << cx * 100 << "%";
 
-    std::cout << event << std::endl;
+    LOG(INFO) << event;
 
     // put track on std::stack:
     double xm = pitch * (unirnd(random_generator_) - 0.5); // [mu] -p/2..p/2 at track mid
@@ -197,9 +197,9 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
         double gn = 1;
         table totsig;
 
-        std::cout << "  delta " << t.E() * 1e3 << " keV"
-                  << ", cost " << t.direction().Z() << ", u " << t.direction().X() << ", v " << t.direction().Y() << ", z "
-                  << t.position().Z() * 1e4;
+        LOG(DEBUG) << "  delta " << t.E() * 1e3 << " keV"
+                   << ", cost " << t.direction().Z() << ", u " << t.direction().X() << ", v " << t.direction().Y() << ", z "
+                   << t.position().Z() * 1e4;
 
         while(1) { // steps
 
@@ -333,14 +333,12 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
 
                 Ekprev = t.E();
 
-                if(ldb)
-                    std::cout << "  ev " << iev << " type " << t.type() << ", Ekin " << t.E() * 1e3 << " keV"
-                              << ", beta " << sqrt(t.betasquared()) << ", gam " << t.gamma() << std::endl
-                              << "  Emax " << Emax << ", nlast " << nlast << ", Elast " << E[nlast] << ", norm "
-                              << totsig[nlast] << std::endl
-                              << "  inelastic " << 1e4 / xm0 << "  " << 1e4 / sst << ", elastic " << 1e4 / xlel << " um"
-                              << ", mean dE " << stpw * depth * 1e-4 * 1e-3 << " keV" << std::endl
-                              << std::flush;
+                LOG(TRACE) << "  ev " << iev << " type " << t.type() << ", Ekin " << t.E() * 1e3 << " keV"
+                           << ", beta " << sqrt(t.betasquared()) << ", gam " << t.gamma() << std::endl
+                           << "  Emax " << Emax << ", nlast " << nlast << ", Elast " << E[nlast] << ", norm "
+                           << totsig[nlast] << std::endl
+                           << "  inelastic " << 1e4 / xm0 << "  " << 1e4 / sst << ", elastic " << 1e4 / xlel << " um"
+                           << ", mean dE " << stpw * depth * 1e-4 * 1e-3 << " keV";
             } // update
 
             // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -350,8 +348,8 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
             double step = -log(1 - unirnd(random_generator_)) * tlam; // exponential step length
             double pos_z = t.position().Z() + step * t.direction().Z();
 
-            if(ldb && t.E() < 1) {
-                std::cout << "step " << step * 1e4 << ", z " << pos_z * 1e4 << std::endl;
+            if(t.E() < 1) {
+                LOG(TRACE) << "step " << step * 1e4 << ", z " << pos_z * 1e4;
             }
             hstep5->Fill(step * 1e4);
             hstep0->Fill(step * 1e4);
@@ -397,7 +395,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
                 if(residual_kin_energy < explicit_delta_energy_cut_keV_ * 1e-3) {
                     energy_gamma = t.E() * 1E6;                 // [eV]
                     residual_kin_energy = t.E() - energy_gamma; // zero
-                    // std::cout << "LAST ENERGY LOSS" << energy_gamma << residual_kin_energy
+                    // LOG(TRACE) << "LAST ENERGY LOSS" << energy_gamma << residual_kin_energy
                 }
 
                 total_energy_loss += energy_gamma; // [eV]
@@ -493,7 +491,6 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
                             ++neh;
                             double E1 = gena1() * (Eeh - energy_threshold_);
                             double E2 = gena2() * (Eeh - energy_threshold_ - E1);
-                            // cout << "      ion " << Eeh << " => " << E1 << " + " << E2 << std::endl;
 
                             if(E1 > energy_threshold_) {
                                 veh.push(E1);
@@ -517,7 +514,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
                 nehpairs += neh;
                 sumeh2 += neh * neh;
 
-                // cout << "  dE " << energy_gamma << " eV, neh " << neh << std::endl;
+                LOG(TRACE) << "  dE " << energy_gamma << " eV, neh " << neh;
 
                 // Store charge cluster:
                 if(neh > 0) {
@@ -529,14 +526,14 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
                 // Update particle energy
                 t.setE(t.E() - energy_gamma * 1E-6); // [MeV]
 
-                if(ldb && t.E() < 1) {
-                    std::cout << "    Ek " << t.E() * 1e3 << " keV, z " << t.position().Z() * 1e4 << ", neh " << neh
-                              << ", steps " << nsteps << ", ion " << nloss << ", elas " << nscat << ", cl "
-                              << clusters.size() << std::endl;
+                if(t.E() < 1) {
+                    LOG(TRACE) << "    Ek " << t.E() * 1e3 << " keV, z " << t.position().Z() * 1e4 << ", neh " << neh
+                               << ", steps " << nsteps << ", ion " << nloss << ", elas " << nscat << ", cl "
+                               << clusters.size();
                 }
 
                 if(t.E() < 1E-6 || residual_kin_energy < 1E-6) {
-                    // std::cout << "  absorbed" << std::endl;
+                    LOG(TRACE) << "  absorbed";
                     break;
                 }
 
@@ -573,12 +570,11 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
             } // elastic
         }     // while steps
 
-        std::cout << std::endl;
     } // while deltas
 
-    std::cout << "  steps " << nsteps << ", ion " << nloss << ", elas " << nscat << ", dE " << total_energy_loss * 1e-3
-              << " keV"
-              << ", eh " << nehpairs << ", cl " << clusters.size() << std::endl;
+    LOG(DEBUG) << "  steps " << nsteps << ", ion " << nloss << ", elas " << nscat << ", dE " << total_energy_loss * 1e-3
+               << " keV"
+               << ", eh " << nehpairs << ", cl " << clusters.size();
 
     hncl->Fill(clusters.size());
     htde->Fill(total_energy_loss * 1e-3); // [keV] energy conservation - binding energy
@@ -597,8 +593,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(const Particle& init, uns
 void DepositionBichselModule::read_hepstab() {
     std::ifstream heps("HEPS.TAB");
     if(heps.bad() || !heps.is_open()) {
-        std::cout << "Error opening HEPS.TAB" << std::endl;
-        exit(1);
+        throw ModuleError("Error opening HEPS.TAB");
     }
 
     std::string line;
@@ -609,12 +604,12 @@ void DepositionBichselModule::read_hepstab() {
     unsigned numt;
     tokenizer >> n2t >> numt;
 
-    std::cout << " HEPS.TAB: n2t " << n2t << ", numt " << numt << std::endl;
+    LOG(INFO) << " HEPS.TAB: n2t " << n2t << ", numt " << numt;
     if(N2 != n2t) {
-        std::cout << " CAUTION: n2 & n2t differ" << std::endl;
+        LOG(WARNING) << " CAUTION: n2 & n2t differ";
     }
     if(E.size() - 1 != numt) {
-        std::cout << " CAUTION: nume & numt differ" << std::endl;
+        LOG(WARNING) << " CAUTION: nume & numt differ";
     }
     if(numt > E.size() - 1) {
         numt = E.size() - 1;
@@ -632,7 +627,7 @@ void DepositionBichselModule::read_hepstab() {
         dfdE[jt] = rimt * 0.0092456 * E[jt];
     }
 
-    std::cout << "read " << jt << " data lines from HEPS.TAB" << std::endl;
+    LOG(INFO) << "read " << jt << " data lines from HEPS.TAB";
     // MAZZIOTTA: 0.0 at 864
     // EP( 2, 864 ) = 0.5 * ( EP(2, 863) + EP(2, 865) )
     // RIM(864) = 0.5 * ( RIM(863) + RIM(865) )
@@ -643,8 +638,7 @@ void DepositionBichselModule::read_hepstab() {
 void DepositionBichselModule::read_macomtab() {
     std::ifstream macom("MACOM.TAB");
     if(macom.bad() || !macom.is_open()) {
-        std::cout << "Error opening MACOM.TAB" << std::endl;
-        exit(1);
+        throw ModuleError("Error opening MACOM.TAB");
     }
 
     std::string line;
@@ -656,11 +650,11 @@ void DepositionBichselModule::read_macomtab() {
     tokenizer >> n2t >> numt;
 
     unsigned int nume = E.size() - 1;
-    std::cout << " MACOM.TAB: n2t " << n2t << ", numt " << numt << std::endl;
+    LOG(INFO) << " MACOM.TAB: n2t " << n2t << ", numt " << numt;
     if(N2 != n2t)
-        std::cout << " CAUTION: n2 & n2t differ" << std::endl;
+        LOG(WARNING) << " CAUTION: n2 & n2t differ";
     if(nume != numt)
-        std::cout << " CAUTION: nume & numt differ" << std::endl;
+        LOG(WARNING) << " CAUTION: nume & numt differ";
     if(numt > nume)
         numt = nume;
 
@@ -672,14 +666,13 @@ void DepositionBichselModule::read_macomtab() {
         double etbl;
         tokenizer >> jt >> etbl >> oscillator_strength_ae[jt];
     }
-    std::cout << "read " << jt << " data lines from MACOM.TAB" << std::endl;
+    LOG(INFO) << "read " << jt << " data lines from MACOM.TAB";
 }
 
 void DepositionBichselModule::read_emerctab() {
     std::ifstream emerc("EMERC.TAB");
     if(emerc.bad() || !emerc.is_open()) {
-        std::cout << "Error opening EMERC.TAB" << std::endl;
-        exit(1);
+        throw ModuleError("Error opening EMERC.TAB");
     }
 
     std::string line;
@@ -698,7 +691,7 @@ void DepositionBichselModule::read_emerctab() {
         double etbl;
         tokenizer >> jt >> etbl >> oscillator_strength_ae[jt] >> xkmn[jt];
     }
-    std::cout << "  read " << jt << " data lines from EMERC.TAB" << std::endl;
+    LOG(INFO) << "  read " << jt << " data lines from EMERC.TAB";
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

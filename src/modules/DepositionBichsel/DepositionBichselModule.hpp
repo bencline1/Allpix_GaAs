@@ -186,9 +186,6 @@ namespace allpix {
         ParticleType default_particle_type;
         double temperature_; // [K]
 
-        // FIXME to be removed
-        const bool ldb = false;
-
         // Constants
         const double electron_mass = 0.51099906; // e mass [MeV]
         const double rydberg_constant = 13.6056981;

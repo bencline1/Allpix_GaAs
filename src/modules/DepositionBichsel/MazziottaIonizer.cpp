@@ -1,5 +1,7 @@
 #include "MazziottaIonizer.hpp"
 
+#include "core/utils/log.h"
+
 using namespace allpix;
 
 MazziottaIonizer::MazziottaIonizer(std::mt19937_64* random_engine) : random_engine_(random_engine) {
@@ -115,7 +117,7 @@ std::stack<double> MazziottaIonizer::getIonization(double energy_gamma) {
         is = std::min(iv, 4u);
     }
 
-    // cout << "  shells for " << energy_gamma << " eV, energy_valence " << energy_valence << ", is " << is << std::endl;
+    LOG(TRACE) << "  shells for " << energy_gamma << " eV, energy_valence " << energy_valence << ", is " << is;
 
     // PROCESSES:
 
@@ -139,8 +141,8 @@ std::stack<double> MazziottaIonizer::getIonization(double energy_gamma) {
     // PHOTOABSORPTION IN AN INNER SHELL
     double Ephe = energy_gamma - energy_shell[is];
     if(Ephe <= 0) {
-        std::cout << "shells: photoelectron with negative energy " << energy_gamma << ", shell " << is << " at "
-                  << energy_shell[is] << " eV" << std::endl;
+        LOG(DEBUG) << "shells: photoelectron with negative energy " << energy_gamma << ", shell " << is << " at "
+                   << energy_shell[is] << " eV";
         return veh;
     }
 
