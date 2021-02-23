@@ -5,7 +5,7 @@
 
 ### Description
 
-[@bichsel], [@mazziotta]
+[@bichsel], [@mazziotta], elastic scattering [@chaoui]
 
 ### Parameters
 * `temperature`:
@@ -36,3 +36,4 @@ source_type = "mip"
 
 [@bichsel]: http://prola.aps.org/abstract/RMP/v60/i3/p663_1
 [@mazziotta]: https://doi.org/10.1016/j.nima.2004.05.127
+[@chaoui]: https://doi.org/10.1088/0953-8984/18/45/016

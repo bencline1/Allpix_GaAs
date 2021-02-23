@@ -315,7 +315,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
 
         double xm0 = 1;
         double xlel = 1;
-        double gn = 1;
+        double screening_parameter = 1;
         table totsig;
 
         LOG(DEBUG) << "  delta " << Units::display(particle.E(), {"keV", "MeV", "GeV"}) << ", cost "
@@ -437,13 +437,14 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
 
                 // elastic:
                 if(particle.type() == ParticleType::ELECTRON) {
-                    // gn = 2*2.61 * pow( atomic_number, 2.0/3.0 ) / EkeV; // Mazziotta
-                    gn = 2 * 2.61 * pow(atomic_number, 2.0 / 3.0) / (particle.momentum() * particle.momentum()) *
-                         1e-6;            // Moliere
+                    // screening_parameter = 2*2.61 * pow( atomic_number, 2.0/3.0 ) / EkeV; // Mazziotta
+                    // Moliere
+                    screening_parameter =
+                        2 * 2.61 * pow(atomic_number, 2.0 / 3.0) / (particle.momentum() * particle.momentum()) * 1e-6;
                     double E2 = 14.4e-14; // [MeV*cm]
                     double FF = 0.5 * M_PI * E2 * E2 * atomic_number * atomic_number / (particle.E() * particle.E());
-                    double S0EL = 2 * FF / (gn * (2 + gn));
-                    // elastic total cross section  [cm2/atom]
+                    // Elastic total cross section  [cm2/atom]
+                    double S0EL = 2 * FF / (screening_parameter * (2 + screening_parameter));
                     xlel = atnu * S0EL; // ATNU = N_A * density / A = atoms/cm3
                 } else {
                     double getot = particle.E() + particle.mass();
@@ -678,12 +679,12 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
 
                 // For electrons, update elastic cross section at new energy
                 if(particle.type() == ParticleType::ELECTRON) {
-                    // gn = 2*2.61 * pow( atomic_number, 2.0/3.0 ) / (particle.E()*1E6); // Mazziotta
+                    // screening_parameter = 2*2.61 * pow( atomic_number, 2.0/3.0 ) / (particle.E()*1E6); // Mazziotta
                     double pmom = sqrt(particle.E() * (particle.E() + 2 * particle.mass())); // [MeV/c] 2nd binomial
-                    gn = 2 * 2.61 * pow(atomic_number, 2.0 / 3.0) / (pmom * pmom) * 1e-6;    // Moliere
-                    double E2 = 14.4e-14;                                                    // [MeV*cm]
+                    screening_parameter = 2 * 2.61 * pow(atomic_number, 2.0 / 3.0) / (pmom * pmom) * 1e-6; // Moliere
+                    double E2 = 14.4e-14;                                                                  // [MeV*cm]
                     double FF = 0.5 * M_PI * E2 * E2 * atomic_number * atomic_number / (particle.E() * particle.E());
-                    double S0EL = 2 * FF / (gn * (2 + gn));
+                    double S0EL = 2 * FF / (screening_parameter * (2 + screening_parameter));
                     // elastic total cross section  [cm2/atom]
                     xlel = atnu * S0EL; // ATNU = N_A * density / A = atoms/cm3
                 }
@@ -693,7 +694,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                 ++nscat;
 
                 double r = unirnd(random_generator_);
-                double cost = 1 - 2 * gn * r / (2 + gn - 2 * r);
+                double cost = 1 - 2 * screening_parameter * r / (2 + screening_parameter - 2 * r);
                 double sint = sqrt(1 - cost * cost);
                 double phi = 2 * M_PI * unirnd(random_generator_);
                 std::vector<double> din{sint * cos(phi), sint * sin(phi), cost};
