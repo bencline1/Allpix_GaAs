@@ -15,9 +15,8 @@
 using namespace allpix;
 
 MazziottaIonizer::MazziottaIonizer(std::mt19937_64* random_engine) : random_engine_(random_engine) {
-    // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-    // SHELL INITIALIZATION
 
+    // Shell energy and probability integral initialization
     for(unsigned n = 1; n <= 4; ++n) {
         for(unsigned i = 1; i <= 9; ++i) {
             auger_prob_integral[n][i] = 0;
@@ -25,15 +24,10 @@ MazziottaIonizer::MazziottaIonizer(std::mt19937_64* random_engine) : random_engi
         }
     }
 
-    // auger_prob_integral(KSH,J) = PROBABILITA" INTEGRALI DEI VARI PROCESSI DI
-    // EMISSIONE AUGR DALLA SHELL KSH
-
-    // auger_prob_integral(KSH,J) = 1 PER L"ULTIMO VALORE DI J
-
-    // KSH = 4 --> SHELL K
-    // KSH = 3 --> SHELL L1
-    // KSH = 2 --> SHELL L23
-
+    /**
+     * Probability integrals for Auger emissions from different shells through different processes
+     */
+    // K shell
     auger_prob_integral[4][1] = 0.1920;
     auger_prob_integral[4][2] = 0.3885 + auger_prob_integral[4][1];
     auger_prob_integral[4][3] = 0.2325 + auger_prob_integral[4][2];
@@ -44,15 +38,18 @@ MazziottaIonizer::MazziottaIonizer(std::mt19937_64* random_engine) : random_engi
     auger_prob_integral[4][8] = 0.0070 + auger_prob_integral[4][7];
     auger_prob_integral[4][9] = 0.0010 + auger_prob_integral[4][8];
 
+    // L1 shell
     auger_prob_integral[3][1] = 0.0250;
     auger_prob_integral[3][2] = 0.9750 + auger_prob_integral[3][1];
 
+    // L23 shell
     auger_prob_integral[2][1] = 0.9990;
     auger_prob_integral[2][2] = 0.0010 + auger_prob_integral[2][1];
 
-    // auger_energy[KSH, J) = ENERGIA IN eV DELL"ELETTRONE AUGR
-    // EMESSO DALLA SHELL KSH NEL PROCESSO J
-
+    /**
+     * Auger electron emission energies for the different shells and processes:
+     */
+    // K shell
     auger_energy[4][1] = 1541.6;
     auger_energy[4][2] = 1591.1;
     auger_energy[4][3] = 1640.6;
@@ -63,25 +60,18 @@ MazziottaIonizer::MazziottaIonizer(std::mt19937_64* random_engine) : random_engi
     auger_energy[4][8] = 1839.0;
     auger_energy[4][9] = 1839.0;
 
+    // L1 shell
     auger_energy[3][1] = 148.7;
     auger_energy[3][2] = 49.5;
 
+    // L23 shell
     auger_energy[2][1] = 99.2;
     auger_energy[2][2] = 0.0;
 }
 
 std::stack<double> MazziottaIonizer::getIonization(double energy_gamma) {
 
-    // INPUT:
-    // EG = VIRTUAL GAMMA ENERGY [eV]
-
-    // OUTPUT:
-    // veh ENERGIES OF PRIMARY e/h
     std::stack<double> veh;
-
-    // energy_gamma = energy_gamma - energy_gap; // double counting?
-
-    // EV = binding ENERGY OF THE TOP OF THE VALENCE BAND
 
     unsigned is{};
     if(energy_gamma <= energy_valence_) {
@@ -97,19 +87,21 @@ std::stack<double> MazziottaIonizer::getIonization(double energy_gamma) {
             PV[4] = PK[13];
         } else {
             unsigned iep = 3;
+            // Find relevant energy bin for the gamma energy we're dealing with
             for(; iep < 13; ++iep) {
                 if(energy_gamma > EPP[iep] && energy_gamma <= EPP[iep + 1]) {
                     break;
                 }
             }
 
-            // interpolate:
+            // Interpolate probabilities for the given energy
             PV[1] = PM[iep] + (PM[iep + 1] - PM[iep]) / (EPP[iep + 1] - EPP[iep]) * (energy_gamma - EPP[iep]);
             PV[2] = PL23[iep] + (PL23[iep + 1] - PL23[iep]) / (EPP[iep + 1] - EPP[iep]) * (energy_gamma - EPP[iep]);
             PV[3] = PL1[iep] + (PL1[iep + 1] - PL1[iep]) / (EPP[iep + 1] - EPP[iep]) * (energy_gamma - EPP[iep]);
             PV[4] = PK[iep] + (PK[iep + 1] - PK[iep]) / (EPP[iep + 1] - EPP[iep]) * (energy_gamma - EPP[iep]);
         }
 
+        // Calculate integral of probabilities for normalization
         double PPV = PV[1] + PV[2] + PV[3] + PV[4];
 
         PV[2] = PV[1] + PV[2];
@@ -128,7 +120,7 @@ std::stack<double> MazziottaIonizer::getIonization(double energy_gamma) {
         is = std::min(iv, 4u);
     }
 
-    LOG(TRACE) << "  shells for " << energy_gamma << " eV, energy_valence " << energy_valence_ << ", is " << is;
+    LOG(TRACE) << "Shells for " << energy_gamma << " eV, energy_valence " << energy_valence_ << ", is " << is;
 
     // PROCESSES:
 
@@ -318,7 +310,7 @@ std::stack<double> MazziottaIonizer::getIonization(double energy_gamma) {
     }     // is 4
 
     return veh;
-} // SHELLS
+}
 
 void MazziottaIonizer::transition(double energy_auger, std::stack<double>& veh) {
 
