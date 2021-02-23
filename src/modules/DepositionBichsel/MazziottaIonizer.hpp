@@ -15,13 +15,33 @@
 
 namespace allpix {
 
+    /**
+     * @brief Class to calculate ionization and photoabsorption in different shells
+     */
     class MazziottaIonizer {
     public:
+        /**
+         * @brief Constructor of ionizer class, also calculates Auger probability integrals
+         * @param random_engine pseudo-random number generator to be used
+         */
         MazziottaIonizer(std::mt19937_64* random_engine);
+
+        /**
+         * @brief Function to calculate electron-hole pairs and their energy from ionization
+         *
+         * @param  energy_gamma Energy of the incoming (virtual) photon interacting with the shells
+         * @return              List of e-h pairs with the value being their respective energy
+         */
         std::stack<double> getIonization(double energy_gamma);
 
     private:
-        void transition(double energy_valence, double energy_auger, std::stack<double>& veh);
+        /**
+         * Helper to calculate shell transition process
+         *
+         * @param energy_auger   [description]
+         * @param veh            [description]
+         */
+        void transition(double energy_auger, std::stack<double>& veh);
 
         std::mt19937_64* random_engine_{nullptr};
         std::uniform_real_distribution<double> uniform_dist_{0, 1};
@@ -55,6 +75,7 @@ namespace allpix {
             148.7,
             1839.0,
         }};
+        const double energy_valence_ = energy_shell[1]; // 12.0 eV
 
         double auger_prob_integral[5][10];
         double auger_energy[5][10];
