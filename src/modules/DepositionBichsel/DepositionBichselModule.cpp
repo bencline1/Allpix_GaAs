@@ -752,7 +752,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
     }
 
     // Generate deposited charges
-    for(const auto cluster : clusters) {
+    for(const auto& cluster : clusters) {
         auto position_global = detector_->getGlobalPosition(cluster.position);
 
         // FIXME time
