@@ -10,6 +10,7 @@
 
 #include "MazziottaIonizer.hpp"
 
+#include "core/module/exceptions.h"
 #include "core/utils/log.h"
 
 using namespace allpix;
@@ -335,11 +336,11 @@ double MazziottaIonizer::uniform() {
         throw ModuleError("Missing random number generator");
     }
     return uniform_dist_(*random_engine_);
-};
+}
 
 double MazziottaIonizer::triangular() {
     if(random_engine_ == nullptr) {
         throw ModuleError("Missing random number generator");
     }
     return triangular_dist_(*random_engine_);
-};
+}
