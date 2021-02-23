@@ -11,6 +11,7 @@
 #include "DepositionBichselModule.hpp"
 #include "MazziottaIonizer.hpp"
 
+#include <deque>
 #include <fstream>
 #include <sstream>
 #include <stack>
@@ -267,7 +268,6 @@ void DepositionBichselModule::run(unsigned int event) {
 
     LOG(DEBUG) << event;
 
-    // put track on std::stack:
     double xm = pitch * (unirnd(random_generator_) - 0.5);       // [mu] -p/2..p/2 at track mid
     ROOT::Math::XYZPoint pos((xm - 0.5 * width), 0, -depth / 2); // local coord: z [-d/2, +d/2]
     ROOT::Math::XYZVector dir(sin(turn), 0, cos(turn));
@@ -294,8 +294,8 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
     std::vector<DepositedCharge> charges;
 
     std::vector<Cluster> clusters;
-    std::stack<Particle> deltas;
-    deltas.push(init);
+    std::deque<Particle> deltas;
+    deltas.push_back(init);
     // Statistics:
     unsigned nsteps = 0; // number of steps for full event
     unsigned nscat = 0;  // elastic scattering
@@ -307,8 +307,8 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
     while(!deltas.empty()) {
         double Ekprev = 9e9; // update flag for next delta
 
-        auto particle = deltas.top();
-        deltas.pop();
+        auto particle = deltas.front();
+        deltas.pop_front();
         LOG(TRACE) << "Picked up particle of type " << particle.type();
 
         auto nlast = E.size() - 1;
@@ -593,8 +593,8 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                     }
 
                     if(Eeh > explicit_delta_energy_cut_ * 1e6) {
-                        // Put new delta on std::stack:
-                        deltas.emplace(Eeh * 1E-6, particle.position(), delta_direction, ParticleType::ELECTRON);
+                        // Put new delta in FIFO:
+                        deltas.emplace_back(Eeh * 1E-6, particle.position(), delta_direction, ParticleType::ELECTRON);
 
                         ++ndelta;
                         total_energy_loss -= Eeh; // [eV], avoid double counting
