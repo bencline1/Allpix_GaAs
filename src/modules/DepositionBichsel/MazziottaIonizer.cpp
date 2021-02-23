@@ -88,7 +88,7 @@ std::stack<double> MazziottaIonizer::getIonization(double energy_gamma) {
     } else if(energy_gamma <= EPP[3]) {
         is = 1;
     } else {
-        double PV[5];
+        std::array<double, 5> PV;
         if(energy_gamma > EPP[13]) {
             PV[1] = PM[13];
             PV[2] = PL23[13];

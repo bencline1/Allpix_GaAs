@@ -285,7 +285,8 @@ void DepositionBichselModule::run(unsigned int event) {
     }
 }
 
-std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, unsigned& ndelta) {
+std::vector<Cluster>
+DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, unsigned& ndelta) { // NOLINT
 
     MazziottaIonizer ionizer(&random_generator_);
     std::uniform_real_distribution<double> unirnd(0, 1);
@@ -323,7 +324,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                    << particle.direction().Z() << ", u " << particle.direction().X() << ", v " << particle.direction().Y()
                    << ", z " << particle.position().Z();
 
-        while(1) { // steps
+        while(true) { // steps
             LOG(TRACE) << "Stepping...";
             if(particle.E() < 0.9 * Ekprev) { // update
                 LOG(TRACE) << "Updating...";
@@ -729,7 +730,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
     if(output_plots_) {
         hncl->Fill(static_cast<double>(clusters.size()));
         htde->Fill(total_energy_loss * 1e-3); // [keV] energy conservation - binding energy
-        if(ndelta) {
+        if(ndelta > 0) {
             htde1->Fill(total_energy_loss * 1e-3); // [keV]
         } else {
             htde0->Fill(total_energy_loss * 1e-3); // [keV]
@@ -847,8 +848,8 @@ void DepositionBichselModule::read_hepstab() {
     getline(heps, line);
     std::istringstream header(line);
 
-    int n2t;
-    size_t numt;
+    int n2t = 0;
+    size_t numt = 0;
     header >> n2t >> numt;
 
     LOG(DEBUG) << "HEPS.TAB: n2t " << n2t << ", numt " << numt;
@@ -867,7 +868,7 @@ void DepositionBichselModule::read_hepstab() {
         getline(heps, line);
         std::istringstream tokenizer(line);
 
-        double etbl, rimt;
+        double etbl = NAN, rimt = NAN;
         tokenizer >> jt >> etbl >> dielectric_const_real[jt] >> dielectric_const_imag[jt] >> rimt;
 
         // The dipole oscillator strength df/dE is calculated, essentially Eq. (2.20)
@@ -889,25 +890,28 @@ void DepositionBichselModule::read_macomtab() {
     getline(macom, line);
     std::istringstream header(line);
 
-    int n2t;
-    size_t numt;
+    int n2t = 0;
+    size_t numt = 0;
     header >> n2t >> numt;
 
     auto nume = E.size() - 1;
     LOG(DEBUG) << "MACOM.TAB: n2t " << n2t << ", numt " << numt;
-    if(N2 != n2t)
+    if(N2 != n2t) {
         LOG(WARNING) << "MACOM: n2 & n2t differ";
-    if(nume != numt)
+    }
+    if(nume != numt) {
         LOG(WARNING) << "MACOM: nume & numt differ";
-    if(numt > nume)
+    }
+    if(numt > nume) {
         numt = nume;
+    }
 
     unsigned jt = 1;
     while(!macom.eof() && jt < numt) {
         getline(macom, line);
         std::istringstream tokenizer(line);
 
-        double etbl;
+        double etbl = NAN;
         tokenizer >> jt >> etbl >> oscillator_strength_ae[jt];
     }
     LOG(INFO) << "Read " << jt << " data lines from MACOM.TAB";
@@ -927,7 +931,7 @@ void DepositionBichselModule::read_emerctab() {
         getline(emerc, line);
         std::istringstream tokenizer(line);
 
-        double etbl;
+        double etbl = NAN;
         tokenizer >> jt >> etbl >> oscillator_strength_ae[jt] >> xkmn[jt];
     }
     LOG(INFO) << "Read " << jt << " data lines from EMERC.TAB";
