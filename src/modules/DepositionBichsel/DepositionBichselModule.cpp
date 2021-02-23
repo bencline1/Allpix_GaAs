@@ -94,14 +94,14 @@ void DepositionBichselModule::init() {
     // Booking histograms:
     if(output_plots_) {
         auto model = detector_->getModel();
-        auto depth = Units::convert(model->getSensorSize().z(), "um");
+        auto depth = static_cast<int>(Units::convert(model->getSensorSize().z(), "um"));
 
         elvse = new TProfile("elvse", "elastic mfp;log_{10}(E_{kin}[MeV]);elastic mfp [#mum]", 140, -3, 4);
         invse = new TProfile("invse", "inelastic mfp;log_{10}(E_{kin}[MeV]);inelastic mfp [#mum]", 140, -3, 4);
 
         hstep5 = new TH1I("step5", "step length;step length [#mum];steps", 500, 0, 5);
         hstep0 = new TH1I("step0", "step length;step length [#mum];steps", 500, 0, 0.05);
-        hzz = new TH1I("zz", "z;depth z [#mum];steps", depth, -depth / 2, depth / 2);
+        hzz = new TH1I("zz", "z;depth z [#mum];steps", depth, -1 / 2 * depth, depth / 2);
 
         hde0 = new TH1I("de0", "step E loss;step E loss [eV];steps", 200, 0, 200);
         hde1 = new TH1I("de1", "step E loss;step E loss [eV];steps", 100, 0, 5000);
