@@ -7,6 +7,7 @@
  * Intergovernmental Organization or submit itself to any jurisdiction.
  */
 
+#include <array>
 #include <random>
 #include <stack>
 
