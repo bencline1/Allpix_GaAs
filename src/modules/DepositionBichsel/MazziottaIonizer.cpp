@@ -82,7 +82,7 @@ std::stack<double> MazziottaIonizer::getIonization(double energy_gamma) {
     // EV = binding ENERGY OF THE TOP OF THE VALENCE BAND
     const double energy_valence = energy_shell[1]; // 12.0 eV
 
-    int is = -1;
+    unsigned is{};
     if(energy_gamma <= energy_shell[1]) {
         is = 0;
     } else if(energy_gamma <= EPP[3]) {
@@ -229,7 +229,7 @@ std::stack<double> MazziottaIonizer::getIonization(double energy_gamma) {
                 transition(energy_valence, auger_energy[3][1], veh);
             } else {
                 // TRANSITION L1 L23 M
-                double energy = energy_valence * uniform();
+                energy = energy_valence * uniform();
                 veh.push(energy);
                 veh.push(auger_energy[3][2] - energy);
 
