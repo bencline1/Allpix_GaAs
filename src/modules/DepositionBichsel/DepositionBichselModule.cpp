@@ -645,7 +645,8 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
 
                 // Store charge cluster:
                 if(neh > 0) {
-                    clusters.emplace_back(neh, particle.position(), energy_gamma);
+                    // Using number of already created MCParticles as reference
+                    clusters.emplace_back(neh, particle.position(), energy_gamma, mcparticles.size());
 
                     if(output_plots_) {
                         hlogn->Fill(log(neh) / log(10));
@@ -738,10 +739,22 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
     for(const auto cluster : clusters) {
         auto position_global = detector_->getGlobalPosition(cluster.position);
 
-        // FIXME time, MCParticle reference
-        charges.emplace_back(cluster.position, position_global, CarrierType::ELECTRON, cluster.neh, 0., 0., nullptr);
-        charges.emplace_back(cluster.position, position_global, CarrierType::HOLE, cluster.neh, 0., 0., nullptr);
-        LOG(DEBUG) << "Deposited " << cluster.neh << " charge carriers of both types at global position "
+        // FIXME time
+        charges.emplace_back(cluster.position,
+                             position_global,
+                             CarrierType::ELECTRON,
+                             cluster.neh,
+                             0.,
+                             0.,
+                             &(mcparticles.at(cluster.particle_id_)));
+        charges.emplace_back(cluster.position,
+                             position_global,
+                             CarrierType::HOLE,
+                             cluster.neh,
+                             0.,
+                             0.,
+                             &(mcparticles.at(cluster.particle_id_)));
+        LOG(TRACE) << "Deposited " << cluster.neh << " charge carriers of both types at global position "
                    << Units::display(position_global, {"um", "mm"}) << " in detector " << detector_->getName();
     }
 

@@ -130,10 +130,12 @@ namespace allpix {
          * @param pos      Position of the cluster in local coordinates
          * @param energy   Energy of the generating particle
          */
-        Cluster(int eh_pairs, ROOT::Math::XYZPoint pos, double energy) : neh(eh_pairs), position(pos), E(energy){};
+        Cluster(int eh_pairs, ROOT::Math::XYZPoint pos, double energy, size_t particle_id)
+            : neh(eh_pairs), position(pos), E(energy), particle_id_(particle_id){};
         int neh;
         ROOT::Math::XYZPoint position;
         double E; // [eV] generating particle
+        size_t particle_id_{};
     };
 
     /**
