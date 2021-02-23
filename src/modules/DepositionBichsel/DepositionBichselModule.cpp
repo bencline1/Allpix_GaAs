@@ -606,6 +606,10 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
 
                     // slow down low energy e and h: 95% of CPU time
                     while(!fast_ && Eeh > energy_threshold_) {
+
+                        const double eom0 = 0.063; // phonons
+                        const double aaa = 5.2;    // Alig 1980
+
                         // for e and h
                         double p_ionization =
                             1 / (1 + aaa * 105 / 2 / M_PI * sqrt(Eeh - eom0) / pow(Eeh - energy_threshold_, 3.5));

@@ -218,9 +218,6 @@ namespace allpix {
         const double radiation_length = 9.36;                        // [cm]
         const double atnu_ = 6.0221367e23 * density / atomic_weight; // atnu = # of atoms per cm**3
 
-        const double eom0 = 0.063; // phonons
-        const double aaa = 5.2;    // Alig 1980
-
         // Histograms:
         TProfile *elvse, *invse;
         TH1I *hstep5, *hstep0, *hzz, *hde0, *hde1, *hde2, *hdel, *htet, *hnprim, *hlogE, *hlogn, *hscat, *hncl, *htde,
