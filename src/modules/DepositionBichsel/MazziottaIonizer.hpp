@@ -38,36 +38,52 @@ namespace allpix {
         /**
          * Helper to calculate shell transition process
          *
-         * @param energy_auger   [description]
-         * @param veh            [description]
+         * @param energy_auger   Emission energy for Auger electron from the shell in question
+         * @param veh            Stack of e-h pairs to be amended
          */
         void transition(double energy_auger, std::stack<double>& veh);
 
+        /**
+         * Random number generator and distributions
+         */
         std::mt19937_64* random_engine_{nullptr};
         std::uniform_real_distribution<double> uniform_dist_{0, 1};
-        double uniform() {
-            if(random_engine_ == nullptr) {
-                exit(1);
-            }
-            return uniform_dist_(*random_engine_);
-        };
-
         std::vector<double> intervals{-1, 0, 1};
         std::vector<double> probabilities{1, 0, 1};
         std::piecewise_linear_distribution<double> triangular_dist_{
             intervals.begin(), intervals.end(), probabilities.begin()};
-        double triangular() {
-            if(random_engine_ == nullptr) {
-                exit(1);
-            }
-            return triangular_dist_(*random_engine_);
-        };
 
-        // Shells
-        // Possible transitions to this shell:
+        /**
+         * Helper to obtain pseudo-random number from uniform distrioution [0, 1]
+         * @return Random number from uniform distribution
+         */
+        double uniform();
+
+        /**
+         * Helper to obtain pseudo-random number from inverse triangular distrioution [-1, 1]
+         * @return Random number from inverse triangular distribution
+         */
+        double triangular();
+
+        /**
+         * Definition of shells
+         *
+         * Shells are enumerated using the following indices:
+         * 0: (unused)
+         * 1: Valence band, upper edge
+         * 2: M shell
+         * 3: L shell
+         * 4: K shell
+         */
+
+        /**
+         * Number of possible transitions to the respective shells
+         */
         const std::array<int, 5> nvac{{0, 0, 2, 2, 9}};
-        // [1]: valence band upper edge (holes live below)
-        // [2]: M, [3]: L, [4]: K shells
+
+        /**
+         * Energies of the respective shells
+         */
         const std::array<double, 5> energy_shell{{
             0,
             12.0,
@@ -75,15 +91,28 @@ namespace allpix {
             148.7,
             1839.0,
         }};
-        const double energy_valence_ = energy_shell[1]; // 12.0 eV
+        // Short-hand for valence band edge energy
+        const double energy_valence_ = energy_shell[1];
 
+        /**
+         * Probability integrals for Auger electron emission for each of the shells.
+         * First index indicates shell (2: L23, 3: L1, 4: K), second index enumerates transition processes
+         */
         double auger_prob_integral[5][10];
+
+        /**
+         * Auger electron emission energy for each of the shells.
+         * First index indicates shell (2: L23, 3: L1, 4: K), second index enumerates transition processes
+         */
         double auger_energy[5][10];
 
-        // EPP(I) = VALORI DI ENERGIA PER TABULARE LE PROBABILITA" DI FOTOASSORBIMENTO NELLE VARIE SHELL
-        // PM, PL23, PL1, PK = PROBABILITA" DI ASSORBIMENTO DA PARTE DELLE SHELL M,L23,L1 E K
-
-        // VALORI ESTRAPOLATI DA FRASER
+        /**
+         * Probabilities for photoabsorption at different energies in each of the shells M, L23, L1 and K
+         *
+         * Extrapolated from Fig. 1 in
+         * G.W. Fraser, et al., Nucl. Instr. and Meth. A 350 (1994) 368
+         * https://doi.org/10.1016/0168-9002(94)91185-1
+         */
         const std::array<double, 14> EPP{
             {0.0, 40.0, 50.0, 99.2, 99.2, 148.7, 148.7, 150.0, 300.0, 500.0, 1000.0, 1839.0, 1839.0, 2000.0}};
         const std::array<double, 14> PM{{0, 1.0, 1.0, 1.0, 0.03, 0.03, 0.02, 0.02, 0.02, 0.02, 0.03, 0.05, 0.0, 0.0}};

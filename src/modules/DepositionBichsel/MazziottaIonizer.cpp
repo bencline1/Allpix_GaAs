@@ -337,3 +337,17 @@ void MazziottaIonizer::transition(double energy_auger, std::stack<double>& veh) 
     veh.push(energy_hole1);
     veh.push(energy_hole2);
 }
+
+double MazziottaIonizer::uniform() {
+    if(random_engine_ == nullptr) {
+        throw ModuleError("Missing random number generator");
+    }
+    return uniform_dist_(*random_engine_);
+};
+
+double MazziottaIonizer::triangular() {
+    if(random_engine_ == nullptr) {
+        throw ModuleError("Missing random number generator");
+    }
+    return triangular_dist_(*random_engine_);
+};
