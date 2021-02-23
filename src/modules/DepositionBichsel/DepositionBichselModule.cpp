@@ -313,8 +313,8 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
 
         auto nlast = E.size() - 1;
 
-        double xm0 = 1;
-        double xlel = 1;
+        double inv_collision_length_inelastic = 1;
+        double inv_collision_length_elastic = 1;
         double screening_parameter = 1;
         table totsig;
 
@@ -340,8 +340,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                 // Define parameters and calculate Inokuti"s sums,
                 // S ect 3.3 in Rev Mod Phys 43, 297 (1971)
 
-                double zi = 1.0;
-                double dec = zi * zi * atnu * fac_ / particle.betasquared();
+                double dec = zi_ * zi_ * atnu_ * fac_ / particle.betasquared();
                 double EkeV = particle.E() * 1e6; // [eV]
 
                 // Generate collision spectrum sigma(E) from df/dE, epsilon and AE.
@@ -419,7 +418,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                     stpw += H[j] * E[j] * dE[j]; // dE/dx
                     nlast = j;
                 }
-                xm0 = tsig[5] * dec; // 1/path
+                inv_collision_length_inelastic = tsig[5] * dec; // 1/path
 
                 // Statistics:
                 double sst = H[1] * dE[1]; // total cross section (integral)
@@ -436,27 +435,11 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                 }
 
                 // elastic:
-                if(particle.type() == ParticleType::ELECTRON) {
-                    // screening_parameter = 2*2.61 * pow( atomic_number, 2.0/3.0 ) / EkeV; // Mazziotta
-                    // Moliere
-                    screening_parameter =
-                        2 * 2.61 * pow(atomic_number, 2.0 / 3.0) / (particle.momentum() * particle.momentum()) * 1e-6;
-                    double E2 = 14.4e-14; // [MeV*cm]
-                    double FF = 0.5 * M_PI * E2 * E2 * atomic_number * atomic_number / (particle.E() * particle.E());
-                    // Elastic total cross section  [cm2/atom]
-                    double S0EL = 2 * FF / (screening_parameter * (2 + screening_parameter));
-                    xlel = atnu * S0EL; // ATNU = N_A * density / A = atoms/cm3
-                } else {
-                    double getot = particle.E() + particle.mass();
-                    xlel = std::min(2232.0 * radiation_length *
-                                        pow(particle.momentum() * particle.momentum() / (getot * zi), 2),
-                                    10.0 * radiation_length);
-                    // units ?
-                }
+                update_elastic_collision_parameters(inv_collision_length_elastic, screening_parameter, particle);
 
                 if(output_plots_) {
-                    elvse->Fill(log(particle.E()) / log(10), 1e4 / xlel);
-                    invse->Fill(log(particle.E()) / log(10), 1e4 / xm0);
+                    elvse->Fill(log(particle.E()) / log(10), 1e4 / inv_collision_length_elastic);
+                    invse->Fill(log(particle.E()) / log(10), 1e4 / inv_collision_length_inelastic);
                 }
 
                 Ekprev = particle.E();
@@ -465,15 +448,17 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                            << ", beta " << sqrt(particle.betasquared()) << ", gam " << particle.gamma() << std::endl
                            << "  Emax " << Emax << ", nlast " << nlast << ", Elast " << E[nlast] << ", norm "
                            << totsig[nlast] << std::endl
-                           << "  inelastic " << 1e4 / xm0 << "  " << 1e4 / sst << ", elastic " << 1e4 / xlel << " um"
+                           << "  inelastic " << 1e4 / inv_collision_length_inelastic << "  " << 1e4 / sst << ", elastic "
+                           << 1e4 / inv_collision_length_elastic << " um"
                            << ", mean dE " << stpw * depth * 1e-3 << " keV";
             } // update
 
             // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             // step:
 
-            double tlam = 1 / (xm0 + xlel);                                // [cm] TOTAL MEAN FREE PATH (MFP)
-            double step = -log(1 - unirnd(random_generator_)) * tlam * 10; // exponential step length, in MM
+            double tlam =
+                1 / (inv_collision_length_inelastic + inv_collision_length_elastic); // [cm] TOTAL MEAN FREE PATH (MFP)
+            double step = -log(1 - unirnd(random_generator_)) * tlam * 10;           // exponential step length, in MM
 
             // Update position after step
             particle.setPosition(
@@ -498,7 +483,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
             ++nsteps;
 
             // INELASTIC (ionization) PROCESS
-            if(unirnd(random_generator_) > tlam * xlel) {
+            if(unirnd(random_generator_) > tlam * inv_collision_length_elastic) {
                 LOG(TRACE) << "Inelastic scattering";
                 ++nloss;
 
@@ -679,14 +664,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
 
                 // For electrons, update elastic cross section at new energy
                 if(particle.type() == ParticleType::ELECTRON) {
-                    // screening_parameter = 2*2.61 * pow( atomic_number, 2.0/3.0 ) / (particle.E()*1E6); // Mazziotta
-                    double pmom = sqrt(particle.E() * (particle.E() + 2 * particle.mass())); // [MeV/c] 2nd binomial
-                    screening_parameter = 2 * 2.61 * pow(atomic_number, 2.0 / 3.0) / (pmom * pmom) * 1e-6; // Moliere
-                    double E2 = 14.4e-14;                                                                  // [MeV*cm]
-                    double FF = 0.5 * M_PI * E2 * E2 * atomic_number * atomic_number / (particle.E() * particle.E());
-                    double S0EL = 2 * FF / (screening_parameter * (2 + screening_parameter));
-                    // elastic total cross section  [cm2/atom]
-                    xlel = atnu * S0EL; // ATNU = N_A * density / A = atoms/cm3
+                    update_elastic_collision_parameters(inv_collision_length_elastic, screening_parameter, particle);
                 }
 
             } else { // ELASTIC SCATTERING: Chaoui 2006
@@ -771,6 +749,27 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
     messenger_->dispatchMessage(this, deposit_message);
 
     return clusters;
+}
+
+void DepositionBichselModule::update_elastic_collision_parameters(double& inv_collision_length_elastic,
+                                                                  double& screening_parameter,
+                                                                  const Particle& particle) {
+    if(particle.type() == ParticleType::ELECTRON) {
+        // screening_parameter = 2*2.61 * pow( atomic_number, 2.0/3.0 ) / EkeV; // Mazziotta
+        // Moliere
+        screening_parameter = 2 * 2.61 * pow(atomic_number_, 2.0 / 3.0) / (particle.momentum() * particle.momentum()) * 1e-6;
+        double E2 = 14.4e-14; // [MeV*cm]
+        double FF = 0.5 * M_PI * E2 * E2 * atomic_number_ * atomic_number_ / (particle.E() * particle.E());
+        // Elastic total cross section  [cm2/atom]
+        double S0EL = 2 * FF / (screening_parameter * (2 + screening_parameter));
+        inv_collision_length_elastic = atnu_ * S0EL; // ATNU = N_A * density / A = atoms/cm3
+    } else {
+        double getot = particle.E() + particle.mass();
+        inv_collision_length_elastic =
+            std::min(2232.0 * radiation_length * pow(particle.momentum() * particle.momentum() / (getot * zi_), 2),
+                     10.0 * radiation_length);
+        // units ?
+    }
 }
 
 std::ifstream DepositionBichselModule::open_data_file(const std::string& file_name) {

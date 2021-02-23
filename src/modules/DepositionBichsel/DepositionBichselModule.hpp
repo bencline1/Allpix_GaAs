@@ -178,6 +178,10 @@ namespace allpix {
 
         std::vector<Cluster> stepping(Particle init, unsigned iev, double depth, unsigned& ndelta);
 
+        void update_elastic_collision_parameters(double& inv_collision_length_elastic,
+                                                 double& screening_parameter,
+                                                 const Particle& particle);
+
         void create_output_plots(unsigned int event_num, const std::vector<Cluster>& clusters);
 
         using table = std::array<double, HEPS_ENTRIES>;
@@ -203,15 +207,16 @@ namespace allpix {
         const double electron_mass_ = 0.51099906; // e mass [MeV]
         const double rydberg_constant_ = 13.6056981;
         const double fac_ = 8.0 * M_PI * rydberg_constant_ * rydberg_constant_ * pow(0.529177e-8, 2) / electron_mass_ / 1e6;
+        const double zi_ = 1.0;
 
         // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
         // silicon:
 
-        const double atomic_number = 14.0;                          // ZA = atomic number of absorber, Si
-        const double atomic_weight = 28.086;                        // AW = atomic weight of absorber
-        const double density = 2.329;                               // rho= density of absorber material
-        const double radiation_length = 9.36;                       // [cm]
-        const double atnu = 6.0221367e23 * density / atomic_weight; // atnu = # of atoms per cm**3
+        const double atomic_number_ = 14.0;                          // ZA = atomic number of absorber, Si
+        const double atomic_weight = 28.086;                         // AW = atomic weight of absorber
+        const double density = 2.329;                                // rho= density of absorber material
+        const double radiation_length = 9.36;                        // [cm]
+        const double atnu_ = 6.0221367e23 * density / atomic_weight; // atnu = # of atoms per cm**3
 
         const double eom0 = 0.063; // phonons
         const double aaa = 5.2;    // Alig 1980
