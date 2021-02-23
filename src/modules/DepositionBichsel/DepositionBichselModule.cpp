@@ -124,7 +124,7 @@ void DepositionBichselModule::init() {
                          0,
                          int(lastbin));
 
-        hteh = new TH1I("teh",
+        hteh = new TH1I("total_eh",
                         "total e-h;total charge [ke];tracks",
                         std::max(100, int(50 * 0.1 * depth)),
                         0,
@@ -339,7 +339,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                 Emax = 1e6 * Emax; // eV
 
                 // Define parameters and calculate Inokuti"s sums,
-                // S ect 3.3 in Rev Mod Phys 43, 297 (1971)
+                // Sect 3.3 in Rev Mod Phys 43, 297 (1971)
 
                 double dec = zi_ * zi_ * atnu_ * fac_ / particle.betasquared();
                 double EkeV = particle.E() * 1e6; // [eV]
