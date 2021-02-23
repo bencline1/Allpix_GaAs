@@ -787,7 +787,7 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
 
 void DepositionBichselModule::update_elastic_collision_parameters(double& inv_collision_length_elastic,
                                                                   double& screening_parameter,
-                                                                  const Particle& particle) {
+                                                                  const Particle& particle) const {
     if(particle.type() == ParticleType::ELECTRON) {
         // screening_parameter = 2*2.61 * pow( atomic_number, 2.0/3.0 ) / EkeV; // Mazziotta
         // Moliere

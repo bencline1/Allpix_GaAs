@@ -188,7 +188,7 @@ namespace allpix {
 
         void update_elastic_collision_parameters(double& inv_collision_length_elastic,
                                                  double& screening_parameter,
-                                                 const Particle& particle);
+                                                 const Particle& particle) const;
 
         void create_output_plots(unsigned int event_num, const std::vector<Cluster>& clusters);
 
