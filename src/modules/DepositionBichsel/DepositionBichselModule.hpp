@@ -50,9 +50,11 @@ namespace allpix {
          * @param pos           Position of generation
          * @param dir           Direction of motion
          * @param particle_type Type of particle
+         * @param parent        ID of the parent particle, none (primary) if negative.
          */
-        Particle(double energy, ROOT::Math::XYZPoint pos, ROOT::Math::XYZVector dir, ParticleType type)
-            : position_start_(pos), position_end_(std::move(pos)), direction_(std::move(dir)), energy_(energy), type_(type) {
+        Particle(double energy, ROOT::Math::XYZPoint pos, ROOT::Math::XYZVector dir, ParticleType type, int parent = -1)
+            : position_start_(pos), position_end_(std::move(pos)), direction_(std::move(dir)), parent_id_(parent),
+              energy_(energy), type_(type) {
             update();
         };
 
@@ -65,6 +67,8 @@ namespace allpix {
 
         ROOT::Math::XYZVector direction() const { return direction_; }
         void setDirection(ROOT::Math::XYZVector dir) { direction_ = dir; }
+
+        int getParentID() { return parent_id_; }
 
         double E() const { return energy_; }
         void setE(double energy) {
@@ -89,6 +93,7 @@ namespace allpix {
         ROOT::Math::XYZPoint position_start_;
         ROOT::Math::XYZPoint position_end_;
         ROOT::Math::XYZVector direction_;
+        int parent_id_{};
 
         double energy_{};                       // [MeV]
         ParticleType type_{ParticleType::NONE}; // particle type

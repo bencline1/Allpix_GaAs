@@ -291,6 +291,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
     std::uniform_real_distribution<double> unirnd(0, 1);
 
     std::vector<MCParticle> mcparticles;
+    std::vector<int> mcparticles_parent_id;
     std::vector<DepositedCharge> charges;
 
     std::vector<Cluster> clusters;
@@ -593,8 +594,10 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                     }
 
                     if(Eeh > explicit_delta_energy_cut_ * 1e6) {
-                        // Put new delta in FIFO:
-                        deltas.emplace_back(Eeh * 1E-6, particle.position(), delta_direction, ParticleType::ELECTRON);
+                        // Put new delta in FIFO, use current number of MCParticles as reference to parent:
+                        LOG(DEBUG) << "Generated secondary at " << Units::display(particle.position(), {"um", "mm"});
+                        deltas.emplace_back(
+                            Eeh * 1E-6, particle.position(), delta_direction, ParticleType::ELECTRON, mcparticles.size());
 
                         ++ndelta;
                         total_energy_loss -= Eeh; // [eV], avoid double counting
@@ -704,7 +707,6 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
         // Finished treating this particle, let's store it:
         // Create MCParticle:
         // FIXME time missing.
-        // FIXME references between particles missing.
         mcparticles.emplace_back(particle.position_start(),
                                  start_global,
                                  particle.position(),
@@ -712,6 +714,8 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
                                  static_cast<std::underlying_type<ParticleType>::type>(particle.type()),
                                  0.,
                                  0.);
+        // Store MCParticle ID of the parent particle
+        mcparticles_parent_id.push_back(particle.getParentID());
         LOG(DEBUG) << "Generated MCParticle with start " << Units::display(start_global, {"um", "mm"}) << " and end "
                    << Units::display(end_global, {"um", "mm"}) << " in detector " << detector_->getName();
         LOG(DEBUG) << "                    local start " << Units::display(particle.position_start(), {"um", "mm"})
@@ -733,6 +737,18 @@ std::vector<Cluster> DepositionBichselModule::stepping(Particle init, unsigned i
         hteh->Fill(nehpairs * 1e-3); // [ke]
         hq0->Fill(nehpairs * 1e-3);  // [ke]
         hrms->Fill(sqrt(sumeh2));
+    }
+
+    // Only now that we have all MCParticles generated, we can assign the fixed memory address of the parent:
+    for(size_t i = 0; i < mcparticles.size(); i++) {
+        auto id = static_cast<size_t>(mcparticles_parent_id.at(i));
+        if(mcparticles_parent_id.at(i) >= 0) {
+            LOG(DEBUG) << "MCParticle at " << &(mcparticles.at(i)) << " has parent ID " << id << ", linking MCParticle at "
+                       << &(mcparticles.at(id));
+            mcparticles.at(i).setParent(&(mcparticles.at(id)));
+        } else {
+            LOG(DEBUG) << "MCParticle at " << &(mcparticles.at(i)) << " is a primary particle";
+        }
     }
 
     // Generate deposited charges
