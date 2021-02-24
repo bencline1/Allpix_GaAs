@@ -36,9 +36,14 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config,
     random_generator_.seed(getRandomSeed());
 
     config_.setDefault("source_position", ROOT::Math::XYZPoint(0., 0., 0.));
+    config_.setDefault("source_energy_spread", 0.);
+    config_.setDefault("beam_size", 0.);
+    config_.setDefault("beam_divergence", ROOT::Math::XYVector(0., 0.));
+
     config_.setDefault<double>("temperature", 293.15);
     config_.setDefault("delta_energy_cut", 0.009);
     config_.setDefault<bool>("fast", true);
+
     config_.setDefault<bool>("output_plots", false);
     config_.setDefault<bool>("output_event_displays", false);
     config_.setDefault<bool>("output_plots_align_pixels", false);
@@ -51,7 +56,15 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config,
     output_plots_ = config_.get<bool>("output_plots");
     output_event_displays_ = config_.get<bool>("output_event_displays");
 
-    initial_energy_ = config_.get<double>("source_energy");
+    source_position_ = config_.get<ROOT::Math::XYZPoint>("source_position");
+    source_energy_ = config_.get<double>("source_energy");
+    source_energy_spread_ = config.get<double>("source_energy_spread");
+    beam_direction_ = config_.get<ROOT::Math::XYZVector>("beam_direction");
+    if(fabs(beam_direction_.Mag2() - 1.0) > std::numeric_limits<double>::epsilon()) {
+        LOG(WARNING) << "Momentum direction is not a unit vector: magnitude is ignored";
+    }
+    beam_size_ = config_.get<double>("beam_size");
+    beam_divergence_ = config_.get<ROOT::Math::XYVector>("beam_divergence");
 
     // EGAP = GAP ENERGY IN eV
     // EMIN = THRESHOLD ENERGY (ALIG ET AL., PRB22 (1980), 5565)
@@ -114,7 +127,7 @@ void DepositionBichselModule::init() {
         hscat = new TH1I("scat", "elastic scattering angle;scattering angle [deg];elastic steps", 180, 0, 180);
         hncl = new TH1I("ncl", "clusters;e-h clusters;tracks", 4 * depth * 5, 0, 4 * depth * 5);
 
-        double lastbin = initial_energy_ < 1.1 ? 1.05 * initial_energy_ * 1e3 : 5 * 0.35 * depth; // 350 eV/micron
+        double lastbin = source_energy_ < 1.1 ? 1.05 * source_energy_ * 1e3 : 5 * 0.35 * depth; // 350 eV/micron
         htde = new TH1I("tde", "sum E loss;sum E loss [keV];tracks / keV", std::max(100, int(lastbin)), 0, int(lastbin));
         htde0 = new TH1I(
             "tde0", "sum E loss, no delta;sum E loss [keV];tracks, no delta", std::max(100, int(lastbin)), 0, int(lastbin));
@@ -259,7 +272,7 @@ void DepositionBichselModule::run(unsigned int event) {
     double width = depth * tan(turn); // [mu] projected track, default: pitch
 
     LOG(TRACE) << "  particle type     " << particle_type_;
-    LOG(TRACE) << "  kinetic energy    " << initial_energy_ << " MeV";
+    LOG(TRACE) << "  kinetic energy    " << particle_energy << " MeV";
     LOG(TRACE) << "  pixel pitch       " << pitch << " um";
     LOG(TRACE) << "  pixel depth       " << depth << " mm";
     LOG(TRACE) << "  incident angle    " << turn * 180 / M_PI << " deg";

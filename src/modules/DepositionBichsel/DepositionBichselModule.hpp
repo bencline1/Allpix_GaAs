@@ -223,6 +223,14 @@ namespace allpix {
         table oscillator_strength_ae;
         table xkmn;
 
+        // Source parameters:
+        ROOT::Math::XYZPoint source_position_{};
+        double source_energy_{};
+        double source_energy_spread_{};
+        ROOT::Math::XYZVector beam_direction_{};
+        double beam_size_{};
+        ROOT::Math::XYVector beam_divergence_{};
+
         // FIXME possible config parameters
         bool fast_{};
         // delta ray range: 1 um at 10 keV (Mazziotta 2004)
@@ -231,7 +239,6 @@ namespace allpix {
         double temperature_{};
         bool output_plots_{};
         bool output_event_displays_{};
-        double initial_energy_{};
         double energy_threshold_{};
 
         // Constants

@@ -11,9 +11,16 @@
 * `temperature`:
 * `delta_energy_cut`: Lower cut-off energy for the production of delta rays. Defaults to `9keV`.
 * `energy_threshold`: Energy threshold above which ionization is considered in inelastic scatterings. Defaults to 1.5 times the band gap energy at the given temperature.
-* `source_energy`: Kinetic energy of the incoming particle.
 * `data_paths`: Paths that should be searched for the tabulated data files in addition to the standard installation path.
 * `fast`
+* `particle_type`
+* `source_position`
+* `source_energy`: Kinetic energy of the incoming particle.
+* `source_energy_spread`
+* `beam_direction`
+* `beam_size`
+* `beam_divergence`
+*
 
 #### Plotting
 * `output_plots`
