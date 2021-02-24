@@ -16,14 +16,16 @@
 #include <sstream>
 #include <stack>
 
+#include <TCanvas.h>
+#include <TH3F.h>
+
 #include "core/messenger/Messenger.hpp"
 #include "core/utils/file.h"
 #include "core/utils/log.h"
 #include "objects/DepositedCharge.hpp"
 #include "objects/MCParticle.hpp"
 
-#include <TCanvas.h>
-#include <TH3F.h>
+#include "tools/ROOT.h"
 
 using namespace allpix;
 
@@ -315,8 +317,109 @@ void DepositionBichselModule::run(unsigned int event) {
         source_energy->Fill(particle_energy);
     }
 
+    // Lambda for smearing the initial particle position with the beam size
+    auto beam_pos_smearing = [&](auto size) {
+        double dx = std::normal_distribution<double>(0, size)(random_generator_);
+        double dy = std::normal_distribution<double>(0, size)(random_generator_);
+        return ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<double>>(dx, dy, 0);
+    };
+
+    // Generate particle position and direction:
+    auto particle_position = source_position_ + beam_pos_smearing(beam_size_);
+    // FIXME divergence missing
+    auto particle_direction = beam_direction_;
+
+    // P is the line origin, D is the unit-length line direction, and e contains the box extents. The box center has been
+    // translated to the origin and the line has been translated accordingly.
+    auto query_line =
+        [](ROOT::Math::XYZPoint position, ROOT::Math::XYZVector direction, ROOT::Math::XYZVector sensor, double t[2]) {
+            // Liang–Barsky clipping of a line against faces of a box
+            auto clip = [](double denom, double numer, double& t0, double& t1) {
+                if(denom > 0) {
+                    if(numer > denom * t1) {
+                        return false;
+                    }
+                    if(numer > denom * t0) {
+                        t0 = numer / denom;
+                    }
+                    return true;
+                } else if(denom < 0) {
+                    if(numer > denom * t0) {
+                        return false;
+                    }
+                    if(numer > denom * t1) {
+                        t1 = numer / denom;
+                    }
+                    return true;
+                } else {
+                    return numer <= 0;
+                }
+            };
+
+            int numPoints = 0;
+            // Clip the line against the box faces using the 6cases
+            double t0 = std::numeric_limits<double>::lowest(), t1 = std::numeric_limits<double>::max();
+            bool notCulled = clip(direction.X(), -position.X() - sensor.X() / 2, t0, t1) &&
+                             clip(-direction.X(), position.X() - sensor.X() / 2, t0, t1) &&
+                             clip(direction.Y(), -position.Y() - sensor.Y() / 2, t0, t1) &&
+                             clip(-direction.Y(), position.Y() - sensor.Y() / 2, t0, t1) &&
+                             clip(direction.Z(), -position.Z() - sensor.Z() / 2, t0, t1) &&
+                             clip(-direction.Z(), position.Z() - sensor.Z() / 2, t0, t1);
+
+            if(notCulled) {
+                if(t1 > t0) {
+                    // The intersection is a segment P + t * D withtin [t0, t1].
+                    numPoints = 2;
+                    t[0] = t0;
+                    t[1] = t1;
+                } else {
+                    // The intersection is a point P + t * D with t = t0.
+                    numPoints = 1;
+                    t[0] = t0;
+                    t[1] = t0;
+                }
+            } else {
+                // The line does not intersect the box. Return invalid parameters.
+                numPoints = 0;
+                t[0] = 9999999;
+                t[1] = -99999999;
+            }
+            return numPoints;
+        };
+
+    LOG(INFO) << "Position  (global): " << Units::display(particle_position, {"mm", "um"});
+
+    // Let's get intersection with sensor.
+    // Transform to local (centered!) coordinate system:
+
+    // Transform from locally centered to global coordinates
+    ROOT::Math::Translation3D translation_center(static_cast<ROOT::Math::XYZVector>(detector_->getPosition()));
+    ROOT::Math::Rotation3D rotation_center(detector_->getOrientation());
+    // Transformation from locally centered into global coordinate system, consisting of
+    // * The rotation into the global coordinate system
+    // * The shift from the origin to the detector position
+    ROOT::Math::Transform3D transform_center(rotation_center, translation_center);
+
+    ROOT::Math::Translation3D translation_local(static_cast<ROOT::Math::XYZVector>(detector_->getModel()->getCenter()));
+    ROOT::Math::Transform3D transform_local(translation_local);
+
+    auto pos_local = transform_center.Inverse()(particle_position);
+    LOG(INFO) << "Position  (local, center): " << Units::display(pos_local, {"mm", "um"});
+    auto dir_local = detector_->getOrientation().Inverse()(particle_direction);
+    LOG(INFO) << "Direction  (local, center): " << dir_local;
+    auto box = detector_->getModel()->getSensorSize();
+    double t[2];
+    auto pts = query_line(pos_local, dir_local, box, t);
+    LOG(ERROR) << "POINTS: " << pts;
+    for(int i = 0; i < pts; i++) {
+        ROOT::Math::XYZPoint point_center = pos_local + t[i] * dir_local;
+        auto point = transform_local(point_center);
+        LOG(ERROR) << i << " : t " << t[i] << " " << Units::display(point, {"um", "mm"}) << " (global "
+                   << Units::display(detector_->getGlobalPosition(point), {"um", "mm"}) << ")";
+    }
+
+    LOG(INFO) << "  kinetic energy    " << particle_energy << " MeV";
     LOG(TRACE) << "  particle type     " << particle_type_;
-    LOG(TRACE) << "  kinetic energy    " << particle_energy << " MeV";
     LOG(TRACE) << "  pixel pitch       " << pitch << " um";
     LOG(TRACE) << "  pixel depth       " << depth << " mm";
     LOG(TRACE) << "  incident angle    " << turn * 180 / M_PI << " deg";
