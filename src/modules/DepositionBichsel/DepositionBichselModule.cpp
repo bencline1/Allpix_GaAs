@@ -322,7 +322,8 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
 
         LOG(DEBUG) << "  delta " << Units::display(particle.E(), {"keV", "MeV", "GeV"}) << ", cost "
                    << particle.direction().Z() << ", u " << particle.direction().X() << ", v " << particle.direction().Y()
-                   << ", z " << particle.position().Z() << " v " << Units::display(particle.velocity(), {"m/s"});
+                   << ", z " << particle.position().Z() << " v " << Units::display(particle.velocity(), {"m/s"}) << " t "
+                   << Units::display(particle.time(), {"ns", "ps"});
 
         while(true) { // steps
             LOG(TRACE) << "Stepping...";
@@ -463,8 +464,7 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
             double step = -log(1 - unirnd(random_generator_)) * tlam * 10;           // exponential step length, in MM
 
             // Update position after step
-            particle.setPosition(
-                ROOT::Math::XYZPoint(ROOT::Math::XYZVector(particle.position()) + step * particle.direction()));
+            particle.step(step);
 
             if(particle.E() < 1) {
                 LOG(TRACE) << "step " << step << ", z " << particle.position().Z();
@@ -596,9 +596,14 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
 
                     if(Eeh > explicit_delta_energy_cut_ * 1e6) {
                         // Put new delta in FIFO, use current number of MCParticles as reference to parent:
-                        LOG(DEBUG) << "Generated secondary at " << Units::display(particle.position(), {"um", "mm"});
-                        deltas.emplace_back(
-                            Eeh * 1E-6, particle.position(), delta_direction, ParticleType::ELECTRON, mcparticles.size());
+                        LOG(DEBUG) << "Generated secondary at " << Units::display(particle.position(), {"um", "mm"}) << " t "
+                                   << Units::display(particle.time(), {"ns", "ps"});
+                        deltas.emplace_back(Eeh * 1E-6,
+                                            particle.position(),
+                                            delta_direction,
+                                            ParticleType::ELECTRON,
+                                            particle.time(),
+                                            mcparticles.size());
 
                         ++ndelta;
                         total_energy_loss -= Eeh; // [eV], avoid double counting
@@ -650,7 +655,7 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
                 // Store charge cluster:
                 if(neh > 0) {
                     // Using number of already created MCParticles as reference
-                    clusters.emplace_back(neh, particle.position(), energy_gamma, mcparticles.size());
+                    clusters.emplace_back(neh, particle.position(), energy_gamma, mcparticles.size(), particle.time());
 
                     if(output_plots_) {
                         hlogn->Fill(log(neh) / log(10));
@@ -707,13 +712,13 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
 
         // Finished treating this particle, let's store it:
         // Create MCParticle:
-        // FIXME time missing.
+        // FIXME global time missing.
         mcparticles.emplace_back(particle.position_start(),
                                  start_global,
                                  particle.position(),
                                  end_global,
                                  static_cast<std::underlying_type<ParticleType>::type>(particle.type()),
-                                 0.,
+                                 particle.time(),
                                  0.);
         // Store MCParticle ID of the parent particle
         mcparticles_parent_id.push_back(particle.getParentID());
@@ -756,19 +761,19 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
     for(const auto& cluster : clusters) {
         auto position_global = detector_->getGlobalPosition(cluster.position);
 
-        // FIXME time
+        // FIXME global time missing
         charges.emplace_back(cluster.position,
                              position_global,
                              CarrierType::ELECTRON,
                              cluster.neh,
-                             0.,
+                             cluster.time_,
                              0.,
                              &(mcparticles.at(cluster.particle_id_)));
         charges.emplace_back(cluster.position,
                              position_global,
                              CarrierType::HOLE,
                              cluster.neh,
-                             0.,
+                             cluster.time_,
                              0.,
                              &(mcparticles.at(cluster.particle_id_)));
         LOG(TRACE) << "Deposited " << cluster.neh << " charge carriers of both types at global position "
