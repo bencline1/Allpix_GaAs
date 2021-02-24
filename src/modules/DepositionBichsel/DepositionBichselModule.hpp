@@ -14,6 +14,7 @@
 
 #include <TH1D.h>
 #include <TH1I.h>
+#include <TH2I.h>
 #include <TProfile.h>
 
 namespace allpix {
@@ -266,6 +267,7 @@ namespace allpix {
         TProfile *elvse, *invse;
         TH1I *hstep5, *hstep0, *hzz, *hde0, *hde1, *hde2, *hdel, *htet, *hnprim, *hlogE, *hlogn, *hscat, *hncl, *htde,
             *htde0, *htde1, *hteh, *hq0, *hrms;
+        TH2I *h2xy, *h2zx, *h2zr;
 
         /**
          * Reading HEPS.TAB data file

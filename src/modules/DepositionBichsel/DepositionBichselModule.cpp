@@ -115,6 +115,9 @@ void DepositionBichselModule::init() {
         auto model = detector_->getModel();
         auto depth = static_cast<int>(Units::convert(model->getSensorSize().z(), "um"));
 
+        auto pitch_x = static_cast<double>(Units::convert(model->getPixelSize().x(), "um"));
+        auto pitch_y = static_cast<double>(Units::convert(model->getPixelSize().y(), "um"));
+
         elvse = new TProfile("elvse", "elastic mfp;log_{10}(E_{kin}[MeV]);elastic mfp [#mum]", 140, -3, 4);
         invse = new TProfile("invse", "inelastic mfp;log_{10}(E_{kin}[MeV]);inelastic mfp [#mum]", 140, -3, 4);
 
@@ -154,6 +157,31 @@ void DepositionBichselModule::init() {
                        0,
                        std::max(1, int(10 * 0.1 * depth)));
         hrms = new TH1I("rms", "RMS e-h;charge RMS [e];tracks", 100, 0, 50 * depth);
+
+        h2xy = new TH2I("xy",
+                        "x-y eh-pairs;x_{particle} - x_{eh} [#mum];y_{particle} - y_{eh} [#mum];eh-pairs",
+                        static_cast<int>(4 * pitch_x),
+                        -2 * pitch_x,
+                        2 * pitch_x,
+                        static_cast<int>(4 * pitch_y),
+                        -2 * pitch_y,
+                        2 * pitch_y);
+        h2zx = new TH2I("zx",
+                        "z-x eh-pairs;z [#mum];x_{particle} - x_{eh} [#mum];eh-pairs",
+                        depth,
+                        -1 / 2 * depth,
+                        depth / 2,
+                        static_cast<int>(4 * pitch_x),
+                        -2 * pitch_x,
+                        2 * pitch_x);
+        h2zr = new TH2I("zr",
+                        "z-r eh-pairs;z [#mum];r_{eh} [#mum];eh-pairs",
+                        depth,
+                        -1 / 2 * depth,
+                        depth / 2,
+                        static_cast<int>(4 * sqrt(pitch_x * pitch_x + pitch_y * pitch_y)),
+                        0.,
+                        2 * sqrt(pitch_x * pitch_x + pitch_y * pitch_y));
     }
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     // INITIALIZE ENERGY BINS
@@ -684,8 +712,18 @@ std::vector<Cluster> DepositionBichselModule::stepping(std::deque<Particle> delt
                     // Using number of already created MCParticles as reference
                     clusters.emplace_back(neh, particle.position(), energy_gamma, mcparticles.size(), particle.time());
 
+                    auto position_x =
+                        static_cast<double>(Units::convert(particle.position_start().X() - particle.position().X(), "um"));
+                    auto position_y =
+                        static_cast<double>(Units::convert(particle.position_start().Y() - particle.position().Y(), "um"));
+                    auto position_z = static_cast<double>(Units::convert(particle.position().Z(), "um"));
+                    auto position_r = sqrt(position_x * position_x + position_y * position_y);
+
                     if(output_plots_) {
                         hlogn->Fill(log(neh) / log(10));
+                        h2xy->Fill(position_x, position_y, neh);
+                        h2zx->Fill(position_z, position_x, neh);
+                        h2zr->Fill(position_z, position_r, neh);
                     }
                 }
 
@@ -1026,5 +1064,11 @@ void DepositionBichselModule::finalize() {
         hteh->Write();
         hq0->Write();
         hrms->Write();
+        h2xy->SetOption("colz");
+        h2xy->Write();
+        h2zx->SetOption("colz");
+        h2zx->Write();
+        h2zr->SetOption("colz");
+        h2zr->Write();
     }
 }
