@@ -183,9 +183,11 @@ void DepositionBichselModule::init() {
     read_emerctab();
 }
 
-void DepositionBichselModule::create_output_plots(unsigned int event_num, const std::vector<Cluster>& clusters) {
+void DepositionBichselModule::create_output_plots(unsigned int event_num,
+                                                  std::shared_ptr<const Detector> detector,
+                                                  const std::vector<Cluster>& clusters) {
     LOG(TRACE) << "Writing output plots";
-    auto model = detector_->getModel();
+    auto model = detector->getModel();
 
     // Calculate the axis limits
     double minX = FLT_MAX, maxX = FLT_MIN;
@@ -306,15 +308,12 @@ void DepositionBichselModule::run(unsigned int event) {
     // y :  [cm]
     // z :  pixel from 0 to depth [cm]
 
-    auto clusters = stepping(std::move(initial), detector_);
-
-    if(output_event_displays_) {
-        create_output_plots(event, clusters);
-    }
+    auto clusters = stepping(std::move(initial), detector_, event);
 }
 
 std::vector<Cluster> DepositionBichselModule::stepping(std::deque<Particle> deltas,
-                                                       std::shared_ptr<const Detector> detector) { // NOLINT
+                                                       std::shared_ptr<const Detector> detector,
+                                                       unsigned int event) { // NOLINT
 
     MazziottaIonizer ionizer(&random_generator_);
     std::uniform_real_distribution<double> unirnd(0, 1);
@@ -814,6 +813,10 @@ std::vector<Cluster> DepositionBichselModule::stepping(std::deque<Particle> delt
 
     auto deposit_message = std::make_shared<DepositedChargeMessage>(std::move(charges), detector);
     messenger_->dispatchMessage(this, deposit_message);
+
+    if(output_event_displays_) {
+        create_output_plots(event, detector, clusters);
+    }
 
     return clusters;
 }

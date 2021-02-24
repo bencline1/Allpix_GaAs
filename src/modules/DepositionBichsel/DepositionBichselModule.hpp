@@ -208,13 +208,16 @@ namespace allpix {
         std::vector<std::string> data_paths_;
         std::ifstream open_data_file(const std::string& file_name);
 
-        std::vector<Cluster> stepping(std::deque<Particle> deltas, std::shared_ptr<const Detector> detector);
+        std::vector<Cluster>
+        stepping(std::deque<Particle> deltas, std::shared_ptr<const Detector> detector, unsigned int event);
 
         void update_elastic_collision_parameters(double& inv_collision_length_elastic,
                                                  double& screening_parameter,
                                                  const Particle& particle) const;
 
-        void create_output_plots(unsigned int event_num, const std::vector<Cluster>& clusters);
+        void create_output_plots(unsigned int event_num,
+                                 std::shared_ptr<const Detector> detector,
+                                 const std::vector<Cluster>& clusters);
 
         using table = std::array<double, HEPS_ENTRIES>;
         table E, dE;
