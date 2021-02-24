@@ -12,6 +12,7 @@
 
 #include "core/module/Module.hpp"
 
+#include <TH1D.h>
 #include <TH1I.h>
 #include <TProfile.h>
 
@@ -257,6 +258,8 @@ namespace allpix {
         const double atnu_ = 6.0221367e23 * density / atomic_weight; // atnu = # of atoms per cm**3
 
         // Histograms:
+        TH1D* source_energy;
+
         TProfile *elvse, *invse;
         TH1I *hstep5, *hstep0, *hzz, *hde0, *hde1, *hde2, *hdel, *htet, *hnprim, *hlogE, *hlogn, *hscat, *hncl, *htde,
             *htde0, *htde1, *hteh, *hq0, *hrms;

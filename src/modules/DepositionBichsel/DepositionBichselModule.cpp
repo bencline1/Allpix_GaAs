@@ -106,6 +106,12 @@ void DepositionBichselModule::init() {
 
     // Booking histograms:
     if(output_plots_) {
+        source_energy = new TH1D("source_energy",
+                                 "source energy;energy [MeV];particles",
+                                 500,
+                                 source_energy_ - 3 * source_energy_spread_,
+                                 source_energy_ + 3 * source_energy_spread_);
+
         auto model = detector_->getModel();
         auto depth = static_cast<int>(Units::convert(model->getSensorSize().z(), "um"));
 
@@ -271,6 +277,14 @@ void DepositionBichselModule::run(unsigned int event) {
 
     double width = depth * tan(turn); // [mu] projected track, default: pitch
 
+    // Add energy spread from Gaussian:
+    std::normal_distribution<double> energy_spread(0, source_energy_spread_);
+    double particle_energy = source_energy_ + energy_spread(random_generator_);
+
+    if(output_plots_) {
+        source_energy->Fill(particle_energy);
+    }
+
     LOG(TRACE) << "  particle type     " << particle_type_;
     LOG(TRACE) << "  kinetic energy    " << particle_energy << " MeV";
     LOG(TRACE) << "  pixel pitch       " << pitch << " um";
@@ -286,7 +300,7 @@ void DepositionBichselModule::run(unsigned int event) {
     ROOT::Math::XYZVector dir(sin(turn), 0, cos(turn));
 
     std::deque<Particle> initial;
-    initial.emplace_back(initial_energy_, pos, dir, particle_type_); // beam particle is first "delta"
+    initial.emplace_back(particle_energy, pos, dir, particle_type_); // beam particle is first "delta"
 
     // x : entry point is left;
     // y :  [cm]
@@ -986,6 +1000,8 @@ double DepositionBichselModule::gena2() {
 
 void DepositionBichselModule::finalize() {
     if(output_plots_) {
+        source_energy->Write();
+
         elvse->Write();
         invse->Write();
         hstep5->Write();
