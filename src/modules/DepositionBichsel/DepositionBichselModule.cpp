@@ -322,7 +322,7 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
 
         LOG(DEBUG) << "  delta " << Units::display(particle.E(), {"keV", "MeV", "GeV"}) << ", cost "
                    << particle.direction().Z() << ", u " << particle.direction().X() << ", v " << particle.direction().Y()
-                   << ", z " << particle.position().Z();
+                   << ", z " << particle.position().Z() << " v " << Units::display(particle.velocity(), {"m/s"});
 
         while(true) { // steps
             LOG(TRACE) << "Stepping...";

@@ -71,6 +71,10 @@ namespace allpix {
 
         int getParentID() { return parent_id_; }
 
+        /**
+         * @ Helper to obtain the relativistiv kinetic energy of the particle
+         * @return Particle's relativistic kinetic energy
+         */
         double E() const { return energy_; }
         void setE(double energy) {
             energy_ = energy;
@@ -90,25 +94,30 @@ namespace allpix {
 
         double momentum() const { return momentum_; }
 
+        double velocity() const { return velocity_; }
+
     private:
         ROOT::Math::XYZPoint position_start_;
         ROOT::Math::XYZPoint position_end_;
         ROOT::Math::XYZVector direction_;
         int parent_id_{};
 
+        // Relativistic kinetic energy
         double energy_{};                       // [MeV]
         ParticleType type_{ParticleType::NONE}; // particle type
 
         void update() {
-            gamma_ = energy_ / mass() + 1.0;                // W = total energy / restmass
+            gamma_ = energy_ / mass() + 1.0;
             double betagamma = sqrt(gamma_ * gamma_ - 1.0); // bg = beta*gamma = p/m
             betasquared_ = betagamma * betagamma / (1 + betagamma * betagamma);
-            momentum_ = mass() * betagamma; // [MeV/c]
+            momentum_ = mass() * betagamma;              // [MeV/c]
+            velocity_ = betagamma / gamma_ * 299.792458; // in base units [mm/ns]
         }
 
         double gamma_{};
         double betasquared_{};
         double momentum_{};
+        double velocity_{};
 
         std::vector<double> mass_{
             0,
