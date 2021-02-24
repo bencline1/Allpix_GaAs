@@ -207,7 +207,7 @@ namespace allpix {
         std::vector<std::string> data_paths_;
         std::ifstream open_data_file(const std::string& file_name);
 
-        std::vector<Cluster> stepping(Particle init, unsigned iev, double depth, unsigned& ndelta);
+        std::vector<Cluster> stepping(std::deque<Particle> deltas, std::shared_ptr<const Detector> detector);
 
         void update_elastic_collision_parameters(double& inv_collision_length_elastic,
                                                  double& screening_parameter,

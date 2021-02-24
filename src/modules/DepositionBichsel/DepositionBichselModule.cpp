@@ -271,22 +271,23 @@ void DepositionBichselModule::run(unsigned int event) {
     double xm = pitch * (unirnd(random_generator_) - 0.5);       // [mu] -p/2..p/2 at track mid
     ROOT::Math::XYZPoint pos((xm - 0.5 * width), 0, -depth / 2); // local coord: z [-d/2, +d/2]
     ROOT::Math::XYZVector dir(sin(turn), 0, cos(turn));
-    Particle initial(initial_energy_, pos, dir, particle_type_); // beam particle is first "delta"
+
+    std::deque<Particle> initial;
+    initial.emplace_back(initial_energy_, pos, dir, particle_type_); // beam particle is first "delta"
+
     // x : entry point is left;
     // y :  [cm]
     // z :  pixel from 0 to depth [cm]
 
-    unsigned ndelta = 0; // number of deltas generated
-
-    auto clusters = stepping(std::move(initial), event, depth, ndelta);
+    auto clusters = stepping(std::move(initial), detector_);
 
     if(output_event_displays_) {
         create_output_plots(event, clusters);
     }
 }
 
-std::vector<Cluster>
-DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, unsigned& ndelta) { // NOLINT
+std::vector<Cluster> DepositionBichselModule::stepping(std::deque<Particle> deltas,
+                                                       std::shared_ptr<const Detector> detector) { // NOLINT
 
     MazziottaIonizer ionizer(&random_generator_);
     std::uniform_real_distribution<double> unirnd(0, 1);
@@ -296,9 +297,9 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
     std::vector<DepositedCharge> charges;
 
     std::vector<Cluster> clusters;
-    std::deque<Particle> deltas;
-    deltas.push_back(init);
+
     // Statistics:
+    unsigned ndelta = 0; // number of deltas generated
     unsigned nsteps = 0; // number of steps for full event
     unsigned nscat = 0;  // elastic scattering
     unsigned nloss = 0;  // ionization
@@ -447,13 +448,13 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
 
                 Ekprev = particle.E();
 
-                LOG(TRACE) << "  ev " << iev << " type " << particle.type() << ", Ekin " << particle.E() * 1e3 << " keV"
+                LOG(TRACE) << "type " << particle.type() << ", Ekin " << particle.E() * 1e3 << " keV"
                            << ", beta " << sqrt(particle.betasquared()) << ", gam " << particle.gamma() << std::endl
                            << "  Emax " << Emax << ", nlast " << nlast << ", Elast " << E[nlast] << ", norm "
                            << totsig[nlast] << std::endl
                            << "  inelastic " << 1e4 / inv_collision_length_inelastic << "  " << 1e4 / sst << ", elastic "
                            << 1e4 / inv_collision_length_elastic << " um"
-                           << ", mean dE " << stpw * depth * 1e-3 << " keV";
+                           << ", mean dE " << stpw * detector->getModel()->getSensorSize().Z() * 1e-3 << " keV";
             } // update
 
             // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -477,7 +478,7 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
             }
 
             // Outside the sensor
-            if(!detector_->isWithinSensor(particle.position())) {
+            if(!detector->isWithinSensor(particle.position())) {
                 LOG(DEBUG) << "Left the sensor at " << Units::display(particle.position(), {"mm", "um"});
                 break;
             }
@@ -707,8 +708,8 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
         }     // while steps
 
         // Start and end position of MCParticle:
-        auto start_global = detector_->getGlobalPosition(particle.position_start());
-        auto end_global = detector_->getGlobalPosition(particle.position());
+        auto start_global = detector->getGlobalPosition(particle.position_start());
+        auto end_global = detector->getGlobalPosition(particle.position());
 
         // Finished treating this particle, let's store it:
         // Create MCParticle:
@@ -723,7 +724,7 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
         // Store MCParticle ID of the parent particle
         mcparticles_parent_id.push_back(particle.getParentID());
         LOG(DEBUG) << "Generated MCParticle with start " << Units::display(start_global, {"um", "mm"}) << " and end "
-                   << Units::display(end_global, {"um", "mm"}) << " in detector " << detector_->getName();
+                   << Units::display(end_global, {"um", "mm"}) << " in detector " << detector->getName();
         LOG(DEBUG) << "                    local start " << Units::display(particle.position_start(), {"um", "mm"})
                    << " and end " << Units::display(particle.position(), {"um", "mm"});
     } // while deltas
@@ -759,7 +760,7 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
 
     // Generate deposited charges
     for(const auto& cluster : clusters) {
-        auto position_global = detector_->getGlobalPosition(cluster.position);
+        auto position_global = detector->getGlobalPosition(cluster.position);
 
         // FIXME global time missing
         charges.emplace_back(cluster.position,
@@ -777,14 +778,14 @@ DepositionBichselModule::stepping(Particle init, unsigned iev, double depth, uns
                              0.,
                              &(mcparticles.at(cluster.particle_id_)));
         LOG(TRACE) << "Deposited " << cluster.neh << " charge carriers of both types at global position "
-                   << Units::display(position_global, {"um", "mm"}) << " in detector " << detector_->getName();
+                   << Units::display(position_global, {"um", "mm"}) << " in detector " << detector->getName();
     }
 
     // Dispatch the messages to the framework
-    auto mcparticle_message = std::make_shared<MCParticleMessage>(std::move(mcparticles), detector_);
+    auto mcparticle_message = std::make_shared<MCParticleMessage>(std::move(mcparticles), detector);
     messenger_->dispatchMessage(this, mcparticle_message);
 
-    auto deposit_message = std::make_shared<DepositedChargeMessage>(std::move(charges), detector_);
+    auto deposit_message = std::make_shared<DepositedChargeMessage>(std::move(charges), detector);
     messenger_->dispatchMessage(this, deposit_message);
 
     return clusters;
