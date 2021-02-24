@@ -209,8 +209,17 @@ namespace allpix {
         std::vector<std::string> data_paths_;
         std::ifstream open_data_file(const std::string& file_name);
 
-        std::vector<Cluster>
-        stepping(std::deque<Particle> deltas, std::shared_ptr<const Detector> detector, unsigned int event);
+        /**
+         * Stepping function for individual detector. This function performs all stepping and ionization in the material and
+         * dispatches messages for the detector with MCParticles and DepositedCharges.
+         *
+         * @param  incoming List of incoming particles entering the sensor (primary MCParticles)
+         * @param  detector Detector to operate on
+         * @param  event    Event number
+         * @return          List of outgoing particles leaving the sensor
+         */
+        std::deque<Particle>
+        stepping(std::deque<Particle> incoming, std::shared_ptr<const Detector> detector, unsigned int event);
 
         void update_elastic_collision_parameters(double& inv_collision_length_elastic,
                                                  double& screening_parameter,

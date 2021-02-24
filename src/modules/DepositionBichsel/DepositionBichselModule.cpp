@@ -339,7 +339,7 @@ void DepositionBichselModule::run(unsigned int event) {
     auto clusters = stepping(std::move(initial), detector_, event);
 }
 
-std::vector<Cluster> DepositionBichselModule::stepping(std::deque<Particle> deltas,
+std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> incoming,
                                                        std::shared_ptr<const Detector> detector,
                                                        unsigned int event) { // NOLINT
 
@@ -350,6 +350,7 @@ std::vector<Cluster> DepositionBichselModule::stepping(std::deque<Particle> delt
     std::vector<int> mcparticles_parent_id;
     std::vector<DepositedCharge> charges;
 
+    std::deque<Particle> outgoing;
     std::vector<Cluster> clusters;
 
     // Statistics:
@@ -361,11 +362,11 @@ std::vector<Cluster> DepositionBichselModule::stepping(std::deque<Particle> delt
     unsigned nehpairs = 0;
     unsigned sumeh2 = 0;
 
-    while(!deltas.empty()) {
+    while(!incoming.empty()) {
         double Ekprev = 9e9; // update flag for next delta
 
-        auto particle = deltas.front();
-        deltas.pop_front();
+        auto particle = incoming.front();
+        incoming.pop_front();
         LOG(TRACE) << "Picked up particle of type " << particle.type();
 
         auto nlast = E.size() - 1;
@@ -534,6 +535,8 @@ std::vector<Cluster> DepositionBichselModule::stepping(std::deque<Particle> delt
             // Outside the sensor
             if(!detector->isWithinSensor(particle.position())) {
                 LOG(DEBUG) << "Left the sensor at " << Units::display(particle.position(), {"mm", "um"});
+                outgoing.emplace_back(
+                    particle.E(), particle.position(), particle.direction(), particle.type(), particle.time());
                 break;
             }
 
@@ -653,12 +656,12 @@ std::vector<Cluster> DepositionBichselModule::stepping(std::deque<Particle> delt
                         // Put new delta in FIFO, use current number of MCParticles as reference to parent:
                         LOG(DEBUG) << "Generated secondary at " << Units::display(particle.position(), {"um", "mm"}) << " t "
                                    << Units::display(particle.time(), {"ns", "ps"});
-                        deltas.emplace_back(Eeh * 1E-6,
-                                            particle.position(),
-                                            delta_direction,
-                                            ParticleType::ELECTRON,
-                                            particle.time(),
-                                            mcparticles.size());
+                        incoming.emplace_back(Eeh * 1E-6,
+                                              particle.position(),
+                                              delta_direction,
+                                              ParticleType::ELECTRON,
+                                              particle.time(),
+                                              mcparticles.size());
 
                         ++ndelta;
                         total_energy_loss -= Eeh; // [eV], avoid double counting
@@ -856,7 +859,8 @@ std::vector<Cluster> DepositionBichselModule::stepping(std::deque<Particle> delt
         create_output_plots(event, detector, clusters);
     }
 
-    return clusters;
+    LOG(INFO) << outgoing.size() << " particles leaving the sensor";
+    return outgoing;
 }
 
 void DepositionBichselModule::update_elastic_collision_parameters(double& inv_collision_length_elastic,
