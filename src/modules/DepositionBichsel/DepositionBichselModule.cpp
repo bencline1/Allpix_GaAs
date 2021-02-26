@@ -337,6 +337,7 @@ void DepositionBichselModule::run(unsigned int event) {
     auto localTrackEntrance = [&](const std::shared_ptr<const Detector>& detector,
                                   const ROOT::Math::XYZPoint& position_global,
                                   const ROOT::Math::XYZVector& direction_global,
+                                  double& distance,
                                   ROOT::Math::XYZPoint& position_local,
                                   ROOT::Math::XYZVector& direction_local) {
         // Obtain total sensor size
@@ -392,6 +393,7 @@ void DepositionBichselModule::run(unsigned int event) {
                 static_cast<ROOT::Math::XYZVector>(detector->getModel()->getCenter()));
             ROOT::Math::Transform3D transform_local(translation_local);
             position_local = transform_local(position + t0 * direction_local);
+            distance = t0;
             return true;
         } else {
             // Otherwise: The line does not intersect the box.
@@ -399,38 +401,78 @@ void DepositionBichselModule::run(unsigned int event) {
         }
     };
 
-    auto detector = geo_manager_->getDetectors().front();
     LOG(INFO) << "Initial particle position  (global): " << Units::display(particle_position, {"mm", "um"});
+    std::deque<Particle> global_particles;
+    global_particles.emplace_back(particle_energy, particle_position, particle_direction, particle_type_);
 
-    // std::deque<Particle> global_particles;
+    // Loop until no particle hits any detector anymore:
+    while(!global_particles.empty()) {
+        LOG(WARNING) << "Have " << global_particles.size() << " more particles to treat";
 
-    // while(!global_particles.empty())
-    ROOT::Math::XYZPoint position_local;
-    ROOT::Math::XYZVector direction_local;
-    // Let's get intersection with sensor.
-    if(!localTrackEntrance(detector, particle_position, particle_direction, position_local, direction_local)) {
-        return;
-    }
-    LOG(ERROR) << "Particle enters detector at " << Units::display(position_local, {"um", "mm"}) << " (local) / "
-               << Units::display(detector->getGlobalPosition(position_local), {"um", "mm"}) << " (global)";
+        // Get one particle:
+        auto particle = global_particles.front();
+        global_particles.pop_front();
 
-    LOG(DEBUG) << event;
+        // Let's get intersection with closest sensor.
+        ROOT::Math::XYZPoint position_local;
+        ROOT::Math::XYZVector direction_local;
+        double distance = std::numeric_limits<double>::max();
+        std::shared_ptr<const Detector> detector = nullptr;
 
-    std::deque<Particle> incoming;
-    incoming.emplace_back(
-        particle_energy, position_local, direction_local, particle_type_); // beam particle is first "delta"
-    auto outgoing = stepping(std::move(incoming), detector, event);
+        // Check collision for all detectors and get the closest one
+        for(const auto& det : geo_manager_->getDetectors()) {
+            ROOT::Math::XYZPoint this_position;
+            ROOT::Math::XYZVector this_direction;
+            double this_distance;
+            if(!localTrackEntrance(
+                   det, particle.position(), particle.direction(), this_distance, this_position, this_direction)) {
+                // No intersection with sensor
+                LOG(WARNING) << "Particle has no intersection with sensor of detector " << det->getName();
+                continue;
+            }
 
-    for(const auto& particle : outgoing) {
-        LOG(ERROR) << "Particle leaving detector at " << Units::display(particle.position(), {"um", "mm"}) << " (local) / "
-                   << Units::display(detector->getGlobalPosition(particle.position()), {"um", "mm"}) << " (global)";
+            // This intersection is closer than the previous:
+            if(this_distance < distance) {
+                LOG(WARNING) << "Found close hit on detector \"" << det->getName() << "\"";
+                distance = this_distance;
+                position_local = std::move(this_position);
+                direction_local = std::move(this_direction);
+                detector = det;
+            } else {
+                LOG(WARNING) << "Hit on detector " << det->getName() << " is further away";
+            }
+        }
+
+        if(detector == nullptr) {
+            LOG(WARNING) << "Particle has no intersection with sensor any detector";
+            continue;
+        }
+
+        LOG(ERROR) << "Particle enters detector \"" << detector->getName() << "\" at "
+                   << Units::display(position_local, {"um", "mm"}) << " (local) / "
+                   << Units::display(detector->getGlobalPosition(position_local), {"um", "mm"}) << " (global)";
+
+        Particle incoming(particle_energy, position_local, direction_local, particle_type_);
+        auto outgoing = stepping(std::move(incoming), detector, event);
+
+        for(const auto& out : outgoing) {
+            LOG(ERROR) << "Particle leaving detector \"" << detector->getName() << "\" at "
+                       << Units::display(out.position(), {"um", "mm"}) << " (local) / "
+                       << Units::display(detector->getGlobalPosition(out.position()), {"um", "mm"}) << " (global)";
+            global_particles.emplace_back(out.E(),
+                                          detector->getGlobalPosition(out.position()),
+                                          detector->getOrientation()(out.direction()),
+                                          out.type());
+        }
     }
 }
 
-std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> incoming,
+std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                                                        const std::shared_ptr<const Detector>& detector,
                                                        unsigned int event) { // NOLINT
 
+    std::deque<Particle> incoming;
+    incoming.push_back(primary);
     MazziottaIonizer ionizer(&random_generator_);
     std::uniform_real_distribution<double> unirnd(0, 1);
 
