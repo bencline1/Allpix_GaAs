@@ -407,7 +407,7 @@ void DepositionBichselModule::run(unsigned int event) {
 
     // Loop until no particle hits any detector anymore:
     while(!global_particles.empty()) {
-        LOG(WARNING) << "Have " << global_particles.size() << " more particles to treat";
+        LOG(DEBUG) << "Have " << global_particles.size() << " more particles to treat";
 
         // Get one particle:
         auto particle = global_particles.front();
@@ -427,38 +427,38 @@ void DepositionBichselModule::run(unsigned int event) {
             if(!localTrackEntrance(
                    det, particle.position(), particle.direction(), this_distance, this_position, this_direction)) {
                 // No intersection with sensor
-                LOG(WARNING) << "Particle has no intersection with sensor of detector " << det->getName();
+                LOG(DEBUG) << "Particle has no intersection with sensor of detector " << det->getName();
                 continue;
             }
 
             // This intersection is closer than the previous:
             if(this_distance < distance) {
-                LOG(WARNING) << "Found close hit on detector \"" << det->getName() << "\"";
+                LOG(DEBUG) << "Found close hit on detector \"" << det->getName() << "\"";
                 distance = this_distance;
                 position_local = std::move(this_position);
                 direction_local = std::move(this_direction);
                 detector = det;
             } else {
-                LOG(WARNING) << "Hit on detector " << det->getName() << " is further away";
+                LOG(DEBUG) << "Hit on detector " << det->getName() << " is further away";
             }
         }
 
         if(detector == nullptr) {
-            LOG(WARNING) << "Particle has no intersection with sensor any detector";
+            LOG(DEBUG) << "Particle has no intersection with sensor any detector";
             continue;
         }
 
-        LOG(ERROR) << "Particle enters detector \"" << detector->getName() << "\" at "
-                   << Units::display(position_local, {"um", "mm"}) << " (local) / "
-                   << Units::display(detector->getGlobalPosition(position_local), {"um", "mm"}) << " (global)";
+        LOG(INFO) << "Particle enters detector \"" << detector->getName() << "\" at "
+                  << Units::display(position_local, {"um", "mm"}) << " (local) / "
+                  << Units::display(detector->getGlobalPosition(position_local), {"um", "mm"}) << " (global)";
 
         Particle incoming(particle_energy, position_local, direction_local, particle_type_);
-        auto outgoing = stepping(std::move(incoming), detector, event);
+        auto outgoing = stepping(std::move(incoming), detector);
 
         for(const auto& out : outgoing) {
-            LOG(ERROR) << "Particle leaving detector \"" << detector->getName() << "\" at "
-                       << Units::display(out.position(), {"um", "mm"}) << " (local) / "
-                       << Units::display(detector->getGlobalPosition(out.position()), {"um", "mm"}) << " (global)";
+            LOG(INFO) << "Particle leaving detector \"" << detector->getName() << "\" at "
+                      << Units::display(out.position(), {"um", "mm"}) << " (local) / "
+                      << Units::display(detector->getGlobalPosition(out.position()), {"um", "mm"}) << " (global)";
             global_particles.emplace_back(out.E(),
                                           detector->getGlobalPosition(out.position()),
                                           detector->getOrientation()(out.direction()),
