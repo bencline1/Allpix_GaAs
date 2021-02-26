@@ -383,7 +383,7 @@ void DepositionBichselModule::run(unsigned int event) {
         }
     };
 
-    LOG(INFO) << "Initial position  (global): " << Units::display(particle_position, {"mm", "um"});
+    LOG(INFO) << "Initial particle position  (global): " << Units::display(particle_position, {"mm", "um"});
 
     ROOT::Math::XYZPoint position_local;
     ROOT::Math::XYZVector direction_local;
@@ -391,14 +391,20 @@ void DepositionBichselModule::run(unsigned int event) {
     if(!localTrackEntrance(particle_position, particle_direction, position_local, direction_local)) {
         return;
     }
-    LOG(ERROR) << "Intersection: " << Units::display(position_local, {"um", "mm"}) << " ,global "
-               << Units::display(detector_->getGlobalPosition(position_local), {"um", "mm"});
+    LOG(ERROR) << "Particle enters detector at " << Units::display(position_local, {"um", "mm"}) << " (local) / "
+               << Units::display(detector_->getGlobalPosition(position_local), {"um", "mm"}) << " (global)";
 
     LOG(DEBUG) << event;
 
-    std::deque<Particle> initial;
-    initial.emplace_back(particle_energy, position_local, direction_local, particle_type_); // beam particle is first "delta"
-    auto clusters = stepping(std::move(initial), detector_, event);
+    std::deque<Particle> incoming;
+    incoming.emplace_back(
+        particle_energy, position_local, direction_local, particle_type_); // beam particle is first "delta"
+    auto outgoing = stepping(std::move(incoming), detector_, event);
+
+    for(const auto& particle : outgoing) {
+        LOG(ERROR) << "Particle leaving detector at " << Units::display(particle.position(), {"um", "mm"}) << " (local) / "
+                   << Units::display(detector_->getGlobalPosition(particle.position()), {"um", "mm"}) << " (global)";
+    }
 }
 
 std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> incoming,
