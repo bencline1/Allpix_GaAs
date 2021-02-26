@@ -8,14 +8,14 @@
  * Intergovernmental Organization or submit itself to any jurisdiction.
  */
 
-#include "MazziottaIonizer.hpp"
+#include "PhotoAbsorptionIonizer.hpp"
 
 #include "core/module/exceptions.h"
 #include "core/utils/log.h"
 
 using namespace allpix;
 
-MazziottaIonizer::MazziottaIonizer(std::mt19937_64* random_engine) : random_engine_(random_engine) {
+PhotoAbsorptionIonizer::PhotoAbsorptionIonizer(std::mt19937_64* random_engine) : random_engine_(random_engine) {
 
     // Shell energy and probability integral initialization
     for(unsigned n = 1; n <= 4; ++n) {
@@ -70,7 +70,7 @@ MazziottaIonizer::MazziottaIonizer(std::mt19937_64* random_engine) : random_engi
     auger_energy[2][2] = 0.0;
 }
 
-std::stack<double> MazziottaIonizer::getIonization(double energy_gamma) {
+std::stack<double> PhotoAbsorptionIonizer::getIonization(double energy_gamma) {
 
     std::stack<double> veh;
 
@@ -313,7 +313,7 @@ std::stack<double> MazziottaIonizer::getIonization(double energy_gamma) {
     return veh;
 }
 
-void MazziottaIonizer::transition(double energy_auger, std::stack<double>& veh) {
+void PhotoAbsorptionIonizer::transition(double energy_auger, std::stack<double>& veh) {
 
     // AUGER ELECTRON
     double rEv = (1 + triangular()) * energy_valence_; // 0..2*Ev
@@ -331,14 +331,14 @@ void MazziottaIonizer::transition(double energy_auger, std::stack<double>& veh) 
     veh.push(energy_hole2);
 }
 
-double MazziottaIonizer::uniform() {
+double PhotoAbsorptionIonizer::uniform() {
     if(random_engine_ == nullptr) {
         throw ModuleError("Missing random number generator");
     }
     return uniform_dist_(*random_engine_);
 }
 
-double MazziottaIonizer::triangular() {
+double PhotoAbsorptionIonizer::triangular() {
     if(random_engine_ == nullptr) {
         throw ModuleError("Missing random number generator");
     }

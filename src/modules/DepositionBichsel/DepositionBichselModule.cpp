@@ -9,7 +9,7 @@
  */
 
 #include "DepositionBichselModule.hpp"
-#include "MazziottaIonizer.hpp"
+#include "PhotoAbsorptionIonizer.hpp"
 
 #include <deque>
 #include <fstream>
@@ -473,7 +473,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
 
     std::deque<Particle> incoming;
     incoming.push_back(primary);
-    MazziottaIonizer ionizer(&random_generator_);
+    PhotoAbsorptionIonizer ionizer(&random_generator_);
     std::uniform_real_distribution<double> unirnd(0, 1);
 
     std::vector<MCParticle> mcparticles;

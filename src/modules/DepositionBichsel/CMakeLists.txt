@@ -28,7 +28,7 @@ ADD_DEFINITIONS(-DALLPIX_BICHSEL_DATA_DIRECTORY="${BICHSEL_DATA_DIRECTORY}"  -DA
 # Add source files to library
 ALLPIX_MODULE_SOURCES(${MODULE_NAME}
     DepositionBichselModule.cpp
-    MazziottaIonizer.cpp
+    PhotoAbsorptionIonizer.cpp
 )
 
 TARGET_LINK_LIBRARIES(${MODULE_NAME} ROOT::Graf3d)

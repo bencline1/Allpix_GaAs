@@ -18,13 +18,13 @@ namespace allpix {
     /**
      * @brief Class to calculate ionization and photoabsorption in different shells
      */
-    class MazziottaIonizer {
+    class PhotoAbsorptionIonizer {
     public:
         /**
          * @brief Constructor of ionizer class, also calculates Auger probability integrals
          * @param random_engine pseudo-random number generator to be used
          */
-        MazziottaIonizer(std::mt19937_64* random_engine);
+        PhotoAbsorptionIonizer(std::mt19937_64* random_engine);
 
         /**
          * @brief Function to calculate electron-hole pairs and their energy from ionization
