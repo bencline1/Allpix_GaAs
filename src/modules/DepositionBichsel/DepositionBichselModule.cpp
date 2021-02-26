@@ -52,7 +52,6 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config,
     config_.setDefault<double>("output_plots_theta", 0.0f);
     config_.setDefault<double>("output_plots_phi", 0.0f);
 
-    temperature_ = config_.get<double>("temperature");
     explicit_delta_energy_cut_ = config_.get<double>("delta_energy_cut");
     fast_ = config_.get<bool>("fast");
     output_plots_ = config_.get<bool>("output_plots");
@@ -70,8 +69,9 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config,
 
     // EGAP = GAP ENERGY IN eV
     // EMIN = THRESHOLD ENERGY (ALIG ET AL., PRB22 (1980), 5565)
+    auto temperature = config_.get<double>("temperature");
     energy_threshold_ =
-        config_.get<double>("energy_threshold", 1.5 * 1.17 - 4.73e-4 * temperature_ * temperature_ / (636 + temperature_));
+        config_.get<double>("energy_threshold", 1.5 * 1.17 - 4.73e-4 * temperature * temperature / (636 + temperature));
 
     // FIXME make sure particle exists
     particle_type_ = static_cast<ParticleType>(config_.get<unsigned int>("particle_type", 4));
@@ -214,7 +214,7 @@ void DepositionBichselModule::init() {
 }
 
 void DepositionBichselModule::create_output_plots(unsigned int event_num,
-                                                  std::shared_ptr<const Detector> detector,
+                                                  std::shared_ptr<const Detector>& detector,
                                                   const std::vector<Cluster>& clusters) {
     LOG(TRACE) << "Writing output plots";
     auto model = detector->getModel();

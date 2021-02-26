@@ -231,17 +231,14 @@ namespace allpix {
 
         Messenger* messenger_;
 
-        std::vector<std::string> data_paths_;
-        std::ifstream open_data_file(const std::string& file_name);
-
         /**
          * Stepping function for individual detector. This function performs all stepping and ionization in the material and
          * dispatches messages for the detector with MCParticles and DepositedCharges.
          *
-         * @param  incoming List of incoming particles entering the sensor (primary MCParticles)
+         * @param  incoming List of incoming particles entering the sensor (primary MCParticles), local coordinates
          * @param  detector Detector to operate on
          * @param  event    Event number
-         * @return          List of outgoing particles leaving the sensor
+         * @return          List of outgoing particles leaving the sensor, local coordinates
          */
         std::deque<Particle>
         stepping(std::deque<Particle> incoming, std::shared_ptr<const Detector>& detector, unsigned int event);
@@ -250,8 +247,14 @@ namespace allpix {
                                                  double& screening_parameter,
                                                  const Particle& particle) const;
 
+        /**
+         * Plotting of event displays
+         * @param event_num Event number
+         * @param detector  Detector to generate the plot for
+         * @param clusters  Vector of electron-hole pair depositions in this detector
+         */
         void create_output_plots(unsigned int event_num,
-                                 std::shared_ptr<const Detector> detector,
+                                 std::shared_ptr<const Detector>& detector,
                                  const std::vector<Cluster>& clusters);
 
         using table = std::array<double, HEPS_ENTRIES>;
@@ -269,16 +272,19 @@ namespace allpix {
         ROOT::Math::XYZVector beam_direction_{};
         double beam_size_{};
         ROOT::Math::XYVector beam_divergence_{};
-
-        // FIXME possible config parameters
-        bool fast_{};
-        // delta ray range: 1 um at 10 keV (Mazziotta 2004)
-        double explicit_delta_energy_cut_{};
         ParticleType particle_type_{};
-        double temperature_{};
+
+        // COnfig parameter for data file paths:
+        std::vector<std::string> data_paths_;
+
+        // Config parameters for the stepping algorithm
+        bool fast_{};
+        double explicit_delta_energy_cut_{};
+        double energy_threshold_{};
+
+        // Plotting configuration
         bool output_plots_{};
         bool output_event_displays_{};
-        double energy_threshold_{};
 
         // Constants
         const double electron_mass_ = 0.51099906; // e mass [MeV]
@@ -304,8 +310,15 @@ namespace allpix {
         TH2I *h2xy, *h2zx, *h2zr;
 
         /**
+         * Helper function to find and open data files with cross section tables
+         * @param  file_name Name of the file to be looked up and opened
+         * @return           File handle to correctly found and opened file
+         * @throws ModuleError if the requested file could not be found or opened
+         */
+        std::ifstream open_data_file(const std::string& file_name);
+
+        /**
          * Reading HEPS.TAB data file
-         *
          * HEPS.TAB is the table of the dielectric constant for solid Si, epsilon = ep(1,j) + i*ep(2,j), as a function of
          * energy loss E(j), section II.E in RMP, and rim is Im(-1/epsilon), Eq. (2.17), p.668. Print statements are included
          * to check that the file is read correctly.
@@ -314,7 +327,6 @@ namespace allpix {
 
         /**
          * Reading MACOM.TAB data file
-         *
          * MACOM.TAB is the table of the integrals over momentum transfer K of the generalized oscillator strength, summed
          * for all shells, i.e. the A(E) of Eq. (2.11), p. 667 of RMP
          */
@@ -322,7 +334,6 @@ namespace allpix {
 
         /**
          * Reading EMERC.TAB data file
-         *
          * EMERC.TAB is the table of the integral over K of generalized oscillator strength for E < 11.9 eV with
          * Im(-1/epsilon) from equations in the Appendix of Emerson et al., Phys Rev B7, 1798 (1973) (also see CCS-63)
          */
