@@ -280,7 +280,7 @@ void DepositionBichselModule::create_output_plots(unsigned int event_num,
                                      100,
                                      model->getSensorCenter().z() - model->getSensorSize().z() / 2.0,
                                      model->getSensorCenter().z() + model->getSensorSize().z() / 2.0);
-    histogram_frame->SetDirectory(getROOTDirectory());
+    histogram_frame->SetDirectory(directories[name]);
 
     // Create the canvas for the line plot and set orientation
     auto canvas = std::make_unique<TCanvas>(("event_" + std::to_string(event_num)).c_str(),
@@ -301,7 +301,7 @@ void DepositionBichselModule::create_output_plots(unsigned int event_num,
     histogram_frame->GetZaxis()->SetTitle("z (mm)");
     histogram_frame->Draw("BOX2");
 
-    // Draw and write canvas to module output file, then clear the stored lines
+    // Draw and write canvas to module output file
     canvas->Draw();
     directories[name]->WriteTObject(canvas.get());
 }
