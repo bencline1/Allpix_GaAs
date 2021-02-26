@@ -294,21 +294,6 @@ void DepositionBichselModule::create_output_plots(unsigned int event_num,
 void DepositionBichselModule::run(unsigned int event) {
     std::uniform_real_distribution<double> unirnd(0, 1);
 
-    // defaults:
-    auto model = detector_->getModel();
-    auto depth = model->getSensorSize().z();
-
-    // double depth = 285; // [mu] pixel depth
-    double pitch = 25 * 1e-3; // [mu] pixels size
-    double angle = 999;       // flag
-
-    double turn = atan(pitch / depth); // [rad] default
-    if(fabs(angle) < 91) {
-        turn = angle / 180 * M_PI;
-    }
-
-    double width = depth * tan(turn); // [mu] projected track, default: pitch
-
     // Add energy spread from Gaussian:
     std::normal_distribution<double> energy_spread(0, source_energy_spread_);
     double particle_energy = source_energy_ + energy_spread(random_generator_);
@@ -331,114 +316,85 @@ void DepositionBichselModule::run(unsigned int event) {
 
     // P is the line origin, D is the unit-length line direction, and e contains the box extents. The box center has been
     // translated to the origin and the line has been translated accordingly.
-    auto query_line =
-        [](ROOT::Math::XYZPoint position, ROOT::Math::XYZVector direction, ROOT::Math::XYZVector sensor, double t[2]) {
-            // Liang–Barsky clipping of a line against faces of a box
-            auto clip = [](double denom, double numer, double& t0, double& t1) {
-                if(denom > 0) {
-                    if(numer > denom * t1) {
-                        return false;
-                    }
-                    if(numer > denom * t0) {
-                        t0 = numer / denom;
-                    }
-                    return true;
-                } else if(denom < 0) {
-                    if(numer > denom * t0) {
-                        return false;
-                    }
-                    if(numer > denom * t1) {
-                        t1 = numer / denom;
-                    }
-                    return true;
-                } else {
-                    return numer <= 0;
-                }
-            };
+    // It returns true if an intersection has been found and false if box and line do not intersect or the intersection is
+    // not in the direction of the line vector. If an intersection is found, the closest intersection point in the direction
+    // of the line vector is stored in the "intersection" parameter.
+    auto localTrackEntrance = [&](const ROOT::Math::XYZPoint& position_global,
+                                  const ROOT::Math::XYZVector& direction_global,
+                                  ROOT::Math::XYZPoint& position_local,
+                                  ROOT::Math::XYZVector& direction_local) {
+        // Transform from locally centered to global coordinates
+        ROOT::Math::Translation3D translation_center(static_cast<ROOT::Math::XYZVector>(detector_->getPosition()));
+        ROOT::Math::Rotation3D rotation_center(detector_->getOrientation());
+        // Transformation from locally centered into global coordinate system, consisting of
+        // * The rotation into the global coordinate system
+        // * The shift from the origin to the detector position
+        ROOT::Math::Transform3D transform_center(rotation_center, translation_center);
 
-            int numPoints = 0;
-            // Clip the line against the box faces using the 6cases
-            double t0 = std::numeric_limits<double>::lowest(), t1 = std::numeric_limits<double>::max();
-            bool notCulled = clip(direction.X(), -position.X() - sensor.X() / 2, t0, t1) &&
-                             clip(-direction.X(), position.X() - sensor.X() / 2, t0, t1) &&
-                             clip(direction.Y(), -position.Y() - sensor.Y() / 2, t0, t1) &&
-                             clip(-direction.Y(), position.Y() - sensor.Y() / 2, t0, t1) &&
-                             clip(direction.Z(), -position.Z() - sensor.Z() / 2, t0, t1) &&
-                             clip(-direction.Z(), position.Z() - sensor.Z() / 2, t0, t1);
+        ROOT::Math::Translation3D translation_local(static_cast<ROOT::Math::XYZVector>(detector_->getModel()->getCenter()));
+        ROOT::Math::Transform3D transform_local(translation_local);
 
-            if(notCulled) {
-                if(t1 > t0) {
-                    // The intersection is a segment P + t * D withtin [t0, t1].
-                    numPoints = 2;
-                    t[0] = t0;
-                    t[1] = t1;
-                } else {
-                    // The intersection is a point P + t * D with t = t0.
-                    numPoints = 1;
-                    t[0] = t0;
-                    t[1] = t0;
+        auto position = transform_center.Inverse()(position_global);
+        direction_local = detector_->getOrientation().Inverse()(direction_global);
+        auto sensor = detector_->getModel()->getSensorSize();
+
+        // Liang–Barsky clipping of a line against faces of a box
+        auto clip = [](double denom, double numer, double& t0, double& t1) {
+            if(denom > 0) {
+                if(numer > denom * t1) {
+                    return false;
                 }
+                if(numer > denom * t0) {
+                    t0 = numer / denom;
+                }
+                return true;
+            } else if(denom < 0) {
+                if(numer > denom * t0) {
+                    return false;
+                }
+                if(numer > denom * t1) {
+                    t1 = numer / denom;
+                }
+                return true;
             } else {
-                // The line does not intersect the box. Return invalid parameters.
-                numPoints = 0;
-                t[0] = 9999999;
-                t[1] = -99999999;
+                return numer <= 0;
             }
-            return numPoints;
         };
 
-    LOG(INFO) << "Position  (global): " << Units::display(particle_position, {"mm", "um"});
+        // Clip the line against the six possible box faces
+        double t0 = std::numeric_limits<double>::lowest(), t1 = std::numeric_limits<double>::max();
+        bool intersect = clip(direction_local.X(), -position.X() - sensor.X() / 2, t0, t1) &&
+                         clip(-direction_local.X(), position.X() - sensor.X() / 2, t0, t1) &&
+                         clip(direction_local.Y(), -position.Y() - sensor.Y() / 2, t0, t1) &&
+                         clip(-direction_local.Y(), position.Y() - sensor.Y() / 2, t0, t1) &&
+                         clip(direction_local.Z(), -position.Z() - sensor.Z() / 2, t0, t1) &&
+                         clip(-direction_local.Z(), position.Z() - sensor.Z() / 2, t0, t1);
 
+        // The intersection is a point P + t * D with t = t0. Return if positive (i.e. in direction of line vector)
+        if(intersect && t0 > 0) {
+            position_local = transform_local(position + t0 * direction_local);
+            return true;
+        } else {
+            // Otherwise: The line does not intersect the box.
+            return false;
+        }
+    };
+
+    LOG(INFO) << "Initial position  (global): " << Units::display(particle_position, {"mm", "um"});
+
+    ROOT::Math::XYZPoint position_local;
+    ROOT::Math::XYZVector direction_local;
     // Let's get intersection with sensor.
-    // Transform to local (centered!) coordinate system:
-
-    // Transform from locally centered to global coordinates
-    ROOT::Math::Translation3D translation_center(static_cast<ROOT::Math::XYZVector>(detector_->getPosition()));
-    ROOT::Math::Rotation3D rotation_center(detector_->getOrientation());
-    // Transformation from locally centered into global coordinate system, consisting of
-    // * The rotation into the global coordinate system
-    // * The shift from the origin to the detector position
-    ROOT::Math::Transform3D transform_center(rotation_center, translation_center);
-
-    ROOT::Math::Translation3D translation_local(static_cast<ROOT::Math::XYZVector>(detector_->getModel()->getCenter()));
-    ROOT::Math::Transform3D transform_local(translation_local);
-
-    auto pos_local = transform_center.Inverse()(particle_position);
-    LOG(INFO) << "Position  (local, center): " << Units::display(pos_local, {"mm", "um"});
-    auto dir_local = detector_->getOrientation().Inverse()(particle_direction);
-    LOG(INFO) << "Direction  (local, center): " << dir_local;
-    auto box = detector_->getModel()->getSensorSize();
-    double t[2];
-    auto pts = query_line(pos_local, dir_local, box, t);
-    LOG(ERROR) << "POINTS: " << pts;
-    for(int i = 0; i < pts; i++) {
-        ROOT::Math::XYZPoint point_center = pos_local + t[i] * dir_local;
-        auto point = transform_local(point_center);
-        LOG(ERROR) << i << " : t " << t[i] << " " << Units::display(point, {"um", "mm"}) << " (global "
-                   << Units::display(detector_->getGlobalPosition(point), {"um", "mm"}) << ")";
+    if(!localTrackEntrance(particle_position, particle_direction, position_local, direction_local)) {
+        return;
     }
-
-    LOG(INFO) << "  kinetic energy    " << particle_energy << " MeV";
-    LOG(TRACE) << "  particle type     " << particle_type_;
-    LOG(TRACE) << "  pixel pitch       " << pitch << " um";
-    LOG(TRACE) << "  pixel depth       " << depth << " mm";
-    LOG(TRACE) << "  incident angle    " << turn * 180 / M_PI << " deg";
-    LOG(TRACE) << "  track width       " << width << " um";
-    LOG(TRACE) << "  temperature       " << temperature_ << " K";
+    LOG(ERROR) << "Intersection: " << Units::display(position_local, {"um", "mm"}) << " ,global "
+               << Units::display(detector_->getGlobalPosition(position_local), {"um", "mm"});
 
     LOG(DEBUG) << event;
 
-    double xm = pitch * (unirnd(random_generator_) - 0.5);       // [mu] -p/2..p/2 at track mid
-    ROOT::Math::XYZPoint pos((xm - 0.5 * width), 0, -depth / 2); // local coord: z [-d/2, +d/2]
-    ROOT::Math::XYZVector dir(sin(turn), 0, cos(turn));
-
     std::deque<Particle> initial;
-    initial.emplace_back(particle_energy, pos, dir, particle_type_); // beam particle is first "delta"
-
-    // x : entry point is left;
-    // y :  [cm]
-    // z :  pixel from 0 to depth [cm]
-
+    initial.emplace_back(particle_energy, position_local, direction_local, particle_type_); // beam particle is first "delta"
     auto clusters = stepping(std::move(initial), detector_, event);
 }
 
