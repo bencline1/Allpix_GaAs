@@ -338,25 +338,25 @@ void DepositionBichselModule::run(unsigned int event) {
         direction_local = detector_->getOrientation().Inverse()(direction_global);
 
         // Liang–Barsky clipping of a line against faces of a box
-        auto clip = [](double denom, double numer, double& t0, double& t1) {
-            if(denom > 0) {
-                if(numer > denom * t1) {
+        auto clip = [](double denominator, double numerator, double& t0, double& t1) {
+            if(denominator > 0) {
+                if(numerator > denominator * t1) {
                     return false;
                 }
-                if(numer > denom * t0) {
-                    t0 = numer / denom;
+                if(numerator > denominator * t0) {
+                    t0 = numerator / denominator;
                 }
                 return true;
-            } else if(denom < 0) {
-                if(numer > denom * t0) {
+            } else if(denominator < 0) {
+                if(numerator > denominator * t0) {
                     return false;
                 }
-                if(numer > denom * t1) {
-                    t1 = numer / denom;
+                if(numerator > denominator * t1) {
+                    t1 = numerator / denominator;
                 }
                 return true;
             } else {
-                return numer <= 0;
+                return numerator <= 0;
             }
         };
 
