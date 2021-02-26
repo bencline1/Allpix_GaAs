@@ -1,5 +1,5 @@
 # Define module and return the generated name as MODULE_NAME
-ALLPIX_DETECTOR_MODULE(MODULE_NAME)
+ALLPIX_UNIQUE_MODULE(MODULE_NAME)
 
 SET(BICHSEL_DATA_SUFFIX ".TAB" CACHE INTERNAL "Bichsel data files suffix" FORCE)
 

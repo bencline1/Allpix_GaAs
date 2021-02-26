@@ -10,6 +10,7 @@
 #include <array>
 #include <random>
 
+#include "core/geometry/GeometryManager.hpp"
 #include "core/module/Module.hpp"
 
 #include <TH1D.h>
@@ -203,12 +204,12 @@ namespace allpix {
 
     public:
         /**
-         * @brief Constructor for a module to deposit charges at a specific point in the detector's active sensor volume
+         * @brief Constructor for module to simulate Bichsel's straggeling in silicon
          * @param config Configuration object for this module as retrieved from the steering file
          * @param messenger Pointer to the messenger object to allow binding to messages on the bus
-         * @param detector Pointer to the detector for this module instance
+         * @param geo_manager Pointer to the geometry manager, containing the detectors
          */
-        DepositionBichselModule(Configuration& config, Messenger* messenger, std::shared_ptr<Detector> detector);
+        DepositionBichselModule(Configuration& config, Messenger* messenger, GeometryManager* geo_manager);
 
         /**
          * @brief Deposit charge carriers for every simulated event
@@ -227,7 +228,7 @@ namespace allpix {
 
     private:
         std::mt19937_64 random_generator_;
-        std::shared_ptr<const Detector> detector_;
+        GeometryManager* geo_manager_;
 
         Messenger* messenger_;
 
@@ -241,7 +242,7 @@ namespace allpix {
          * @return          List of outgoing particles leaving the sensor, local coordinates
          */
         std::deque<Particle>
-        stepping(std::deque<Particle> incoming, std::shared_ptr<const Detector>& detector, unsigned int event);
+        stepping(std::deque<Particle> incoming, const std::shared_ptr<const Detector>& detector, unsigned int event);
 
         void update_elastic_collision_parameters(double& inv_collision_length_elastic,
                                                  double& screening_parameter,
@@ -254,7 +255,7 @@ namespace allpix {
          * @param clusters  Vector of electron-hole pair depositions in this detector
          */
         void create_output_plots(unsigned int event_num,
-                                 std::shared_ptr<const Detector>& detector,
+                                 const std::shared_ptr<const Detector>& detector,
                                  const std::vector<Cluster>& clusters);
 
         using table = std::array<double, HEPS_ENTRIES>;
@@ -301,13 +302,15 @@ namespace allpix {
         const double radiation_length = 9.36;                        // [cm]
         const double atnu_ = 6.0221367e23 * density / atomic_weight; // atnu = # of atoms per cm**3
 
-        // Histograms:
+        // Histograms - global:
         TH1D* source_energy;
 
-        TProfile *elvse, *invse;
-        TH1I *hstep5, *hstep0, *hzz, *hde0, *hde1, *hde2, *hdel, *htet, *hnprim, *hlogE, *hlogn, *hscat, *hncl, *htde,
-            *htde0, *htde1, *hteh, *hq0, *hrms;
-        TH2I *h2xy, *h2zx, *h2zr;
+        // Histograms - per detector:
+        std::map<std::string, TDirectory*> directories;
+        std::map<std::string, TProfile*> elvse, invse;
+        std::map<std::string, TH1I*> hstep5, hstep0, hzz, hde0, hde1, hde2, hdel, htet, hnprim, hlogE, hlogn, hscat, hncl,
+            htde, htde0, htde1, hteh, hq0, hrms;
+        std::map<std::string, TH2I*> h2xy, h2zx, h2zr;
 
         /**
          * Helper function to find and open data files with cross section tables

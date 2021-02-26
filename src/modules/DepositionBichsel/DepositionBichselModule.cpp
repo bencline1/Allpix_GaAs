@@ -29,10 +29,8 @@
 
 using namespace allpix;
 
-DepositionBichselModule::DepositionBichselModule(Configuration& config,
-                                                 Messenger* messenger,
-                                                 std::shared_ptr<Detector> detector)
-    : Module(config, detector), detector_(std::move(detector)), messenger_(messenger) {
+DepositionBichselModule::DepositionBichselModule(Configuration& config, Messenger* messenger, GeometryManager* geo_manager)
+    : Module(config), geo_manager_(geo_manager), messenger_(messenger) {
 
     // Seed the random generator with the global seed
     random_generator_.seed(getRandomSeed());
@@ -114,76 +112,92 @@ void DepositionBichselModule::init() {
                                  source_energy_ - 3 * source_energy_spread_,
                                  source_energy_ + 3 * source_energy_spread_);
 
-        auto model = detector_->getModel();
-        auto depth = static_cast<int>(Units::convert(model->getSensorSize().z(), "um"));
+        for(auto& detector : geo_manager_->getDetectors()) {
+            auto model = detector->getModel();
+            auto name = detector->getName();
+            auto depth = static_cast<int>(Units::convert(model->getSensorSize().z(), "um"));
 
-        auto pitch_x = static_cast<double>(Units::convert(model->getPixelSize().x(), "um"));
-        auto pitch_y = static_cast<double>(Units::convert(model->getPixelSize().y(), "um"));
+            auto pitch_x = static_cast<double>(Units::convert(model->getPixelSize().x(), "um"));
+            auto pitch_y = static_cast<double>(Units::convert(model->getPixelSize().y(), "um"));
 
-        elvse = new TProfile("elvse", "elastic mfp;log_{10}(E_{kin}[MeV]);elastic mfp [#mum]", 140, -3, 4);
-        invse = new TProfile("invse", "inelastic mfp;log_{10}(E_{kin}[MeV]);inelastic mfp [#mum]", 140, -3, 4);
+            TDirectory* directory = getROOTDirectory();
+            TDirectory* local_directory = directory->mkdir(name.c_str());
 
-        hstep5 = new TH1I("step5", "step length;step length [#mum];steps", 500, 0, 5);
-        hstep0 = new TH1I("step0", "step length;step length [#mum];steps", 500, 0, 0.05);
-        hzz = new TH1I("zz", "z;depth z [#mum];steps", depth, -1 / 2 * depth, depth / 2);
+            if(local_directory == nullptr) {
+                throw RuntimeError("Cannot create or access local ROOT directory for module " + this->getUniqueName());
+            }
+            local_directory->cd();
+            directories[name] = local_directory;
 
-        hde0 = new TH1I("de0", "step E loss;step E loss [eV];steps", 200, 0, 200);
-        hde1 = new TH1I("de1", "step E loss;step E loss [eV];steps", 100, 0, 5000);
-        hde2 = new TH1I("de2", "step E loss;step E loss [keV];steps", 200, 0, 20);
-        hdel = new TH1I("del", "log step E loss;log_{10}(step E loss [eV]);steps", 140, 0, 7);
-        htet = new TH1I("tet", "delta emission angle;delta emission angle [deg];inelasic steps", 180, 0, 90);
-        hnprim = new TH1I("nprim", "primary eh;primary e-h;scatters", 21, -0.5, 20.5);
-        hlogE = new TH1I("logE", "log Eeh;log_{10}(E_{eh}) [eV]);eh", 140, 0, 7);
-        hlogn = new TH1I("logn", "log neh;log_{10}(n_{eh});clusters", 80, 0, 4);
-        hscat = new TH1I("scat", "elastic scattering angle;scattering angle [deg];elastic steps", 180, 0, 180);
-        hncl = new TH1I("ncl", "clusters;e-h clusters;tracks", 4 * depth * 5, 0, 4 * depth * 5);
+            elvse[name] = new TProfile("elvse", "elastic mfp;log_{10}(E_{kin}[MeV]);elastic mfp [#mum]", 140, -3, 4);
+            invse[name] = new TProfile("invse", "inelastic mfp;log_{10}(E_{kin}[MeV]);inelastic mfp [#mum]", 140, -3, 4);
 
-        double lastbin = source_energy_ < 1.1 ? 1.05 * source_energy_ * 1e3 : 5 * 0.35 * depth; // 350 eV/micron
-        htde = new TH1I("tde", "sum E loss;sum E loss [keV];tracks / keV", std::max(100, int(lastbin)), 0, int(lastbin));
-        htde0 = new TH1I(
-            "tde0", "sum E loss, no delta;sum E loss [keV];tracks, no delta", std::max(100, int(lastbin)), 0, int(lastbin));
-        htde1 = new TH1I("tde1",
-                         "sum E loss, with delta;sum E loss [keV];tracks, with delta",
-                         std::max(100, int(lastbin)),
-                         0,
-                         int(lastbin));
+            hstep5[name] = new TH1I("step5", "step length;step length [#mum];steps", 500, 0, 5);
+            hstep0[name] = new TH1I("step0", "step length;step length [#mum];steps", 500, 0, 0.05);
+            hzz[name] = new TH1I("zz", "z;depth z [#mum];steps", depth, -1 / 2 * depth, depth / 2);
 
-        hteh = new TH1I("total_eh",
-                        "total e-h;total charge [ke];tracks",
-                        std::max(100, int(50 * 0.1 * depth)),
-                        0,
-                        std::max(1, int(10 * 0.1 * depth)));
-        hq0 = new TH1I("q0",
-                       "normal charge;normal charge [ke];tracks",
-                       std::max(100, int(50 * 0.1 * depth)),
-                       0,
-                       std::max(1, int(10 * 0.1 * depth)));
-        hrms = new TH1I("rms", "RMS e-h;charge RMS [e];tracks", 100, 0, 50 * depth);
+            hde0[name] = new TH1I("de0", "step E loss;step E loss [eV];steps", 200, 0, 200);
+            hde1[name] = new TH1I("de1", "step E loss;step E loss [eV];steps", 100, 0, 5000);
+            hde2[name] = new TH1I("de2", "step E loss;step E loss [keV];steps", 200, 0, 20);
+            hdel[name] = new TH1I("del", "log step E loss;log_{10}(step E loss [eV]);steps", 140, 0, 7);
+            htet[name] = new TH1I("tet", "delta emission angle;delta emission angle [deg];inelasic steps", 180, 0, 90);
+            hnprim[name] = new TH1I("nprim", "primary eh;primary e-h;scatters", 21, -0.5, 20.5);
+            hlogE[name] = new TH1I("logE", "log Eeh;log_{10}(E_{eh}) [eV]);eh", 140, 0, 7);
+            hlogn[name] = new TH1I("logn", "log neh;log_{10}(n_{eh});clusters", 80, 0, 4);
+            hscat[name] = new TH1I("scat", "elastic scattering angle;scattering angle [deg];elastic steps", 180, 0, 180);
+            hncl[name] = new TH1I("ncl", "clusters;e-h clusters;tracks", 4 * depth * 5, 0, 4 * depth * 5);
 
-        h2xy = new TH2I("xy",
-                        "x-y eh-pairs;x_{particle} - x_{eh} [#mum];y_{particle} - y_{eh} [#mum];eh-pairs",
-                        static_cast<int>(4 * pitch_x),
-                        -2 * pitch_x,
-                        2 * pitch_x,
-                        static_cast<int>(4 * pitch_y),
-                        -2 * pitch_y,
-                        2 * pitch_y);
-        h2zx = new TH2I("zx",
-                        "z-x eh-pairs;z [#mum];x_{particle} - x_{eh} [#mum];eh-pairs",
-                        depth,
-                        -1 / 2 * depth,
-                        depth / 2,
-                        static_cast<int>(4 * pitch_x),
-                        -2 * pitch_x,
-                        2 * pitch_x);
-        h2zr = new TH2I("zr",
-                        "z-r eh-pairs;z [#mum];r_{eh} [#mum];eh-pairs",
-                        depth,
-                        -1 / 2 * depth,
-                        depth / 2,
-                        static_cast<int>(4 * sqrt(pitch_x * pitch_x + pitch_y * pitch_y)),
-                        0.,
-                        2 * sqrt(pitch_x * pitch_x + pitch_y * pitch_y));
+            double lastbin = source_energy_ < 1.1 ? 1.05 * source_energy_ * 1e3 : 5 * 0.35 * depth; // 350 eV/micron
+            htde[name] =
+                new TH1I("tde", "sum E loss;sum E loss [keV];tracks / keV", std::max(100, int(lastbin)), 0, int(lastbin));
+            htde0[name] = new TH1I("tde0",
+                                   "sum E loss, no delta;sum E loss [keV];tracks, no delta",
+                                   std::max(100, int(lastbin)),
+                                   0,
+                                   int(lastbin));
+            htde1[name] = new TH1I("tde1",
+                                   "sum E loss, with delta;sum E loss [keV];tracks, with delta",
+                                   std::max(100, int(lastbin)),
+                                   0,
+                                   int(lastbin));
+
+            hteh[name] = new TH1I("total_eh",
+                                  "total e-h;total charge [ke];tracks",
+                                  std::max(100, int(50 * 0.1 * depth)),
+                                  0,
+                                  std::max(1, int(10 * 0.1 * depth)));
+            hq0[name] = new TH1I("q0",
+                                 "normal charge;normal charge [ke];tracks",
+                                 std::max(100, int(50 * 0.1 * depth)),
+                                 0,
+                                 std::max(1, int(10 * 0.1 * depth)));
+            hrms[name] = new TH1I("rms", "RMS e-h;charge RMS [e];tracks", 100, 0, 50 * depth);
+
+            h2xy[name] = new TH2I("xy",
+                                  "x-y eh-pairs;x_{particle} - x_{eh} [#mum];y_{particle} - y_{eh} [#mum];eh-pairs",
+                                  static_cast<int>(4 * pitch_x),
+                                  -2 * pitch_x,
+                                  2 * pitch_x,
+                                  static_cast<int>(4 * pitch_y),
+                                  -2 * pitch_y,
+                                  2 * pitch_y);
+            h2zx[name] = new TH2I("zx",
+                                  "z-x eh-pairs;z [#mum];x_{particle} - x_{eh} [#mum];eh-pairs",
+                                  depth,
+                                  -1 / 2 * depth,
+                                  depth / 2,
+                                  static_cast<int>(4 * pitch_x),
+                                  -2 * pitch_x,
+                                  2 * pitch_x);
+            h2zr[name] = new TH2I("zr",
+                                  "z-r eh-pairs;z [#mum];r_{eh} [#mum];eh-pairs",
+                                  depth,
+                                  -1 / 2 * depth,
+                                  depth / 2,
+                                  static_cast<int>(4 * sqrt(pitch_x * pitch_x + pitch_y * pitch_y)),
+                                  0.,
+                                  2 * sqrt(pitch_x * pitch_x + pitch_y * pitch_y));
+        }
     }
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     // INITIALIZE ENERGY BINS
@@ -214,7 +228,7 @@ void DepositionBichselModule::init() {
 }
 
 void DepositionBichselModule::create_output_plots(unsigned int event_num,
-                                                  std::shared_ptr<const Detector>& detector,
+                                                  const std::shared_ptr<const Detector>& detector,
                                                   const std::vector<Cluster>& clusters) {
     LOG(TRACE) << "Writing output plots";
     auto model = detector->getModel();
@@ -288,7 +302,7 @@ void DepositionBichselModule::create_output_plots(unsigned int event_num,
 
     // Draw and write canvas to module output file, then clear the stored lines
     canvas->Draw();
-    getROOTDirectory()->WriteTObject(canvas.get());
+    directories[detector->getName()]->WriteTObject(canvas.get());
 }
 
 void DepositionBichselModule::run(unsigned int event) {
@@ -319,23 +333,24 @@ void DepositionBichselModule::run(unsigned int event) {
     // It returns true if an intersection has been found and false if box and line do not intersect or the intersection is
     // not in the direction of the line vector. If an intersection is found, the closest intersection point in the direction
     // of the line vector is stored in the "intersection" parameter.
-    auto localTrackEntrance = [&](const ROOT::Math::XYZPoint& position_global,
+    auto localTrackEntrance = [&](const std::shared_ptr<const Detector>& detector,
+                                  const ROOT::Math::XYZPoint& position_global,
                                   const ROOT::Math::XYZVector& direction_global,
                                   ROOT::Math::XYZPoint& position_local,
                                   ROOT::Math::XYZVector& direction_local) {
         // Obtain total sensor size
-        auto sensor = detector_->getModel()->getSensorSize();
+        auto sensor = detector->getModel()->getSensorSize();
 
         // Transformation from locally centered into global coordinate system, consisting of
         // * The rotation into the global coordinate system
         // * The shift from the origin to the detector position
-        ROOT::Math::Rotation3D rotation_center(detector_->getOrientation());
-        ROOT::Math::Translation3D translation_center(static_cast<ROOT::Math::XYZVector>(detector_->getPosition()));
+        ROOT::Math::Rotation3D rotation_center(detector->getOrientation());
+        ROOT::Math::Translation3D translation_center(static_cast<ROOT::Math::XYZVector>(detector->getPosition()));
         ROOT::Math::Transform3D transform_center(rotation_center, translation_center);
         auto position = transform_center.Inverse()(position_global);
 
         // Direction vector can directly be rotated
-        direction_local = detector_->getOrientation().Inverse()(direction_global);
+        direction_local = detector->getOrientation().Inverse()(direction_global);
 
         // Liang–Barsky clipping of a line against faces of a box
         auto clip = [](double denominator, double numerator, double& t0, double& t1) {
@@ -373,7 +388,7 @@ void DepositionBichselModule::run(unsigned int event) {
         if(intersect && t0 > 0) {
             // Transform point from local-centered coordinate system to local coordinate system of the detector
             ROOT::Math::Translation3D translation_local(
-                static_cast<ROOT::Math::XYZVector>(detector_->getModel()->getCenter()));
+                static_cast<ROOT::Math::XYZVector>(detector->getModel()->getCenter()));
             ROOT::Math::Transform3D transform_local(translation_local);
             position_local = transform_local(position + t0 * direction_local);
             return true;
@@ -383,32 +398,36 @@ void DepositionBichselModule::run(unsigned int event) {
         }
     };
 
+    auto detector = geo_manager_->getDetectors().front();
     LOG(INFO) << "Initial particle position  (global): " << Units::display(particle_position, {"mm", "um"});
 
+    // std::deque<Particle> global_particles;
+
+    // while(!global_particles.empty())
     ROOT::Math::XYZPoint position_local;
     ROOT::Math::XYZVector direction_local;
     // Let's get intersection with sensor.
-    if(!localTrackEntrance(particle_position, particle_direction, position_local, direction_local)) {
+    if(!localTrackEntrance(detector, particle_position, particle_direction, position_local, direction_local)) {
         return;
     }
     LOG(ERROR) << "Particle enters detector at " << Units::display(position_local, {"um", "mm"}) << " (local) / "
-               << Units::display(detector_->getGlobalPosition(position_local), {"um", "mm"}) << " (global)";
+               << Units::display(detector->getGlobalPosition(position_local), {"um", "mm"}) << " (global)";
 
     LOG(DEBUG) << event;
 
     std::deque<Particle> incoming;
     incoming.emplace_back(
         particle_energy, position_local, direction_local, particle_type_); // beam particle is first "delta"
-    auto outgoing = stepping(std::move(incoming), detector_, event);
+    auto outgoing = stepping(std::move(incoming), detector, event);
 
     for(const auto& particle : outgoing) {
         LOG(ERROR) << "Particle leaving detector at " << Units::display(particle.position(), {"um", "mm"}) << " (local) / "
-                   << Units::display(detector_->getGlobalPosition(particle.position()), {"um", "mm"}) << " (global)";
+                   << Units::display(detector->getGlobalPosition(particle.position()), {"um", "mm"}) << " (global)";
     }
 }
 
 std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> incoming,
-                                                       std::shared_ptr<const Detector>& detector,
+                                                       const std::shared_ptr<const Detector>& detector,
                                                        unsigned int event) { // NOLINT
 
     MazziottaIonizer ionizer(&random_generator_);
@@ -420,6 +439,8 @@ std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> inco
 
     std::deque<Particle> outgoing;
     std::vector<Cluster> clusters;
+
+    auto name = detector->getName();
 
     // Statistics:
     unsigned ndelta = 0; // number of deltas generated
@@ -565,8 +586,8 @@ std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> inco
                 update_elastic_collision_parameters(inv_collision_length_elastic, screening_parameter, particle);
 
                 if(output_plots_) {
-                    elvse->Fill(log(particle.E()) / log(10), 1e4 / inv_collision_length_elastic);
-                    invse->Fill(log(particle.E()) / log(10), 1e4 / inv_collision_length_inelastic);
+                    elvse[name]->Fill(log(particle.E()) / log(10), 1e4 / inv_collision_length_elastic);
+                    invse[name]->Fill(log(particle.E()) / log(10), 1e4 / inv_collision_length_inelastic);
                 }
 
                 Ekprev = particle.E();
@@ -595,9 +616,9 @@ std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> inco
             }
 
             if(output_plots_) {
-                hstep5->Fill(step);
-                hstep0->Fill(step);
-                hzz->Fill(particle.position().Z());
+                hstep5[name]->Fill(step);
+                hstep0[name]->Fill(step);
+                hzz[name]->Fill(particle.position().Z());
             }
 
             // Outside the sensor
@@ -627,10 +648,10 @@ std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> inco
                 double energy_gamma = E[je - 1] + (E[je] - E[je - 1]) * unirnd(random_generator_); // [eV]
 
                 if(output_plots_) {
-                    hde0->Fill(energy_gamma); // M and L shells
-                    hde1->Fill(energy_gamma); // K shell
-                    hde2->Fill(energy_gamma * 1e-3);
-                    hdel->Fill(log(energy_gamma) / log(10));
+                    hde0[name]->Fill(energy_gamma); // M and L shells
+                    hde1[name]->Fill(energy_gamma); // K shell
+                    hde2[name]->Fill(energy_gamma * 1e-3);
+                    hdel[name]->Fill(log(energy_gamma) / log(10));
                 }
 
                 double residual_kin_energy = particle.E() - energy_gamma * 1E-6; // [ MeV]
@@ -687,7 +708,7 @@ std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> inco
                 std::vector<double> din{sint * cos(phi), sint * sin(phi), cost};
 
                 if(output_plots_) {
-                    htet->Fill(180 / M_PI * asin(sint)); // peak at 90, tail to 45, elastic forward
+                    htet[name]->Fill(180 / M_PI * asin(sint)); // peak at 90, tail to 45, elastic forward
                 }
 
                 // transform into detector system:
@@ -705,7 +726,7 @@ std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> inco
                 }
 
                 if(output_plots_) {
-                    hnprim->Fill(static_cast<double>(veh.size()));
+                    hnprim[name]->Fill(static_cast<double>(veh.size()));
                 }
 
                 double sumEeh{0};
@@ -717,7 +738,7 @@ std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> inco
                     veh.pop();
 
                     if(output_plots_) {
-                        hlogE->Fill(Eeh > 1 ? log(Eeh) / log(10) : 0);
+                        hlogE[name]->Fill(Eeh > 1 ? log(Eeh) / log(10) : 0);
                     }
 
                     if(Eeh > explicit_delta_energy_cut_ * 1e6) {
@@ -791,10 +812,10 @@ std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> inco
                     auto position_r = sqrt(position_x * position_x + position_y * position_y);
 
                     if(output_plots_) {
-                        hlogn->Fill(log(neh) / log(10));
-                        h2xy->Fill(position_x, position_y, neh);
-                        h2zx->Fill(position_z, position_x, neh);
-                        h2zr->Fill(position_z, position_r, neh);
+                        hlogn[name]->Fill(log(neh) / log(10));
+                        h2xy[name]->Fill(position_x, position_y, neh);
+                        h2zx[name]->Fill(position_z, position_x, neh);
+                        h2zr[name]->Fill(position_z, position_r, neh);
                     }
                 }
 
@@ -828,7 +849,7 @@ std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> inco
                 std::vector<double> din{sint * cos(phi), sint * sin(phi), cost};
 
                 if(output_plots_) {
-                    hscat->Fill(180 / M_PI * asin(sint)); // forward peak, tail to 90
+                    hscat[name]->Fill(180 / M_PI * asin(sint)); // forward peak, tail to 90
                 }
 
                 // Change direction of particle:
@@ -859,7 +880,7 @@ std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> inco
         // Store MCParticle ID of the parent particle
         mcparticles_parent_id.push_back(particle.getParentID());
         LOG(DEBUG) << "Generated MCParticle with start " << Units::display(start_global, {"um", "mm"}) << " and end "
-                   << Units::display(end_global, {"um", "mm"}) << " in detector " << detector->getName();
+                   << Units::display(end_global, {"um", "mm"}) << " in detector " << name;
         LOG(DEBUG) << "                    local start " << Units::display(particle.position_start(), {"um", "mm"})
                    << " and end " << Units::display(particle.position(), {"um", "mm"});
     } // while deltas
@@ -869,16 +890,16 @@ std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> inco
               << ", eh " << nehpairs << ", cl " << clusters.size();
 
     if(output_plots_) {
-        hncl->Fill(static_cast<double>(clusters.size()));
-        htde->Fill(total_energy_loss * 1e-3); // [keV] energy conservation - binding energy
+        hncl[name]->Fill(static_cast<double>(clusters.size()));
+        htde[name]->Fill(total_energy_loss * 1e-3); // [keV] energy conservation - binding energy
         if(ndelta > 0) {
-            htde1->Fill(total_energy_loss * 1e-3); // [keV]
+            htde1[name]->Fill(total_energy_loss * 1e-3); // [keV]
         } else {
-            htde0->Fill(total_energy_loss * 1e-3); // [keV]
+            htde0[name]->Fill(total_energy_loss * 1e-3); // [keV]
         }
-        hteh->Fill(nehpairs * 1e-3); // [ke]
-        hq0->Fill(nehpairs * 1e-3);  // [ke]
-        hrms->Fill(sqrt(sumeh2));
+        hteh[name]->Fill(nehpairs * 1e-3); // [ke]
+        hq0[name]->Fill(nehpairs * 1e-3);  // [ke]
+        hrms[name]->Fill(sqrt(sumeh2));
     }
 
     // Only now that we have all MCParticles generated, we can assign the fixed memory address of the parent:
@@ -913,7 +934,7 @@ std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> inco
                              0.,
                              &(mcparticles.at(cluster.particleID())));
         LOG(TRACE) << "Deposited " << cluster.ehpairs() << " charge carriers of both types at global position "
-                   << Units::display(position_global, {"um", "mm"}) << " in detector " << detector->getName();
+                   << Units::display(position_global, {"um", "mm"}) << " in detector " << name;
     }
 
     // Dispatch the messages to the framework
@@ -1115,32 +1136,37 @@ void DepositionBichselModule::finalize() {
     if(output_plots_) {
         source_energy->Write();
 
-        elvse->Write();
-        invse->Write();
-        hstep5->Write();
-        hstep0->Write();
-        hzz->Write();
-        hde0->Write();
-        hde1->Write();
-        hde2->Write();
-        hdel->Write();
-        htet->Write();
-        hnprim->Write();
-        hlogE->Write();
-        hlogn->Write();
-        hscat->Write();
-        hncl->Write();
-        htde->Write();
-        htde0->Write();
-        htde1->Write();
-        hteh->Write();
-        hq0->Write();
-        hrms->Write();
-        h2xy->SetOption("colz");
-        h2xy->Write();
-        h2zx->SetOption("colz");
-        h2zx->Write();
-        h2zr->SetOption("colz");
-        h2zr->Write();
+        for(auto& detector : geo_manager_->getDetectors()) {
+            auto name = detector->getName();
+            directories[name]->cd();
+
+            elvse[name]->Write();
+            invse[name]->Write();
+            hstep5[name]->Write();
+            hstep0[name]->Write();
+            hzz[name]->Write();
+            hde0[name]->Write();
+            hde1[name]->Write();
+            hde2[name]->Write();
+            hdel[name]->Write();
+            htet[name]->Write();
+            hnprim[name]->Write();
+            hlogE[name]->Write();
+            hlogn[name]->Write();
+            hscat[name]->Write();
+            hncl[name]->Write();
+            htde[name]->Write();
+            htde0[name]->Write();
+            htde1[name]->Write();
+            hteh[name]->Write();
+            hq0[name]->Write();
+            hrms[name]->Write();
+            h2xy[name]->SetOption("colz");
+            h2xy[name]->Write();
+            h2zx[name]->SetOption("colz");
+            h2zx[name]->Write();
+            h2zr[name]->SetOption("colz");
+            h2zr[name]->Write();
+        }
     }
 }
