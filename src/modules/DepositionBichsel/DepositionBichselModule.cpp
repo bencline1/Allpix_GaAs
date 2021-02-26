@@ -476,7 +476,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                                                        const std::shared_ptr<const Detector>& detector) { // NOLINT
 
     std::deque<Particle> incoming;
-    incoming.push_back(primary);
+    incoming.push_back(std::move(primary));
     PhotoAbsorptionIonizer ionizer(&random_generator_);
     std::uniform_real_distribution<double> unirnd(0, 1);
 
