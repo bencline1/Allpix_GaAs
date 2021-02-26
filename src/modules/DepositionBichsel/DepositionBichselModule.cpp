@@ -323,20 +323,19 @@ void DepositionBichselModule::run(unsigned int event) {
                                   const ROOT::Math::XYZVector& direction_global,
                                   ROOT::Math::XYZPoint& position_local,
                                   ROOT::Math::XYZVector& direction_local) {
-        // Transform from locally centered to global coordinates
-        ROOT::Math::Translation3D translation_center(static_cast<ROOT::Math::XYZVector>(detector_->getPosition()));
-        ROOT::Math::Rotation3D rotation_center(detector_->getOrientation());
+        // Obtain total sensor size
+        auto sensor = detector_->getModel()->getSensorSize();
+
         // Transformation from locally centered into global coordinate system, consisting of
         // * The rotation into the global coordinate system
         // * The shift from the origin to the detector position
+        ROOT::Math::Rotation3D rotation_center(detector_->getOrientation());
+        ROOT::Math::Translation3D translation_center(static_cast<ROOT::Math::XYZVector>(detector_->getPosition()));
         ROOT::Math::Transform3D transform_center(rotation_center, translation_center);
-
-        ROOT::Math::Translation3D translation_local(static_cast<ROOT::Math::XYZVector>(detector_->getModel()->getCenter()));
-        ROOT::Math::Transform3D transform_local(translation_local);
-
         auto position = transform_center.Inverse()(position_global);
+
+        // Direction vector can directly be rotated
         direction_local = detector_->getOrientation().Inverse()(direction_global);
-        auto sensor = detector_->getModel()->getSensorSize();
 
         // Liang–Barsky clipping of a line against faces of a box
         auto clip = [](double denom, double numer, double& t0, double& t1) {
@@ -361,7 +360,7 @@ void DepositionBichselModule::run(unsigned int event) {
             }
         };
 
-        // Clip the line against the six possible box faces
+        // Clip the particle track against the six possible box faces
         double t0 = std::numeric_limits<double>::lowest(), t1 = std::numeric_limits<double>::max();
         bool intersect = clip(direction_local.X(), -position.X() - sensor.X() / 2, t0, t1) &&
                          clip(-direction_local.X(), position.X() - sensor.X() / 2, t0, t1) &&
@@ -370,8 +369,12 @@ void DepositionBichselModule::run(unsigned int event) {
                          clip(direction_local.Z(), -position.Z() - sensor.Z() / 2, t0, t1) &&
                          clip(-direction_local.Z(), position.Z() - sensor.Z() / 2, t0, t1);
 
-        // The intersection is a point P + t * D with t = t0. Return if positive (i.e. in direction of line vector)
+        // The intersection is a point P + t * D with t = t0. Return if positive (i.e. in direction of track vector)
         if(intersect && t0 > 0) {
+            // Transform point from local-centered coordinate system to local coordinate system of the detector
+            ROOT::Math::Translation3D translation_local(
+                static_cast<ROOT::Math::XYZVector>(detector_->getModel()->getCenter()));
+            ROOT::Math::Transform3D transform_local(translation_local);
             position_local = transform_local(position + t0 * direction_local);
             return true;
         } else {
