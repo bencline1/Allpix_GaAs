@@ -232,6 +232,7 @@ void DepositionBichselModule::create_output_plots(unsigned int event_num,
                                                   const std::vector<Cluster>& clusters) {
     LOG(TRACE) << "Writing output plots";
     auto model = detector->getModel();
+    auto name = detector->getName();
 
     // Calculate the axis limits
     double minX = FLT_MAX, maxX = FLT_MIN;
@@ -268,7 +269,7 @@ void DepositionBichselModule::create_output_plots(unsigned int event_num,
     }
 
     // Use a histogram to create the underlying frame
-    auto* histogram_frame = new TH3F(("frame_" + getUniqueName() + "_" + std::to_string(event_num)).c_str(),
+    auto* histogram_frame = new TH3F(("frame_" + name + "_" + std::to_string(event_num)).c_str(),
                                      "",
                                      100,
                                      minX,
@@ -302,7 +303,7 @@ void DepositionBichselModule::create_output_plots(unsigned int event_num,
 
     // Draw and write canvas to module output file, then clear the stored lines
     canvas->Draw();
-    directories[detector->getName()]->WriteTObject(canvas.get());
+    directories[name]->WriteTObject(canvas.get());
 }
 
 void DepositionBichselModule::run(unsigned int event) {
