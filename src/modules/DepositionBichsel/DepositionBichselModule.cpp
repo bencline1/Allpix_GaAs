@@ -227,9 +227,7 @@ void DepositionBichselModule::init() {
     read_emerctab();
 }
 
-void DepositionBichselModule::create_output_plots(unsigned int event_num,
-                                                  const std::shared_ptr<const Detector>& detector,
-                                                  const std::vector<Cluster>& clusters) {
+void DepositionBichselModule::create_output_plots(unsigned int event_num, const std::shared_ptr<const Detector>& detector) {
     LOG(TRACE) << "Writing output plots";
     auto model = detector->getModel();
     auto name = detector->getName();
@@ -237,7 +235,7 @@ void DepositionBichselModule::create_output_plots(unsigned int event_num,
     // Calculate the axis limits
     double minX = FLT_MAX, maxX = FLT_MIN;
     double minY = FLT_MAX, maxY = FLT_MIN;
-    for(const auto& point : clusters) {
+    for(const auto& point : clusters_plotting_[name]) {
         minX = std::min(minX, point.position().x());
         maxX = std::max(maxX, point.position().x());
 
@@ -291,7 +289,7 @@ void DepositionBichselModule::create_output_plots(unsigned int event_num,
     canvas->SetTheta(config_.get<float>("output_plots_theta") * 180.0f / ROOT::Math::Pi());
     canvas->SetPhi(config_.get<float>("output_plots_phi") * 180.0f / ROOT::Math::Pi());
 
-    for(const auto& point : clusters) {
+    for(const auto& point : clusters_plotting_[name]) {
         histogram_frame->Fill(point.position().X(), point.position().Y(), point.position().Z(), point.ehpairs());
     }
 
@@ -304,6 +302,7 @@ void DepositionBichselModule::create_output_plots(unsigned int event_num,
     // Draw and write canvas to module output file
     canvas->Draw();
     directories[name]->WriteTObject(canvas.get());
+    clusters_plotting_[name].clear();
 }
 
 void DepositionBichselModule::run(unsigned int event) {
@@ -423,7 +422,7 @@ void DepositionBichselModule::run(unsigned int event) {
         for(const auto& det : geo_manager_->getDetectors()) {
             ROOT::Math::XYZPoint this_position;
             ROOT::Math::XYZVector this_direction;
-            double this_distance;
+            double this_distance = 0;
             if(!localTrackEntrance(
                    det, particle.position(), particle.direction(), this_distance, this_position, this_direction)) {
                 // No intersection with sensor
@@ -465,11 +464,16 @@ void DepositionBichselModule::run(unsigned int event) {
                                           out.type());
         }
     }
+
+    if(output_event_displays_) {
+        for(const auto& detector : geo_manager_->getDetectors()) {
+            create_output_plots(event, detector);
+        }
+    }
 }
 
 std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
-                                                       const std::shared_ptr<const Detector>& detector,
-                                                       unsigned int event) { // NOLINT
+                                                       const std::shared_ptr<const Detector>& detector) { // NOLINT
 
     std::deque<Particle> incoming;
     incoming.push_back(primary);
@@ -978,6 +982,10 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                              &(mcparticles.at(cluster.particleID())));
         LOG(TRACE) << "Deposited " << cluster.ehpairs() << " charge carriers of both types at global position "
                    << Units::display(position_global, {"um", "mm"}) << " in detector " << name;
+
+        if(output_event_displays_) {
+            clusters_plotting_[name].push_back(cluster);
+        }
     }
 
     // Dispatch the messages to the framework
@@ -987,11 +995,6 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
     auto deposit_message = std::make_shared<DepositedChargeMessage>(std::move(charges), detector);
     messenger_->dispatchMessage(this, deposit_message);
 
-    if(output_event_displays_) {
-        create_output_plots(event, detector, clusters);
-    }
-
-    LOG(INFO) << outgoing.size() << " particles leaving the sensor";
     return outgoing;
 }
 

@@ -238,10 +238,9 @@ namespace allpix {
          *
          * @param  primary Incoming particle entering the sensor (primary MCParticle), local coordinates
          * @param  detector Detector to operate on
-         * @param  event    Event number
          * @return          List of outgoing particles leaving the sensor, local coordinates
          */
-        std::deque<Particle> stepping(Particle primary, const std::shared_ptr<const Detector>& detector, unsigned int event);
+        std::deque<Particle> stepping(Particle primary, const std::shared_ptr<const Detector>& detector); // NOLINT
 
         void update_elastic_collision_parameters(double& inv_collision_length_elastic,
                                                  double& screening_parameter,
@@ -251,11 +250,8 @@ namespace allpix {
          * Plotting of event displays
          * @param event_num Event number
          * @param detector  Detector to generate the plot for
-         * @param clusters  Vector of electron-hole pair depositions in this detector
          */
-        void create_output_plots(unsigned int event_num,
-                                 const std::shared_ptr<const Detector>& detector,
-                                 const std::vector<Cluster>& clusters);
+        void create_output_plots(unsigned int event_num, const std::shared_ptr<const Detector>& detector);
 
         using table = std::array<double, HEPS_ENTRIES>;
         table E, dE;
@@ -285,6 +281,7 @@ namespace allpix {
         // Plotting configuration
         bool output_plots_{};
         bool output_event_displays_{};
+        std::map<std::string, std::vector<Cluster>> clusters_plotting_;
 
         // Constants
         const double electron_mass_ = 0.51099906; // e mass [MeV]
