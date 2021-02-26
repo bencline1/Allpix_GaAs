@@ -7,6 +7,7 @@
 
 [@bichsel], [@mazziotta], elastic scattering [@chaoui], photoabsorption [@fraser]
 
+tracking using Liang-Barsky line clipping [@lineclipping]
 ### Parameters
 * `temperature`:
 * `delta_energy_cut`: Lower cut-off energy for the production of delta rays. Defaults to `9keV`.
@@ -45,3 +46,4 @@ source_type = "mip"
 [@mazziotta]: https://doi.org/10.1016/j.nima.2004.05.127
 [@chaoui]: https://doi.org/10.1088/0953-8984/18/45/016
 [@fraser]: https://doi.org/10.1016/0168-9002(94)91185-1
+[@lineclipping]: Liang, Y. D., and Barsky, B., "A New Concept and Method for Line Clipping", ACM Transactions on Graphics, 3(1):1–22
