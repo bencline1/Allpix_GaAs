@@ -223,11 +223,11 @@ void DepositionBichselModule::create_output_plots(unsigned int event_num,
     double minX = FLT_MAX, maxX = FLT_MIN;
     double minY = FLT_MAX, maxY = FLT_MIN;
     for(const auto& point : clusters) {
-        minX = std::min(minX, point.position.x());
-        maxX = std::max(maxX, point.position.x());
+        minX = std::min(minX, point.position().x());
+        maxX = std::max(maxX, point.position().x());
 
-        minY = std::min(minY, point.position.y());
-        maxY = std::max(maxY, point.position.y());
+        minY = std::min(minY, point.position().y());
+        maxY = std::max(maxY, point.position().y());
     }
 
     // Compute frame axis sizes if equal scaling is requested
@@ -277,7 +277,7 @@ void DepositionBichselModule::create_output_plots(unsigned int event_num,
     canvas->SetPhi(config_.get<float>("output_plots_phi") * 180.0f / ROOT::Math::Pi());
 
     for(const auto& point : clusters) {
-        histogram_frame->Fill(point.position.X(), point.position.Y(), point.position.Z(), point.neh);
+        histogram_frame->Fill(point.position().X(), point.position().Y(), point.position().Z(), point.ehpairs());
     }
 
     // Draw the frame on the canvas
@@ -408,7 +408,7 @@ void DepositionBichselModule::run(unsigned int event) {
 }
 
 std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> incoming,
-                                                       std::shared_ptr<const Detector> detector,
+                                                       std::shared_ptr<const Detector>& detector,
                                                        unsigned int event) { // NOLINT
 
     MazziottaIonizer ionizer(&random_generator_);
@@ -781,7 +781,7 @@ std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> inco
                 // Store charge cluster:
                 if(neh > 0) {
                     // Using number of already created MCParticles as reference
-                    clusters.emplace_back(neh, particle.position(), energy_gamma, mcparticles.size(), particle.time());
+                    clusters.emplace_back(neh, particle.position(), mcparticles.size(), particle.time());
 
                     auto position_x =
                         static_cast<double>(Units::convert(particle.position_start().X() - particle.position().X(), "um"));
@@ -895,24 +895,24 @@ std::deque<Particle> DepositionBichselModule::stepping(std::deque<Particle> inco
 
     // Generate deposited charges
     for(const auto& cluster : clusters) {
-        auto position_global = detector->getGlobalPosition(cluster.position);
+        auto position_global = detector->getGlobalPosition(cluster.position());
 
         // FIXME global time missing
-        charges.emplace_back(cluster.position,
+        charges.emplace_back(cluster.position(),
                              position_global,
                              CarrierType::ELECTRON,
-                             cluster.neh,
-                             cluster.time_,
+                             cluster.ehpairs(),
+                             cluster.time(),
                              0.,
-                             &(mcparticles.at(cluster.particle_id_)));
-        charges.emplace_back(cluster.position,
+                             &(mcparticles.at(cluster.particleID())));
+        charges.emplace_back(cluster.position(),
                              position_global,
                              CarrierType::HOLE,
-                             cluster.neh,
-                             cluster.time_,
+                             cluster.ehpairs(),
+                             cluster.time(),
                              0.,
-                             &(mcparticles.at(cluster.particle_id_)));
-        LOG(TRACE) << "Deposited " << cluster.neh << " charge carriers of both types at global position "
+                             &(mcparticles.at(cluster.particleID())));
+        LOG(TRACE) << "Deposited " << cluster.ehpairs() << " charge carriers of both types at global position "
                    << Units::display(position_global, {"um", "mm"}) << " in detector " << detector->getName();
     }
 
