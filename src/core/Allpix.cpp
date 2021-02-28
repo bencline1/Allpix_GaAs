@@ -183,7 +183,8 @@ void Allpix::load() {
     ROOT::EnableThreadSafety();
 
     // Enable implicit multithreading to force ROOT versions < 6.22 to allocate enough slots for TThreadedObjects
-    ROOT::EnableImplicitMT();
+    // FIXME: Find alternative way as implicit MT is very slow...
+    // ROOT::EnableImplicitMT();
 
     // Set the default units to use
     register_units();

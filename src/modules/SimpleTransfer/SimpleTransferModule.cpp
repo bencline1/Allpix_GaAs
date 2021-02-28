@@ -121,10 +121,11 @@ void SimpleTransferModule::run(Event* event) {
         Pixel::Index pixel_index(static_cast<unsigned int>(xpixel), static_cast<unsigned int>(ypixel));
 
         // Update statistics
-        {
-            std::lock_guard<std::mutex> lock{stats_mutex_};
-            unique_pixels_.insert(pixel_index);
-        }
+        // FIXME: Implement in alternative way as this leads to significant lock contention
+        // {
+        //     std::lock_guard<std::mutex> lock{stats_mutex_};
+        //     unique_pixels_.insert(pixel_index);
+        // }
         transferred_charges_count += propagated_charge.getCharge();
 
         if(output_plots_) {
