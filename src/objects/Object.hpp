@@ -60,8 +60,15 @@ namespace allpix {
         /**
          * @brief ROOT class definition
          */
-        ClassDefOverride(Object, 3); // NOLINT
+        ClassDefOverride(Object, 4); // NOLINT
 
+        /**
+         * @brief Resolve all the history to standard pointers
+         */
+        virtual void loadHistory() = 0;
+        /**
+         * @brief Petrify all the pointers to prepare for persistent storage
+         */
         virtual void petrifyHistory() = 0;
 
     protected:
@@ -122,15 +129,7 @@ namespace allpix {
             /**
              * @brief Function to construct TRef object for wrapped pointer for persistent storage
              */
-            void store() {
-                ref_ = get();
-                // We handle cleanup of objects ourselves, we therefore can deactivate the RecursiveRemove functionality of
-                // the TObject we are referencing. Otherwise this calls locks in ROOT to clean up the hash table - and stalls
-                // our threads.
-                if(get() != nullptr) {
-                    get()->ResetBit(kMustCleanup);
-                }
-            }
+            void store() { ref_ = get(); }
 
             ClassDef(BaseWrapper, 1); // NOLINT
 

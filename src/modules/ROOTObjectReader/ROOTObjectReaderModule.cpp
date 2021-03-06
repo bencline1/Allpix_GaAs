@@ -28,7 +28,7 @@
 #include "objects/Object.hpp"
 #include "objects/objects.h"
 
-#include "core/utils/type.h"
+#include "tools/ROOT.h"
 
 using namespace allpix;
 
@@ -76,6 +76,7 @@ template <typename T> static void add_creator(ROOTObjectReaderModule::MessageCre
                 new_obj.SetBit(kIsReferenced);
                 pid->PutObjectWithID(&new_obj);
             }
+            prev_obj.ResetBit(kMustCleanup);
         }
 
         if(detector == nullptr) {
@@ -257,6 +258,7 @@ void ROOTObjectReaderModule::init() {
 }
 
 void ROOTObjectReaderModule::run(Event* event) {
+    auto root_lock = root_process_lock();
 
     // Beware: ROOT uses signed entry counters for its trees
     auto event_num = static_cast<int64_t>(event->number);
@@ -270,8 +272,8 @@ void ROOTObjectReaderModule::run(Event* event) {
     }
     LOG(TRACE) << "Building messages from stored objects";
 
-    // Loop through all branches
-    for(const auto& message_inf : message_info_array_) {
+    // Loop through all branches to construct messages
+    for(auto& message_inf : message_info_array_) {
         auto* objects = message_inf.objects;
 
         // Skip empty objects in current event
@@ -292,10 +294,25 @@ void ROOTObjectReaderModule::run(Event* event) {
         read_cnt_ += objects->size();
 
         // Create a message
-        std::shared_ptr<BaseMessage> message = iter->second(*objects, message_inf.detector);
+        message_inf.message = iter->second(*objects, message_inf.detector);
+    }
 
-        // Dispatch the message
-        messenger_->dispatchMessage(this, message, event, message_inf.name);
+    for(auto& message_inf : message_info_array_) {
+        // We might not have every message, so just continue
+        if(!message_inf.message) {
+            continue;
+        }
+
+        // Resolve history
+        for(auto& object : message_inf.message->getObjectArray()) {
+            object.get().loadHistory();
+        }
+
+        // Dispatch the messages
+        messenger_->dispatchMessage(this, message_inf.message, event, message_inf.name);
+
+        // Reset the message pointer:
+        message_inf.message.reset();
     }
 }
 
