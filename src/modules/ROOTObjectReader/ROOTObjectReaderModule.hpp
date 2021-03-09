@@ -75,6 +75,7 @@ namespace allpix {
             std::vector<Object*>* objects;
             std::shared_ptr<Detector> detector;
             std::string name;
+            std::shared_ptr<BaseMessage> message;
         };
 
         // Object names to include or exclude from reading
@@ -95,7 +96,5 @@ namespace allpix {
 
         // Internal map to construct an object from it's type index
         MessageCreatorMap message_creator_map_;
-
-        std::mutex mutex_;
     };
 } // namespace allpix

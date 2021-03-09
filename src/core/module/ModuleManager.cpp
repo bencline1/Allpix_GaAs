@@ -532,6 +532,27 @@ void ModuleManager::set_module_after(std::tuple<LogLevel, LogFormat, std::string
  *  \ref Module::reset_delegates() "Resets" the delegates and the logging after initialization.
  */
 void ModuleManager::init(RandomNumberGenerator& seeder) {
+
+    Configuration& global_config = conf_manager_->getGlobalConfiguration();
+    LOG(TRACE) << "Register number of workers for possible multithreading";
+    unsigned int threads_num = 0;
+    if(multithreading_flag_ && can_parallelize_) {
+        // Try to fetch a suitable number of workers if multithreading is enabled
+        auto available_hardware_concurrency = std::thread::hardware_concurrency();
+        if(available_hardware_concurrency > 1u) {
+            // Try to be graceful and leave one core out if the number of workers was not specified
+            available_hardware_concurrency -= 1u;
+        }
+        threads_num = global_config.get<unsigned int>("workers", std::max(available_hardware_concurrency, 1u));
+        if(threads_num < 2) {
+            throw InvalidValueError(global_config, "workers", "number of workers should be larger than one");
+        }
+    }
+    global_config.set<size_t>("workers", threads_num);
+    if(threads_num > 0) {
+        ThreadPool::registerThreadCount(threads_num);
+    }
+
     auto start_time = std::chrono::steady_clock::now();
     LOG_PROGRESS(STATUS, "INIT_LOOP") << "Initializing " << modules_.size() << " module instantiations";
     for(auto& module : modules_) {
@@ -605,21 +626,11 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
     auto plot = global_config.get<bool>("performance_plots");
 
     // Default to no additional thread without multithreading
-    size_t threads_num = 0;
-    size_t buffer_size = 1;
+    auto threads_num = global_config.get<unsigned int>("workers");
+    size_t max_buffer_size = 1;
 
     // See if we can run in parallel with how many workers
     if(multithreading_flag_ && can_parallelize_) {
-        // Try to fetch a suitable number of workers if multithreading is enabled
-        auto available_hardware_concurrency = std::thread::hardware_concurrency();
-        if(available_hardware_concurrency > 1u) {
-            // Try to be graceful and leave one core out if the number of workers was not specified
-            available_hardware_concurrency -= 1u;
-        }
-        threads_num = global_config.get<unsigned int>("workers", std::max(available_hardware_concurrency, 1u));
-        if(threads_num < 2) {
-            throw InvalidValueError(global_config, "workers", "number of workers should be larger than one");
-        }
         LOG(STATUS) << "Multithreading enabled, processing events in parallel on " << threads_num << " worker threads";
 
         if(threads_num > std::thread::hardware_concurrency()) {
@@ -628,9 +639,11 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
         }
 
         // Adjust the modules buffer size according to the number of threads used
-        buffer_size = global_config.get<size_t>("module_buffer_depth", 128) * threads_num;
-        LOG(STATUS) << "Allocating a total of " << buffer_size << " event slots for buffered modules";
-        BufferedModule::set_max_buffer_size(buffer_size);
+        max_buffer_size = global_config.get<size_t>("buffer_per_worker", 128) * threads_num;
+        if(max_buffer_size < threads_num) {
+            throw InvalidValueError(global_config, "buffer_per_worker", "buffer per worker should be larger than one");
+        }
+        LOG(STATUS) << "Allocating a total of " << max_buffer_size << " event slots for buffered modules";
     } else {
         // Issue a warning in case MT was requested but we can't actually run in MT
         if(multithreading_flag_ && !can_parallelize_) {
@@ -640,12 +653,14 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
             LOG(STATUS) << "Multithreading disabled";
         }
     }
-    global_config.set<size_t>("workers", threads_num);
 
     // Book performance histograms
     if(global_config.get<bool>("performance_plots")) {
-        buffer_fill_level_ = CreateHistogram<TH1D>(
-            "buffer_fill_level", "Buffer fill level;# buffered events;# events", buffer_size, 0, buffer_size);
+        buffer_fill_level_ = CreateHistogram<TH1D>("buffer_fill_level",
+                                                   "Buffer fill level;# buffered events;# events",
+                                                   static_cast<int>(max_buffer_size),
+                                                   0,
+                                                   static_cast<double>(max_buffer_size));
         event_time_ = CreateHistogram<TH1D>("event_time", "processing time per event;time [s];# events", 1000, 0, 10);
         for(auto& module : modules_) {
             auto identifier = module->get_identifier().getIdentifier();
@@ -696,13 +711,15 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
     // Push 128 events for each worker to maintain enough work
     auto max_queue_size = threads_num * 128;
     std::unique_ptr<ThreadPool> thread_pool =
-        std::make_unique<ThreadPool>(threads_num, max_queue_size, initialize_function, finalize_function);
+        std::make_unique<ThreadPool>(threads_num, max_queue_size, max_buffer_size, initialize_function, finalize_function);
+    // Events start at one, mark zero identifier directly as completed
+    thread_pool->markComplete(0);
 
     // Record the run stage total time
     auto start_time = std::chrono::steady_clock::now();
 
     // Push all events to the thread pool
-    std::atomic<uint64_t> dispatched_events{0};
+    std::atomic<uint64_t> finished_events{0};
     global_config.setDefault<uint64_t>("number_of_events", 1u);
     auto number_of_events = global_config.get<uint64_t>("number_of_events");
     for(uint64_t i = 1; i <= number_of_events; i++) {
@@ -710,88 +727,120 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
         if(terminate_) {
             LOG(INFO) << "Interrupting event loop after " << i << " events because of request to terminate";
             thread_pool->destroy();
-            global_config.set<uint64_t>("number_of_events", dispatched_events);
+            global_config.set<uint64_t>("number_of_events", finished_events);
             break;
         }
 
         // Get a new seed for the new event
         uint64_t seed = seeder();
 
-        auto event_function =
-            [this, bar, plot, number_of_events, event_num = i, event_seed = seed, &dispatched_events]() mutable {
-                // The RNG to be used by all events running on this thread
-                static thread_local RandomNumberGenerator random_engine;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
+        auto event_function_with_module =
+            [this, bar, plot, number_of_events, event_num = i, event_seed = seed, &finished_events, &thread_pool](
+                std::shared_ptr<Event> event,
+                ModuleList::iterator module_iter,
+                long double event_time,
+                auto&& self_func) mutable -> void {
+            // The RNG to be used by all events running on this thread
+            static thread_local RandomNumberGenerator random_engine;
 
-                // Create the event data
-                std::shared_ptr<Event> event = std::make_shared<Event>(*this->messenger_, event_num, event_seed);
+            // Create the event data
+            if(event == nullptr) {
+                event = std::make_shared<Event>(*this->messenger_, event_num, event_seed);
                 event->set_and_seed_random_engine(&random_engine);
+            } else {
+                LOG(TRACE) << "Continue with earlier event, restoring random seed";
+                event->set_and_seed_random_engine(&random_engine);
+                event->restore_random_engine_state();
+            }
 
-                long double event_time = 0;
-                size_t buffered_events = 0;
-                for(auto& module : modules_) {
-                    LOG_PROGRESS(TRACE, "EVENT_LOOP")
-                        << "Running event " << event->number << " [" << module->get_identifier().getUniqueName() << "]";
+            while(module_iter != modules_.end()) {
+                auto module = *module_iter;
 
-                    // Check if the module is satisfied to run
-                    if(!module->check_delegates(this->messenger_, event.get())) {
-                        LOG(TRACE) << "Not all required messages are received for "
-                                   << module->get_identifier().getUniqueName() << ", skipping module!";
-                        module->skip_event(event->number);
-                        continue;
-                    }
+                LOG_PROGRESS(TRACE, "EVENT_LOOP")
+                    << "Running event " << event->number << " [" << module->get_identifier().getUniqueName() << "]";
 
-                    // Get current time
-                    auto start = std::chrono::steady_clock::now();
-
-                    // Set module specific logging settings
-                    auto old_settings = ModuleManager::set_module_before(
-                        module->get_identifier().getUniqueName(), module->get_configuration(), "R:", event->number);
-
-                    // Run module
-                    try {
-                        if(module->is_buffered()) {
-                            auto* buffered_module = static_cast<BufferedModule*>(module.get());
-                            buffered_events += buffered_module->run_in_order(event);
-                        } else {
-                            module->run(event.get());
-                        }
-                    } catch(const EndOfRunException& e) {
-                        // Terminate if the module threw the EndOfRun request exception:
-                        LOG(WARNING) << "Request to terminate:" << std::endl << e.what();
-                        this->terminate_ = true;
-                    }
-
-                    // Reset logging
-                    ModuleManager::set_module_after(old_settings);
-
-                    // Update execution time
-                    auto end = std::chrono::steady_clock::now();
-                    std::lock_guard<std::mutex> stat_lock{event->stats_mutex_};
-
-                    auto duration = static_cast<std::chrono::duration<long double>>(end - start).count();
-                    event_time += duration;
-                    this->module_execution_time_[module.get()] += duration;
-
-                    if(plot) {
-                        this->module_event_time_[module.get()]->Fill(static_cast<double>(duration));
-                    }
+                // Check if the module is satisfied to run
+                if(!module->check_delegates(this->messenger_, event.get())) {
+                    LOG(TRACE) << "Not all required messages are received for " << module->get_identifier().getUniqueName()
+                               << ", skipping module!";
+                    ++module_iter;
+                    continue;
                 }
+
+                // Get current time
+                auto start = std::chrono::steady_clock::now();
+
+                // Set module specific logging settings
+                auto old_settings = ModuleManager::set_module_before(
+                    module->get_identifier().getUniqueName(), module->get_configuration(), "R:", event->number);
+
+                // Run module
+                bool stop = false;
+                try {
+                    if(module->is_buffered() && event_num != thread_pool->minimumUncompleted()) {
+                        stop = true;
+                    } else {
+                        module->run(event.get());
+                    }
+                } catch(const MissingDependenciesException& e) {
+                    stop = true;
+                } catch(const EndOfRunException& e) {
+                    // Terminate if the module threw the EndOfRun request exception:
+                    LOG(WARNING) << "Request to terminate:" << std::endl << e.what();
+                    this->terminate_ = true;
+                }
+
+                // Reset logging
+                ModuleManager::set_module_after(old_settings);
+
+                // Update execution time
+                auto end = std::chrono::steady_clock::now();
+                std::lock_guard<std::mutex> stat_lock{event->stats_mutex_};
+
+                auto duration = static_cast<std::chrono::duration<long double>>(end - start).count();
+                event_time += duration;
+                this->module_execution_time_[module.get()] += duration;
 
                 if(plot) {
-                    this->buffer_fill_level_->Fill(static_cast<double>(buffered_events));
-                    event_time_->Fill(static_cast<double>(event_time));
+                    this->module_event_time_[module.get()]->Fill(static_cast<double>(duration));
                 }
 
-                dispatched_events++;
-                LOG_PROGRESS_BAR(STATUS,
-                                 "EVENT_LOOP",
-                                 bar,
-                                 (dispatched_events - buffered_events),
-                                 buffered_events,
-                                 number_of_events,
-                                 "events");
-            };
-        thread_pool->submit(event_function);
+                if(stop) {
+                    LOG(TRACE) << "Event " << event->number
+                               << " was interrupted because of missing dependencies, rescheduling...";
+                    auto event_function = std::bind(self_func, event, module_iter, event_time, self_func);
+                    auto future = thread_pool->submit(event->number, event_function, false);
+                    assert(future.valid() || !thread_pool->valid());
+                    auto buffered_events = thread_pool->bufferedQueueSize();
+                    LOG_PROGRESS(STATUS, "EVENT_LOOP") << "Buffered " << buffered_events << ", finished " << finished_events
+                                                       << " of " << number_of_events << " events";
+                    return;
+                }
+
+                ++module_iter;
+            }
+#pragma GCC diagnostic pop
+
+            // All modules finished, mark as complete
+            thread_pool->markComplete(event->number);
+
+            auto buffered_events = thread_pool->bufferedQueueSize();
+            if(plot) {
+                this->buffer_fill_level_->Fill(static_cast<double>(buffered_events));
+                event_time_->Fill(static_cast<double>(event_time));
+            }
+
+            finished_events++;
+            LOG_PROGRESS_BAR(STATUS, "EVENT_LOOP", bar, finished_events, buffered_events, number_of_events, "events");
+        };
+
+        auto event_function =
+            std::bind(event_function_with_module, nullptr, modules_.begin(), 0, event_function_with_module);
+
+        auto future = thread_pool->submit(event_function);
+        assert(future.valid() || !thread_pool->valid());
         thread_pool->checkException();
     }
 
@@ -803,7 +852,7 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
     // Check exception for last events
     thread_pool->checkException();
 
-    LOG_PROGRESS(STATUS, "EVENT_LOOP") << "Finished run of " << dispatched_events << " events";
+    LOG_PROGRESS(STATUS, "EVENT_LOOP") << "Finished run of " << finished_events << " events";
     auto end_time = std::chrono::steady_clock::now();
     total_time_ += static_cast<std::chrono::duration<long double>>(end_time - start_time).count();
 
@@ -850,12 +899,7 @@ void ModuleManager::finalize() {
         // Change to our ROOT directory
         module->getROOTDirectory()->cd();
         // Finalize module
-        if(module->is_buffered()) {
-            auto* buffered_module = static_cast<BufferedModule*>(module.get());
-            buffered_module->finalize_buffer();
-        } else {
-            module->finalize();
-        }
+        module->finalize();
         // Remove the pointer to the ROOT directory after finalizing
         module->set_ROOT_directory(nullptr);
         // Remove the config manager
