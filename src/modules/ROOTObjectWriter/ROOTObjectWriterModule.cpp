@@ -25,6 +25,8 @@
 #include "objects/Object.hpp"
 #include "objects/objects.h"
 
+#include "tools/ROOT.h"
+
 using namespace allpix;
 
 ROOTObjectWriterModule::ROOTObjectWriterModule(Configuration& config, Messenger* messenger, GeometryManager* geo_mgr)
@@ -86,15 +88,7 @@ bool ROOTObjectWriterModule::filter(const std::shared_ptr<BaseMessage>& message,
             return false;
         }
         const Object& first_object = object_array[0];
-        auto* cls = TClass::GetClass(typeid(first_object));
-
-        // Remove the allpix prefix
-        std::string class_name = cls->GetName();
-        std::string apx_namespace = "allpix::";
-        size_t ap_idx = class_name.find(apx_namespace);
-        if(ap_idx != std::string::npos) {
-            class_name.replace(ap_idx, apx_namespace.size(), "");
-        }
+        std::string class_name = allpix::demangle(typeid(first_object).name());
 
         // Check if this message should be kept
         if((!include_.empty() && include_.find(class_name) == include_.cend()) ||
@@ -114,10 +108,9 @@ bool ROOTObjectWriterModule::filter(const std::shared_ptr<BaseMessage>& message,
 }
 
 void ROOTObjectWriterModule::run(Event* event) {
-    auto messages = messenger_->fetchFilteredMessages(this, event);
+    auto root_lock = root_process_lock();
 
-    // Retrieve current object count:
-    auto object_count = TProcessID::GetObjectCount();
+    auto messages = messenger_->fetchFilteredMessages(this, event);
 
     // Generate trees and index data
     for(auto& pair : messages) {
@@ -140,15 +133,8 @@ void ROOTObjectWriterModule::run(Event* event) {
         auto index_tuple = std::make_tuple(type_idx, detector_name, message_name);
         if(write_list_.find(index_tuple) == write_list_.end()) {
 
-            auto* cls = TClass::GetClass(typeid(first_object));
-
-            // Remove the allpix prefix
-            std::string class_name = cls->GetName();
-            std::string apx_namespace = "allpix::";
-            size_t ap_idx = class_name.find(apx_namespace);
-            if(ap_idx != std::string::npos) {
-                class_name.replace(ap_idx, apx_namespace.size(), "");
-            }
+            std::string class_name = allpix::demangle(typeid(first_object).name());
+            std::string class_name_with_namespace = allpix::demangle(typeid(first_object).name(), true);
 
             // Add vector of objects to write to the write list
             write_list_[index_tuple] = new std::vector<Object*>();
@@ -169,7 +155,7 @@ void ROOTObjectWriterModule::run(Event* event) {
             }
 
             trees_[class_name]->Bronch(
-                branch_name.c_str(), (std::string("std::vector<") + cls->GetName() + "*>").c_str(), addr);
+                branch_name.c_str(), (std::string("std::vector<") + class_name_with_namespace + "*>").c_str(), addr);
 
             // Prefill new tree or new branch with empty records for all events that were missed since the start
             if(last_event_ > 0) {
@@ -215,9 +201,6 @@ void ROOTObjectWriterModule::run(Event* event) {
     for(auto& index_data : write_list_) {
         index_data.second->clear();
     }
-
-    // Reset object count:
-    TProcessID::SetObjectCount(object_count);
 }
 
 void ROOTObjectWriterModule::finalize() {
