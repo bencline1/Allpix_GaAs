@@ -19,6 +19,8 @@ using namespace allpix;
 
 DepositionReaderModule::DepositionReaderModule(Configuration& config, Messenger* messenger, GeometryManager* geo_manager)
     : BufferedModule(config), geo_manager_(geo_manager), messenger_(messenger) {
+    // Enable parallelization of this module if multithreading is enabled
+    enable_parallelization();
 
     config_.setDefault<double>("charge_creation_energy", Units::get(3.64, "eV"));
     config_.setDefault<double>("fano_factor", 0.115);
@@ -306,10 +308,9 @@ void DepositionReaderModule::run(Event* event) {
 
         if(!mc_particle_time[detector].empty()) {
             time_reference = *std::min_element(mc_particle_time[detector].begin(), mc_particle_time[detector].end());
+            LOG(DEBUG) << "Earliest MCParticle arrived on detector " << detector->getName() << " at "
+                       << Units::display(time_reference, {"ns", "ps"}) << " global";
         }
-
-        LOG(DEBUG) << "Earliest MCParticle arrived on detector " << detector->getName() << " at "
-                   << Units::display(time_reference, {"ns", "ps"}) << " global";
 
         std::vector<MCParticle> mc_particles;
         for(size_t i = 0; i < mc_particle_start[detector].size(); i++) {
@@ -336,8 +337,9 @@ void DepositionReaderModule::run(Event* event) {
         }
 
         // Send the mc particle information if available
+        bool has_mcparticles = !mc_particles.empty();
         auto mc_particle_message = std::make_shared<MCParticleMessage>(std::move(mc_particles), detector);
-        if(!mc_particles.empty()) {
+        if(has_mcparticles) {
             messenger_->dispatchMessage(this, mc_particle_message, event);
         }
 

@@ -110,7 +110,7 @@ void Messenger::add_delegate(const std::type_info& message_type,
 }
 
 /**
- * @throws std::out_of_range If a delegate is removed which is never registered
+ * @throws std::out_of_range if a delegate is removed which is never registered
  */
 void Messenger::remove_delegate(BaseDelegate* delegate) {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -129,7 +129,8 @@ std::vector<std::pair<std::shared_ptr<BaseMessage>, std::string>> Messenger::fet
         auto* local_messenger = event->get_local_messenger();
         return local_messenger->fetchFilteredMessages(module);
     } catch(const std::out_of_range& e) {
-        throw MessageNotFoundException(module->getUniqueName(), typeid(BaseMessage));
+        // No messages available after filtering, return empty vector:
+        return {};
     }
 }
 

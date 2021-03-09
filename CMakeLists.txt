@@ -4,6 +4,7 @@ IF(COMMAND CMAKE_POLICY)
   CMAKE_POLICY(SET CMP0003 NEW) # change linker path search behaviour
   CMAKE_POLICY(SET CMP0048 NEW) # set project version
   IF(${CMAKE_VERSION} VERSION_GREATER "3.13")
+    CMAKE_POLICY(SET CMP0077 NEW) # allow overwriting options with normal variables
     CMAKE_POLICY(SET CMP0079 NEW) # Allow lookup of linking libraries in other directories
   ENDIF()
 ENDIF(COMMAND CMAKE_POLICY)
@@ -107,6 +108,13 @@ INCLUDE("cmake/AllpixMacros.cmake")
 SET(COMPILER_FLAGS -pedantic -Wall -Wextra -Wcast-align -Wcast-qual -Wconversion -Wuseless-cast -Wctor-dtor-privacy -Wzero-as-null-pointer-constant -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Wredundant-decls -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wundef -Wshadow -Wformat-security -Wdeprecated -fdiagnostics-color=auto -Wheader-hygiene -Wno-overloaded-virtual)
 
 INCLUDE("cmake/compiler-flag-checks.cmake")
+
+# Use CCache if available
+FIND_PROGRAM(CCACHE_FOUND ccache)
+IF(CCACHE_FOUND)
+  MESSAGE(STATUS "Using Ccache: ${CCACHE_FOUND}")
+  SET(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_FOUND}" CACHE PATH "CCache program" FORCE)
+ENDIF()
 
 # Check for C++17 and require C++17 if available else fallback to C++14 (should currently be sufficient)
 CHECK_CXX_COMPILER_FLAG(-std=c++17 SUPPORT_STD_CXX17)

@@ -24,6 +24,7 @@ stages:
     script:
         - mkdir build
         - cd build
+        - export CCACHE_DIR=`pwd`/ccache
         - cmake -GNinja -DCMAKE_CXX_FLAGS="-Werror" -DBUILD_LCIOWriter=ON -DCMAKE_BUILD_TYPE=RELEASE -DROOT_DIR=$ROOTSYS -DEigen3_DIR=$Eigen3_DIR -DLCIO_DIR=$LCIO_DIR ..
         - ninja -k0
         - ninja install
@@ -109,6 +110,7 @@ cmp:mac1015-clang:
     stage: formatting
     tags:
         - docker
+    image: gitlab-registry.cern.ch/sft/docker/centos7:latest
     before_script:
         - export COMPILER_TYPE="llvm"
         - source .gitlab/ci/init_x86_64.sh
@@ -117,7 +119,6 @@ fmt:cc7-llvm-format:
     extends: .format
     needs: []
     dependencies: []
-    image: gitlab-registry.cern.ch/sft/docker/centos7:latest
     script:
         - mkdir -p build
         - cd build/
@@ -128,7 +129,6 @@ fmt:cc7-llvm-lint:
     extends: .format
     needs: []
     dependencies: []
-    image: gitlab-registry.cern.ch/sft/docker/centos7:latest
     script:
         - mkdir -p build
         - cd build/
@@ -138,7 +138,6 @@ fmt:cc7-llvm-lint:
 
 fmt:coverage:
     extends: .format
-    image: gitlab-registry.cern.ch/sft/docker/centos7:latest
     needs: []
     dependencies: []
     before_script:
@@ -150,6 +149,7 @@ fmt:coverage:
         - pip install --trusted-host=pypi.org --user gcovr
         - mkdir build
         - cd build
+        - export CCACHE_DIR=`pwd`/ccache
         - cmake -GNinja -DCMAKE_CXX_FLAGS="-Werror" -DBUILD_LCIOWriter=ON -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE=ON -DLCIO_DIR=$LCIO_DIR ..
         - ninja -k0
         - ninja install
@@ -157,7 +157,6 @@ fmt:coverage:
 
 fmt:codespell:
     extends: .format
-    image: gitlab-registry.cern.ch/sft/docker/centos7:latest
     needs: []
     dependencies: []
     script:
@@ -168,7 +167,6 @@ fmt:codespell:
 
 fmt:coverity:
     extends: .format
-    image: gitlab-registry.cern.ch/sft/docker/centos7:latest
     needs: []
     dependencies: []
     only:
@@ -194,18 +192,30 @@ fmt:coverity:
     stage: testing
     tags:
         - docker
+    after_script:
+        - source .gitlab/ci/init_x86_64.sh
+        - source .gitlab/ci/load_deps.sh
+        - ./.gitlab/ci/transform_ctest_junit.py build/Testing/`head -n 1 build/Testing/TAG`/Test.xml .gitlab/ci/ctest-to-junit.xsl apsq-${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}.xml
+    artifacts:
+        when: always
+        expire_in: 1 week
+        name: "apsq-${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+        paths:
+            - apsq-${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}.xml
+        reports:
+            junit: apsq-${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}.xml
 
 .testmod:
     extends: .test
     script:
         - cd build/
-        - ctest -R test_modules --output-on-failure -j4
+        - ctest -R test_modules --no-compress-output --test-action Test -j4
 
 .testcore:
     extends: .test
     script:
         - cd build/
-        - ctest -R test_core --output-on-failure -j4
+        - ctest -R test_core --no-compress-output --test-action Test -j4
 
 
 # Test if examples still execute fine:
@@ -221,7 +231,7 @@ examples:
         - source .gitlab/ci/load_deps.sh
     script:
         - cd build/
-        - ctest -R examples --output-on-failure -j4
+        - ctest -R examples --no-compress-output --test-action Test -j4
 
 # SLC 6
 
@@ -412,6 +422,8 @@ perf:cc7-gcc:
 
 .doc:
     stage: documentation
+    needs: []
+    dependencies: []
     tags:
         - docker
     artifacts:
@@ -424,8 +436,6 @@ perf:cc7-gcc:
 cmp:doxygen:
     extends: .doc
     image: gitlab-registry.cern.ch/sft/docker/centos7:latest
-    needs: []
-    dependencies: []
     script:
         - source .gitlab/ci/init_x86_64.sh
         - source .gitlab/ci/load_deps.sh
@@ -433,15 +443,13 @@ cmp:doxygen:
         - mkdir build
         - cd build
         - cmake -DBUILD_DOCS_ONLY=ON ..
-        - make reference
+        - make Allpix-reference
         - mv reference/html ../public/reference
 
 # Compile LaTeX user manual:
 cmp:usermanual:
     extends: .doc
     image: gitlab-registry.cern.ch/clicdp/publications/templates/custom_ci_worker:fedora-latex-latest
-    needs: []
-    dependencies: []
     script:
         - mkdir -p public/usermanual
         - mkdir build
@@ -470,6 +478,10 @@ cmp:usermanual:
     only:
         - tags@allpix-squared/allpix-squared
         - schedules@allpix-squared/allpix-squared
+    before_script:
+        - export COMPILER_TYPE="gcc"
+        - source .gitlab/ci/init_x86_64.sh
+        - source .gitlab/ci/load_deps.sh
     script:
         - mkdir -p public/releases
         - cd build
@@ -487,10 +499,6 @@ pkg:slc6-gcc:
     needs:
         - job: cmp:slc6-gcc
           artifacts: true
-    before_script:
-        - export COMPILER_TYPE="gcc"
-        - source .gitlab/ci/init_x86_64.sh
-        - source .gitlab/ci/load_deps.sh
 
 pkg:cc7-gcc:
     extends: .pack
@@ -498,10 +506,6 @@ pkg:cc7-gcc:
     needs:
         - job: cmp:cc7-gcc
           artifacts: true
-    before_script:
-        - export COMPILER_TYPE="gcc"
-        - source .gitlab/ci/init_x86_64.sh
-        - source .gitlab/ci/load_deps.sh
 
 
 ############################
