@@ -814,8 +814,8 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
                     auto future = thread_pool->submit(event->number, event_function, false);
                     assert(future.valid() || !thread_pool->valid());
                     auto buffered_events = thread_pool->bufferedQueueSize();
-                    LOG_PROGRESS(STATUS, "EVENT_LOOP") << "Buffered " << buffered_events << ", finished " << finished_events
-                                                       << " of " << number_of_events << " events";
+                    LOG_PROGRESS_BAR(
+                        STATUS, "EVENT_LOOP", bar, finished_events, buffered_events, number_of_events, "events");
                     return;
                 }
 
