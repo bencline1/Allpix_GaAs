@@ -967,6 +967,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
     }
 
     // Generate deposited charges
+    charges.reserve(2 * clusters.size());
     for(const auto& cluster : clusters) {
         auto position_global = detector->getGlobalPosition(cluster.position());
 
