@@ -31,9 +31,8 @@ using namespace allpix;
 
 DepositionBichselModule::DepositionBichselModule(Configuration& config, Messenger* messenger, GeometryManager* geo_manager)
     : Module(config), geo_manager_(geo_manager), messenger_(messenger) {
-
-    // Seed the random generator with the global seed
-    random_generator_.seed(getRandomSeed());
+    // Enable parallelization of this module if multithreading is enabled
+    enable_parallelization();
 
     config_.setDefault("source_position", ROOT::Math::XYZPoint(0., 0., 0.));
     config_.setDefault("source_energy_spread", 0.);
@@ -102,15 +101,15 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config, Messenge
     }
 }
 
-void DepositionBichselModule::init() {
+void DepositionBichselModule::initialize() {
 
     // Booking histograms:
     if(output_plots_) {
-        source_energy = new TH1D("source_energy",
-                                 "source energy;energy [MeV];particles",
-                                 500,
-                                 source_energy_ - 3 * source_energy_spread_,
-                                 source_energy_ + 3 * source_energy_spread_);
+        source_energy = CreateHistogram<TH1D>("source_energy",
+                                              "source energy;energy [MeV];particles",
+                                              500,
+                                              source_energy_ - 3 * source_energy_spread_,
+                                              source_energy_ + 3 * source_energy_spread_);
 
         for(auto& detector : geo_manager_->getDetectors()) {
             auto model = detector->getModel();
@@ -129,74 +128,79 @@ void DepositionBichselModule::init() {
             local_directory->cd();
             directories[name] = local_directory;
 
-            elvse[name] = new TProfile("elvse", "elastic mfp;log_{10}(E_{kin}[MeV]);elastic mfp [#mum]", 140, -3, 4);
-            invse[name] = new TProfile("invse", "inelastic mfp;log_{10}(E_{kin}[MeV]);inelastic mfp [#mum]", 140, -3, 4);
+            elvse[name] =
+                CreateHistogram<TProfile>("elvse", "elastic mfp;log_{10}(E_{kin}[MeV]);elastic mfp [#mum]", 140, -3, 4);
+            invse[name] =
+                CreateHistogram<TProfile>("invse", "inelastic mfp;log_{10}(E_{kin}[MeV]);inelastic mfp [#mum]", 140, -3, 4);
 
-            hstep5[name] = new TH1I("step5", "step length;step length [#mum];steps", 500, 0, 5);
-            hstep0[name] = new TH1I("step0", "step length;step length [#mum];steps", 500, 0, 0.05);
-            hzz[name] = new TH1I("zz", "z;depth z [#mum];steps", depth, -1 / 2 * depth, depth / 2);
+            hstep5[name] = CreateHistogram<TH1I>("step5", "step length;step length [#mum];steps", 500, 0, 5);
+            hstep0[name] = CreateHistogram<TH1I>("step0", "step length;step length [#mum];steps", 500, 0, 0.05);
+            hzz[name] = CreateHistogram<TH1I>("zz", "z;depth z [#mum];steps", depth, -1 / 2 * depth, depth / 2);
 
-            hde0[name] = new TH1I("de0", "step E loss;step E loss [eV];steps", 200, 0, 200);
-            hde1[name] = new TH1I("de1", "step E loss;step E loss [eV];steps", 100, 0, 5000);
-            hde2[name] = new TH1I("de2", "step E loss;step E loss [keV];steps", 200, 0, 20);
-            hdel[name] = new TH1I("del", "log step E loss;log_{10}(step E loss [eV]);steps", 140, 0, 7);
-            htet[name] = new TH1I("tet", "delta emission angle;delta emission angle [deg];inelasic steps", 180, 0, 90);
-            hnprim[name] = new TH1I("nprim", "primary eh;primary e-h;scatters", 21, -0.5, 20.5);
-            hlogE[name] = new TH1I("logE", "log Eeh;log_{10}(E_{eh}) [eV]);eh", 140, 0, 7);
-            hlogn[name] = new TH1I("logn", "log neh;log_{10}(n_{eh});clusters", 80, 0, 4);
-            hscat[name] = new TH1I("scat", "elastic scattering angle;scattering angle [deg];elastic steps", 180, 0, 180);
-            hncl[name] = new TH1I("ncl", "clusters;e-h clusters;tracks", 4 * depth * 5, 0, 4 * depth * 5);
+            hde0[name] = CreateHistogram<TH1I>("de0", "step E loss;step E loss [eV];steps", 200, 0, 200);
+            hde1[name] = CreateHistogram<TH1I>("de1", "step E loss;step E loss [eV];steps", 100, 0, 5000);
+            hde2[name] = CreateHistogram<TH1I>("de2", "step E loss;step E loss [keV];steps", 200, 0, 20);
+            hdel[name] = CreateHistogram<TH1I>("del", "log step E loss;log_{10}(step E loss [eV]);steps", 140, 0, 7);
+            htet[name] =
+                CreateHistogram<TH1I>("tet", "delta emission angle;delta emission angle [deg];inelasic steps", 180, 0, 90);
+            hnprim[name] = CreateHistogram<TH1I>("nprim", "primary eh;primary e-h;scatters", 21, -0.5, 20.5);
+            hlogE[name] = CreateHistogram<TH1I>("logE", "log Eeh;log_{10}(E_{eh}) [eV]);eh", 140, 0, 7);
+            hlogn[name] = CreateHistogram<TH1I>("logn", "log neh;log_{10}(n_{eh});clusters", 80, 0, 4);
+            hscat[name] =
+                CreateHistogram<TH1I>("scat", "elastic scattering angle;scattering angle [deg];elastic steps", 180, 0, 180);
+            hncl[name] = CreateHistogram<TH1I>("ncl", "clusters;e-h clusters;tracks", 4 * depth * 5, 0, 4 * depth * 5);
 
             double lastbin = source_energy_ < 1.1 ? 1.05 * source_energy_ * 1e3 : 5 * 0.35 * depth; // 350 eV/micron
-            htde[name] =
-                new TH1I("tde", "sum E loss;sum E loss [keV];tracks / keV", std::max(100, int(lastbin)), 0, int(lastbin));
-            htde0[name] = new TH1I("tde0",
-                                   "sum E loss, no delta;sum E loss [keV];tracks, no delta",
-                                   std::max(100, int(lastbin)),
-                                   0,
-                                   int(lastbin));
-            htde1[name] = new TH1I("tde1",
-                                   "sum E loss, with delta;sum E loss [keV];tracks, with delta",
-                                   std::max(100, int(lastbin)),
-                                   0,
-                                   int(lastbin));
+            htde[name] = CreateHistogram<TH1I>(
+                "tde", "sum E loss;sum E loss [keV];tracks / keV", std::max(100, int(lastbin)), 0, int(lastbin));
+            htde0[name] = CreateHistogram<TH1I>("tde0",
+                                                "sum E loss, no delta;sum E loss [keV];tracks, no delta",
+                                                std::max(100, int(lastbin)),
+                                                0,
+                                                int(lastbin));
+            htde1[name] = CreateHistogram<TH1I>("tde1",
+                                                "sum E loss, with delta;sum E loss [keV];tracks, with delta",
+                                                std::max(100, int(lastbin)),
+                                                0,
+                                                int(lastbin));
 
-            hteh[name] = new TH1I("total_eh",
-                                  "total e-h;total charge [ke];tracks",
-                                  std::max(100, int(50 * 0.1 * depth)),
-                                  0,
-                                  std::max(1, int(10 * 0.1 * depth)));
-            hq0[name] = new TH1I("q0",
-                                 "normal charge;normal charge [ke];tracks",
-                                 std::max(100, int(50 * 0.1 * depth)),
-                                 0,
-                                 std::max(1, int(10 * 0.1 * depth)));
-            hrms[name] = new TH1I("rms", "RMS e-h;charge RMS [e];tracks", 100, 0, 50 * depth);
+            hteh[name] = CreateHistogram<TH1I>("total_eh",
+                                               "total e-h;total charge [ke];tracks",
+                                               std::max(100, int(50 * 0.1 * depth)),
+                                               0,
+                                               std::max(1, int(10 * 0.1 * depth)));
+            hq0[name] = CreateHistogram<TH1I>("q0",
+                                              "normal charge;normal charge [ke];tracks",
+                                              std::max(100, int(50 * 0.1 * depth)),
+                                              0,
+                                              std::max(1, int(10 * 0.1 * depth)));
+            hrms[name] = CreateHistogram<TH1I>("rms", "RMS e-h;charge RMS [e];tracks", 100, 0, 50 * depth);
 
-            h2xy[name] = new TH2I("xy",
-                                  "x-y eh-pairs;x_{particle} - x_{eh} [#mum];y_{particle} - y_{eh} [#mum];eh-pairs",
-                                  static_cast<int>(4 * pitch_x),
-                                  -2 * pitch_x,
-                                  2 * pitch_x,
-                                  static_cast<int>(4 * pitch_y),
-                                  -2 * pitch_y,
-                                  2 * pitch_y);
-            h2zx[name] = new TH2I("zx",
-                                  "z-x eh-pairs;z [#mum];x_{particle} - x_{eh} [#mum];eh-pairs",
-                                  depth,
-                                  -1 / 2 * depth,
-                                  depth / 2,
-                                  static_cast<int>(4 * pitch_x),
-                                  -2 * pitch_x,
-                                  2 * pitch_x);
-            h2zr[name] = new TH2I("zr",
-                                  "z-r eh-pairs;z [#mum];r_{eh} [#mum];eh-pairs",
-                                  depth,
-                                  -1 / 2 * depth,
-                                  depth / 2,
-                                  static_cast<int>(4 * sqrt(pitch_x * pitch_x + pitch_y * pitch_y)),
-                                  0.,
-                                  2 * sqrt(pitch_x * pitch_x + pitch_y * pitch_y));
+            h2xy[name] =
+                CreateHistogram<TH2I>("xy",
+                                      "x-y eh-pairs;x_{particle} - x_{eh} [#mum];y_{particle} - y_{eh} [#mum];eh-pairs",
+                                      static_cast<int>(4 * pitch_x),
+                                      -2 * pitch_x,
+                                      2 * pitch_x,
+                                      static_cast<int>(4 * pitch_y),
+                                      -2 * pitch_y,
+                                      2 * pitch_y);
+            h2zx[name] = CreateHistogram<TH2I>("zx",
+                                               "z-x eh-pairs;z [#mum];x_{particle} - x_{eh} [#mum];eh-pairs",
+                                               depth,
+                                               -1 / 2 * depth,
+                                               depth / 2,
+                                               static_cast<int>(4 * pitch_x),
+                                               -2 * pitch_x,
+                                               2 * pitch_x);
+            h2zr[name] = CreateHistogram<TH2I>("zr",
+                                               "z-r eh-pairs;z [#mum];r_{eh} [#mum];eh-pairs",
+                                               depth,
+                                               -1 / 2 * depth,
+                                               depth / 2,
+                                               static_cast<int>(4 * sqrt(pitch_x * pitch_x + pitch_y * pitch_y)),
+                                               0.,
+                                               2 * sqrt(pitch_x * pitch_x + pitch_y * pitch_y));
         }
     }
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -227,7 +231,7 @@ void DepositionBichselModule::init() {
     read_emerctab();
 }
 
-void DepositionBichselModule::create_output_plots(unsigned int event_num, const std::shared_ptr<const Detector>& detector) {
+void DepositionBichselModule::create_output_plots(uint64_t event_num, const std::shared_ptr<const Detector>& detector) {
     LOG(TRACE) << "Writing output plots";
     auto model = detector->getModel();
     auto name = detector->getName();
@@ -305,12 +309,12 @@ void DepositionBichselModule::create_output_plots(unsigned int event_num, const 
     clusters_plotting_[name].clear();
 }
 
-void DepositionBichselModule::run(unsigned int event) {
+void DepositionBichselModule::run(Event* event) {
     std::uniform_real_distribution<double> unirnd(0, 1);
 
     // Add energy spread from Gaussian:
     std::normal_distribution<double> energy_spread(0, source_energy_spread_);
-    double particle_energy = source_energy_ + energy_spread(random_generator_);
+    double particle_energy = source_energy_ + energy_spread(event->getRandomEngine());
 
     if(output_plots_) {
         source_energy->Fill(particle_energy);
@@ -318,8 +322,8 @@ void DepositionBichselModule::run(unsigned int event) {
 
     // Lambda for smearing the initial particle position with the beam size
     auto beam_pos_smearing = [&](auto size) {
-        double dx = std::normal_distribution<double>(0, size)(random_generator_);
-        double dy = std::normal_distribution<double>(0, size)(random_generator_);
+        double dx = std::normal_distribution<double>(0, size)(event->getRandomEngine());
+        double dy = std::normal_distribution<double>(0, size)(event->getRandomEngine());
         return ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<double>>(dx, dy, 0);
     };
 
@@ -452,7 +456,7 @@ void DepositionBichselModule::run(unsigned int event) {
                   << Units::display(detector->getGlobalPosition(position_local), {"um", "mm"}) << " (global)";
 
         Particle incoming(particle_energy, position_local, direction_local, particle_type_);
-        auto outgoing = stepping(std::move(incoming), detector);
+        auto outgoing = stepping(std::move(incoming), detector, event->getRandomEngine());
 
         for(const auto& out : outgoing) {
             LOG(INFO) << "Particle leaving detector \"" << detector->getName() << "\" at "
@@ -467,17 +471,18 @@ void DepositionBichselModule::run(unsigned int event) {
 
     if(output_event_displays_) {
         for(const auto& detector : geo_manager_->getDetectors()) {
-            create_output_plots(event, detector);
+            create_output_plots(event->number, detector);
         }
     }
 }
 
 std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
-                                                       const std::shared_ptr<const Detector>& detector) { // NOLINT
+                                                       const std::shared_ptr<const Detector>& detector,
+                                                       RandomNumberGenerator& random_generator) { // NOLINT
 
     std::deque<Particle> incoming;
     incoming.push_back(std::move(primary));
-    PhotoAbsorptionIonizer ionizer(&random_generator_);
+    PhotoAbsorptionIonizer ionizer(random_generator);
     std::uniform_real_distribution<double> unirnd(0, 1);
 
     std::vector<MCParticle> mcparticles;
@@ -653,7 +658,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
 
             double tlam =
                 1 / (inv_collision_length_inelastic + inv_collision_length_elastic); // [cm] TOTAL MEAN FREE PATH (MFP)
-            double step = -log(1 - unirnd(random_generator_)) * tlam * 10;           // exponential step length, in MM
+            double step = -log(1 - unirnd(random_generator)) * tlam * 10;            // exponential step length, in MM
 
             // Update position after step
             particle.step(step);
@@ -679,12 +684,12 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
             ++nsteps;
 
             // INELASTIC (ionization) PROCESS
-            if(unirnd(random_generator_) > tlam * inv_collision_length_elastic) {
+            if(unirnd(random_generator) > tlam * inv_collision_length_elastic) {
                 LOG(TRACE) << "Inelastic scattering";
                 ++nloss;
 
                 // GENERATE VIRTUAL GAMMA:
-                double yr = unirnd(random_generator_); // inversion method
+                double yr = unirnd(random_generator); // inversion method
                 unsigned je = 2;
                 for(; je <= nlast; ++je) {
                     if(yr < totsig[je]) {
@@ -692,7 +697,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                     }
                 }
 
-                double energy_gamma = E[je - 1] + (E[je] - E[je - 1]) * unirnd(random_generator_); // [eV]
+                double energy_gamma = E[je - 1] + (E[je] - E[je - 1]) * unirnd(random_generator); // [eV]
 
                 if(output_plots_) {
                     hde0[name]->Fill(energy_gamma); // M and L shells
@@ -729,7 +734,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                 if(cost * cost <= 1) {
                     sint = sqrt(1 - cost * cost); // mostly 90 deg
                 }
-                double phi = 2 * M_PI * unirnd(random_generator_);
+                double phi = 2 * M_PI * unirnd(random_generator);
 
                 // G4PenelopeIonisationModel.cc
 
@@ -817,10 +822,10 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                         double p_ionization =
                             1 / (1 + aaa * 105 / 2 / M_PI * sqrt(Eeh - eom0) / pow(Eeh - energy_threshold_, 3.5));
 
-                        if(unirnd(random_generator_) < p_ionization) { // ionization
+                        if(unirnd(random_generator) < p_ionization) { // ionization
                             ++neh;
-                            double E1 = gena1() * (Eeh - energy_threshold_);
-                            double E2 = gena2() * (Eeh - energy_threshold_ - E1);
+                            double E1 = gena1(random_generator) * (Eeh - energy_threshold_);
+                            double E2 = gena2(random_generator) * (Eeh - energy_threshold_ - E1);
 
                             if(E1 > energy_threshold_) {
                                 veh.push(E1);
@@ -838,7 +843,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
 
                 if(fast_) {
                     std::poisson_distribution<unsigned int> poisson(sumEeh / 3.645);
-                    neh = poisson(random_generator_);
+                    neh = poisson(random_generator);
                 }
 
                 nehpairs += neh;
@@ -889,10 +894,10 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                 LOG(TRACE) << "Elastic scattering";
                 ++nscat;
 
-                double r = unirnd(random_generator_);
+                double r = unirnd(random_generator);
                 double cost = 1 - 2 * screening_parameter * r / (2 + screening_parameter - 2 * r);
                 double sint = sqrt(1 - cost * cost);
-                double phi = 2 * M_PI * unirnd(random_generator_);
+                double phi = 2 * M_PI * unirnd(random_generator);
                 std::vector<double> din{sint * cos(phi), sint * sin(phi), cost};
 
                 if(output_plots_) {
@@ -1151,13 +1156,13 @@ void DepositionBichselModule::read_emerctab() {
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-double DepositionBichselModule::gena1() {
+double DepositionBichselModule::gena1(RandomNumberGenerator& random_generator) {
     std::uniform_real_distribution<double> uniform_dist(0, 1);
 
     double r1 = 0, r2 = 0, alph1 = 0;
     do {
-        r1 = uniform_dist(random_generator_);
-        r2 = uniform_dist(random_generator_);
+        r1 = uniform_dist(random_generator);
+        r2 = uniform_dist(random_generator);
         alph1 = 105. / 16. * (1. - r1) * (1 - r1) * sqrt(r1); // integral = 1, max = 1.8782971
     } while(alph1 > 1.8783 * r2);                             // rejection method
 
@@ -1165,13 +1170,13 @@ double DepositionBichselModule::gena1() {
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-double DepositionBichselModule::gena2() {
+double DepositionBichselModule::gena2(RandomNumberGenerator& random_generator) {
     std::uniform_real_distribution<double> uniform_dist(0, 1);
 
     double r1 = 0, r2 = 0, alph2 = 0;
     do {
-        r1 = uniform_dist(random_generator_);
-        r2 = uniform_dist(random_generator_);
+        r1 = uniform_dist(random_generator);
+        r2 = uniform_dist(random_generator);
         alph2 = 8 / M_PI * sqrt(r1 * (1 - r1));
     } while(alph2 > 1.27324 * r2); // rejection method
 
@@ -1207,12 +1212,18 @@ void DepositionBichselModule::finalize() {
             hteh[name]->Write();
             hq0[name]->Write();
             hrms[name]->Write();
-            h2xy[name]->SetOption("colz");
-            h2xy[name]->Write();
-            h2zx[name]->SetOption("colz");
-            h2zx[name]->Write();
-            h2zr[name]->SetOption("colz");
-            h2zr[name]->Write();
+
+            auto hh2xy = h2xy[name]->Merge();
+            hh2xy->SetOption("colz");
+            hh2xy->Write();
+
+            auto hh2zx = h2zx[name]->Merge();
+            hh2zx->SetOption("colz");
+            hh2zx->Write();
+
+            auto hh2zr = h2zr[name]->Merge();
+            hh2zr->SetOption("colz");
+            hh2zr->Write();
         }
     }
 }

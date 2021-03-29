@@ -15,7 +15,7 @@
 
 using namespace allpix;
 
-PhotoAbsorptionIonizer::PhotoAbsorptionIonizer(std::mt19937_64* random_engine) : random_engine_(random_engine) {
+PhotoAbsorptionIonizer::PhotoAbsorptionIonizer(RandomNumberGenerator& random_generator) : random_engine_(&random_generator) {
 
     // Shell energy and probability integral initialization
     for(unsigned n = 1; n <= 4; ++n) {

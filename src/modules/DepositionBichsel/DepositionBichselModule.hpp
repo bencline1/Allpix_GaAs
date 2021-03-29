@@ -212,24 +212,22 @@ namespace allpix {
         DepositionBichselModule(Configuration& config, Messenger* messenger, GeometryManager* geo_manager);
 
         /**
-         * @brief Deposit charge carriers for every simulated event
-         */
-        void run(unsigned int) override;
-
-        /**
          * @brief Initialize the histograms
          */
-        void init() override;
+        void initialize() override;
 
         /**
-         * @brief Write statistical summary
+         * @brief Deposit charge carriers for every simulated event
+         */
+        void run(Event*) override;
+
+        /**
+         * @brief Write statistics summary
          */
         void finalize() override;
 
     private:
-        std::mt19937_64 random_generator_;
         GeometryManager* geo_manager_;
-
         Messenger* messenger_;
 
         /**
@@ -240,7 +238,9 @@ namespace allpix {
          * @param  detector Detector to operate on
          * @return          List of outgoing particles leaving the sensor, local coordinates
          */
-        std::deque<Particle> stepping(Particle primary, const std::shared_ptr<const Detector>& detector); // NOLINT
+        std::deque<Particle> stepping(Particle primary,
+                                      const std::shared_ptr<const Detector>& detector,
+                                      RandomNumberGenerator& random_generator); // NOLINT
 
         void update_elastic_collision_parameters(double& inv_collision_length_elastic,
                                                  double& screening_parameter,
@@ -251,7 +251,7 @@ namespace allpix {
          * @param event_num Event number
          * @param detector  Detector to generate the plot for
          */
-        void create_output_plots(unsigned int event_num, const std::shared_ptr<const Detector>& detector);
+        void create_output_plots(uint64_t event_num, const std::shared_ptr<const Detector>& detector);
 
         using table = std::array<double, HEPS_ENTRIES>;
         table E, dE;
@@ -299,14 +299,14 @@ namespace allpix {
         const double atnu_ = 6.0221367e23 * density / atomic_weight; // atnu = # of atoms per cm**3
 
         // Histograms - global:
-        TH1D* source_energy;
+        Histogram<TH1D> source_energy;
 
         // Histograms - per detector:
         std::map<std::string, TDirectory*> directories;
-        std::map<std::string, TProfile*> elvse, invse;
-        std::map<std::string, TH1I*> hstep5, hstep0, hzz, hde0, hde1, hde2, hdel, htet, hnprim, hlogE, hlogn, hscat, hncl,
-            htde, htde0, htde1, hteh, hq0, hrms;
-        std::map<std::string, TH2I*> h2xy, h2zx, h2zr;
+        std::map<std::string, Histogram<TProfile>> elvse, invse;
+        std::map<std::string, Histogram<TH1I>> hstep5, hstep0, hzz, hde0, hde1, hde2, hdel, htet, hnprim, hlogE, hlogn,
+            hscat, hncl, htde, htde0, htde1, hteh, hq0, hrms;
+        std::map<std::string, Histogram<TH2I>> h2xy, h2zx, h2zr;
 
         /**
          * Helper function to find and open data files with cross section tables
@@ -338,7 +338,7 @@ namespace allpix {
          */
         void read_emerctab();
 
-        double gena1();
-        double gena2();
+        double gena1(RandomNumberGenerator& random_generator);
+        double gena2(RandomNumberGenerator& random_generator);
     };
 } // namespace allpix

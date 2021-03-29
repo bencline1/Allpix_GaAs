@@ -11,6 +11,8 @@
 #include <random>
 #include <stack>
 
+#include "core/utils/prng.h"
+
 #include <Math/Vector3D.h>
 
 namespace allpix {
@@ -24,7 +26,7 @@ namespace allpix {
          * @brief Constructor of ionizer class, also calculates Auger probability integrals
          * @param random_engine pseudo-random number generator to be used
          */
-        PhotoAbsorptionIonizer(std::mt19937_64* random_engine);
+        PhotoAbsorptionIonizer(RandomNumberGenerator& random_generator);
 
         /**
          * @brief Function to calculate electron-hole pairs and their energy from ionization
@@ -46,7 +48,7 @@ namespace allpix {
         /**
          * Random number generator and distributions
          */
-        std::mt19937_64* random_engine_{nullptr};
+        RandomNumberGenerator* random_engine_{nullptr};
         std::uniform_real_distribution<double> uniform_dist_{0, 1};
         std::vector<double> intervals{-1, 0, 1};
         std::vector<double> probabilities{1, 0, 1};
