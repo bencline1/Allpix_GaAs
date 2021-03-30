@@ -115,8 +115,12 @@ namespace allpix {
          * dispatches messages for the detector with MCParticles and DepositedCharges.
          *
          * @param  primary Incoming particle entering the sensor (primary MCParticle), local coordinates
-         * @param  detector Detector to operate on
-         * @return          List of outgoing particles leaving the sensor, local coordinates
+         * @param  detector             Detector to operate on
+         * @param mcparticles           Vector of MCParticles in this detector, newly generated particles are added here
+         * @param mcparticles_parent_id Vector of MCParticle-to-parent relations
+         * @param clusters              Vector of electron-hole pair clusters generated in this detector, newly deposited
+         *                              clusters are added to this list.
+         * @return                      List of outgoing particles leaving the sensor, local coordinates
          */
         std::deque<Particle> stepping(Particle primary,
                                       const std::shared_ptr<const Detector>& detector,
@@ -125,6 +129,12 @@ namespace allpix {
                                       std::vector<Cluster>& clusters,
                                       RandomNumberGenerator& random_generator); // NOLINT
 
+        /**
+         * @brief Helper to update a particle's elatics collision length and screen parameter
+         * @param inv_collision_length_elastic Inverse collision length parameter to be re-calculated
+         * @param screening_parameter          Screening parameter to be recalculated
+         * @param particle                     The particle
+         */
         void update_elastic_collision_parameters(double& inv_collision_length_elastic,
                                                  double& screening_parameter,
                                                  const Particle& particle) const;
