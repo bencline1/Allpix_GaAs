@@ -23,7 +23,6 @@
 #include "core/utils/file.h"
 #include "core/utils/log.h"
 #include "objects/DepositedCharge.hpp"
-#include "objects/MCParticle.hpp"
 
 #include "tools/ROOT.h"
 
@@ -231,7 +230,9 @@ void DepositionBichselModule::initialize() {
     read_emerctab();
 }
 
-void DepositionBichselModule::create_output_plots(uint64_t event_num, const std::shared_ptr<const Detector>& detector) {
+void DepositionBichselModule::create_output_plots(uint64_t event_num,
+                                                  const std::shared_ptr<const Detector>& detector,
+                                                  const std::vector<Cluster>& clusters) {
     LOG(TRACE) << "Writing output plots";
     auto model = detector->getModel();
     auto name = detector->getName();
@@ -239,7 +240,7 @@ void DepositionBichselModule::create_output_plots(uint64_t event_num, const std:
     // Calculate the axis limits
     double minX = FLT_MAX, maxX = FLT_MIN;
     double minY = FLT_MAX, maxY = FLT_MIN;
-    for(const auto& point : clusters_plotting_[name]) {
+    for(const auto& point : clusters) {
         minX = std::min(minX, point.position().x());
         maxX = std::max(maxX, point.position().x());
 
@@ -293,7 +294,7 @@ void DepositionBichselModule::create_output_plots(uint64_t event_num, const std:
     canvas->SetTheta(config_.get<float>("output_plots_theta") * 180.0f / ROOT::Math::Pi());
     canvas->SetPhi(config_.get<float>("output_plots_phi") * 180.0f / ROOT::Math::Pi());
 
-    for(const auto& point : clusters_plotting_[name]) {
+    for(const auto& point : clusters) {
         histogram_frame->Fill(point.position().X(), point.position().Y(), point.position().Z(), point.ehpairs());
     }
 
@@ -306,7 +307,6 @@ void DepositionBichselModule::create_output_plots(uint64_t event_num, const std:
     // Draw and write canvas to module output file
     canvas->Draw();
     directories[name]->WriteTObject(canvas.get());
-    clusters_plotting_[name].clear();
 }
 
 void DepositionBichselModule::run(Event* event) {
@@ -408,6 +408,11 @@ void DepositionBichselModule::run(Event* event) {
     std::deque<Particle> global_particles;
     global_particles.emplace_back(particle_energy, particle_position, particle_direction, particle_type_);
 
+    // Generated MCParticles, charge carrier clusters and their relations
+    std::map<std::shared_ptr<const Detector>, std::vector<MCParticle>> map_mcparticles;
+    std::map<std::shared_ptr<const Detector>, std::vector<int>> map_mcparticles_parent_id;
+    std::map<std::shared_ptr<const Detector>, std::vector<Cluster>> map_clusters;
+
     // Loop until no particle hits any detector anymore:
     while(!global_particles.empty()) {
         LOG(DEBUG) << "Have " << global_particles.size() << " more particles to treat";
@@ -456,7 +461,12 @@ void DepositionBichselModule::run(Event* event) {
                   << Units::display(detector->getGlobalPosition(position_local), {"um", "mm"}) << " (global)";
 
         Particle incoming(particle_energy, position_local, direction_local, particle_type_);
-        auto outgoing = stepping(std::move(incoming), detector, event->getRandomEngine());
+        auto outgoing = stepping(std::move(incoming),
+                                 detector,
+                                 map_mcparticles[detector],
+                                 map_mcparticles_parent_id[detector],
+                                 map_clusters[detector],
+                                 event->getRandomEngine());
 
         for(const auto& out : outgoing) {
             LOG(INFO) << "Particle leaving detector \"" << detector->getName() << "\" at "
@@ -469,29 +479,74 @@ void DepositionBichselModule::run(Event* event) {
         }
     }
 
-    if(output_event_displays_) {
-        for(const auto& detector : geo_manager_->getDetectors()) {
-            create_output_plots(event->number, detector);
+    for(const auto& detector : geo_manager_->getDetectors()) {
+        auto mcparticles = map_mcparticles[detector];
+        auto mcparticles_parent_id = map_mcparticles_parent_id[detector];
+        auto clusters = map_clusters[detector];
+
+        if(output_event_displays_) {
+            create_output_plots(event->number, detector, clusters);
         }
+
+        // Only now that we have all MCParticles generated, we can assign the fixed memory address of the parent:
+        for(size_t i = 0; i < mcparticles.size(); i++) {
+            auto id = static_cast<size_t>(mcparticles_parent_id.at(i));
+            if(mcparticles_parent_id.at(i) >= 0) {
+                LOG(DEBUG) << "MCParticle at " << &(mcparticles.at(i)) << " has parent ID " << id
+                           << ", linking MCParticle at " << &(mcparticles.at(id));
+                mcparticles.at(i).setParent(&(mcparticles.at(id)));
+            } else {
+                LOG(DEBUG) << "MCParticle at " << &(mcparticles.at(i)) << " is a primary particle";
+            }
+        }
+
+        // Generate deposited charges
+        std::vector<DepositedCharge> charges;
+        charges.reserve(2 * clusters.size());
+        for(const auto& cluster : clusters) {
+            auto position_global = detector->getGlobalPosition(cluster.position());
+
+            // FIXME global time missing
+            charges.emplace_back(cluster.position(),
+                                 position_global,
+                                 CarrierType::ELECTRON,
+                                 cluster.ehpairs(),
+                                 cluster.time(),
+                                 0.,
+                                 &(mcparticles.at(cluster.particleID())));
+            charges.emplace_back(cluster.position(),
+                                 position_global,
+                                 CarrierType::HOLE,
+                                 cluster.ehpairs(),
+                                 cluster.time(),
+                                 0.,
+                                 &(mcparticles.at(cluster.particleID())));
+            LOG(TRACE) << "Deposited " << cluster.ehpairs() << " charge carriers of both types at global position "
+                       << Units::display(position_global, {"um", "mm"}) << " in detector " << detector->getName();
+        }
+
+        // Dispatch the messages to the framework
+        auto mcparticle_message = std::make_shared<MCParticleMessage>(std::move(mcparticles), detector);
+        messenger_->dispatchMessage(this, mcparticle_message, event);
+
+        auto deposit_message = std::make_shared<DepositedChargeMessage>(std::move(charges), detector);
+        messenger_->dispatchMessage(this, deposit_message, event);
     }
 }
 
 std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                                                        const std::shared_ptr<const Detector>& detector,
+                                                       std::vector<MCParticle>& mcparticles,
+                                                       std::vector<int>& mcparticles_parent_id,
+                                                       std::vector<Cluster>& clusters,
                                                        RandomNumberGenerator& random_generator) { // NOLINT
 
     std::deque<Particle> incoming;
     incoming.push_back(std::move(primary));
+    std::deque<Particle> outgoing;
+
     PhotoAbsorptionIonizer ionizer(random_generator);
     std::uniform_real_distribution<double> unirnd(0, 1);
-
-    std::vector<MCParticle> mcparticles;
-    std::vector<int> mcparticles_parent_id;
-    std::vector<DepositedCharge> charges;
-
-    std::deque<Particle> outgoing;
-    std::vector<Cluster> clusters;
-
     auto name = detector->getName();
 
     // Statistics:
@@ -922,6 +977,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
         // Finished treating this particle, let's store it:
         // Create MCParticle:
         // FIXME global time missing.
+        // FIXME PDG PID not correct
         mcparticles.emplace_back(particle.position_start(),
                                  start_global,
                                  particle.position(),
@@ -953,53 +1009,6 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
         hq0[name]->Fill(nehpairs * 1e-3);  // [ke]
         hrms[name]->Fill(sqrt(sumeh2));
     }
-
-    // Only now that we have all MCParticles generated, we can assign the fixed memory address of the parent:
-    for(size_t i = 0; i < mcparticles.size(); i++) {
-        auto id = static_cast<size_t>(mcparticles_parent_id.at(i));
-        if(mcparticles_parent_id.at(i) >= 0) {
-            LOG(DEBUG) << "MCParticle at " << &(mcparticles.at(i)) << " has parent ID " << id << ", linking MCParticle at "
-                       << &(mcparticles.at(id));
-            mcparticles.at(i).setParent(&(mcparticles.at(id)));
-        } else {
-            LOG(DEBUG) << "MCParticle at " << &(mcparticles.at(i)) << " is a primary particle";
-        }
-    }
-
-    // Generate deposited charges
-    charges.reserve(2 * clusters.size());
-    for(const auto& cluster : clusters) {
-        auto position_global = detector->getGlobalPosition(cluster.position());
-
-        // FIXME global time missing
-        charges.emplace_back(cluster.position(),
-                             position_global,
-                             CarrierType::ELECTRON,
-                             cluster.ehpairs(),
-                             cluster.time(),
-                             0.,
-                             &(mcparticles.at(cluster.particleID())));
-        charges.emplace_back(cluster.position(),
-                             position_global,
-                             CarrierType::HOLE,
-                             cluster.ehpairs(),
-                             cluster.time(),
-                             0.,
-                             &(mcparticles.at(cluster.particleID())));
-        LOG(TRACE) << "Deposited " << cluster.ehpairs() << " charge carriers of both types at global position "
-                   << Units::display(position_global, {"um", "mm"}) << " in detector " << name;
-
-        if(output_event_displays_) {
-            clusters_plotting_[name].push_back(cluster);
-        }
-    }
-
-    // Dispatch the messages to the framework
-    auto mcparticle_message = std::make_shared<MCParticleMessage>(std::move(mcparticles), detector);
-    messenger_->dispatchMessage(this, mcparticle_message);
-
-    auto deposit_message = std::make_shared<DepositedChargeMessage>(std::move(charges), detector);
-    messenger_->dispatchMessage(this, deposit_message);
 
     return outgoing;
 }

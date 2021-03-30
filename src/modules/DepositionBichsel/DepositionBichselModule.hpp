@@ -12,6 +12,7 @@
 
 #include "core/geometry/GeometryManager.hpp"
 #include "core/module/Module.hpp"
+#include "objects/MCParticle.hpp"
 
 #include <TH1D.h>
 #include <TH1I.h>
@@ -24,6 +25,7 @@ namespace allpix {
 
     /**
      * @brief Type of particles
+     * FIXME move into particle class as Particle::Type
      */
     enum class ParticleType : unsigned int {
         NONE = 0, ///< No particle
@@ -240,6 +242,9 @@ namespace allpix {
          */
         std::deque<Particle> stepping(Particle primary,
                                       const std::shared_ptr<const Detector>& detector,
+                                      std::vector<MCParticle>& mcparticles,
+                                      std::vector<int>& mcparticles_parent_id,
+                                      std::vector<Cluster>& clusters,
                                       RandomNumberGenerator& random_generator); // NOLINT
 
         void update_elastic_collision_parameters(double& inv_collision_length_elastic,
@@ -251,7 +256,9 @@ namespace allpix {
          * @param event_num Event number
          * @param detector  Detector to generate the plot for
          */
-        void create_output_plots(uint64_t event_num, const std::shared_ptr<const Detector>& detector);
+        void create_output_plots(uint64_t event_num,
+                                 const std::shared_ptr<const Detector>& detector,
+                                 const std::vector<Cluster>& clusters);
 
         using table = std::array<double, HEPS_ENTRIES>;
         table E, dE;
@@ -281,7 +288,6 @@ namespace allpix {
         // Plotting configuration
         bool output_plots_{};
         bool output_event_displays_{};
-        std::map<std::string, std::vector<Cluster>> clusters_plotting_;
 
         // Constants
         const double electron_mass_ = 0.51099906; // e mass [MeV]
