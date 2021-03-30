@@ -140,19 +140,23 @@ namespace allpix {
                                                  const Particle& particle) const;
 
         /**
+         * @brief Helper to calculate if the projected particle path enters a given sensor, and if yes, the entrance point
          *
-         * P is the line origin, D is the unit-length line direction, and e contains the box extents. The box center has been
-         * translated to the origin and the line has been translated accordingly. It returns true if an intersection has been
-         * found and false if box and line do not intersect or the intersection is not in the direction of the line vector.
-         * If an intersection is found, the closest intersection point in the direction of the line vector is stored in the
-         * "intersection" parameter.
-         * @param  detector         [description]
-         * @param  position_global  [description]
-         * @param  direction_global [description]
-         * @param  distance         [description]
-         * @param  position_local   [description]
-         * @param  direction_local  [description]
-         * @return                  [description]
+         * This is an implementation of the Liang-Barsky line clipping algorithm, where the line represents the particle
+         * trajectory and the box the sensor volume. The parameter position_global is the line origin, direction_global is
+         * the unit-length line direction. The box for intersection is defined by the sensor volume of the detector. The box
+         * center has been translated to the coordinate system origin and the line has been translated accordingly. The
+         * method returns true if an intersection has been found and false if box and line do not intersect or the
+         * intersection is not in the direction of the line vector. If an intersection is found, the closest intersection
+         * point in the direction of the line vector is stored in the parameters position_local and direction_local.
+         *
+         * @param  detector         Shared pointer to the detector the intersection should be calculated with
+         * @param  position_global  Particle position in global coordinates
+         * @param  direction_global Particle direction unit vector in global coordinates
+         * @param  distance         Distance from the particle position to the detector, if an intersection has been found
+         * @param  position_local   Position of the particle intersection in local coordinates of the detector, if any
+         * @param  direction_local  Direction of the particle in local coordinates of the detector
+         * @return                  Flag if an intersection has been found or not
          */
         bool localTrackEntrance(const std::shared_ptr<const Detector>& detector,
                                 const ROOT::Math::XYZPoint& position_global,
