@@ -186,7 +186,7 @@ namespace allpix {
         ROOT::Math::XYVector beam_divergence_{};
         Particle::Type particle_type_{};
 
-        // COnfig parameter for data file paths:
+        // Config parameter for data file paths:
         std::vector<std::string> data_paths_;
 
         // Config parameters for the stepping algorithm

@@ -364,7 +364,7 @@ void DepositionBichselModule::run(Event* event) {
             if(!localTrackEntrance(
                    det, particle.position(), particle.direction(), this_distance, this_position, this_direction)) {
                 // No intersection with sensor
-                LOG(DEBUG) << "Particle has no intersection with sensor of detector " << det->getName();
+                LOG(DEBUG) << "Particle has no intersection with sensor of detector \"" << det->getName() << "\"";
                 continue;
             }
 
@@ -376,12 +376,12 @@ void DepositionBichselModule::run(Event* event) {
                 direction_local = std::move(this_direction);
                 detector = det;
             } else {
-                LOG(DEBUG) << "Hit on detector " << det->getName() << " is further away";
+                LOG(DEBUG) << "Hit on detector \"" << det->getName() << "\" is further away";
             }
         }
 
         if(detector == nullptr) {
-            LOG(DEBUG) << "Particle has no intersection with sensor any detector";
+            LOG(DEBUG) << "Particle has no intersection with the sensor of any detector";
             continue;
         }
 
@@ -484,10 +484,9 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
     auto name = detector->getName();
 
     // Statistics:
-    unsigned ndelta = 0; // number of deltas generated
-    unsigned nsteps = 0; // number of steps for full event
-    unsigned nscat = 0;  // elastic scattering
-    unsigned nloss = 0;  // ionization
+    bool generated_secondary = false; // Flag if deltas have been generated
+    unsigned nsteps = 0;              // number of steps for full event
+    unsigned nloss = 0;               // ionization
     double total_energy_loss = 0.0;
     unsigned nehpairs = 0;
     unsigned sumeh2 = 0;
@@ -793,7 +792,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                                               particle.time(),
                                               mcparticles.size());
 
-                        ++ndelta;
+                        generated_secondary = true;
                         total_energy_loss -= Eeh; // [eV], avoid double counting
 
                         continue; // next ieh
@@ -865,7 +864,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
 
                 if(particle.E() < 1) {
                     LOG(TRACE) << "    Ek " << particle.E() * 1e3 << " keV, z " << particle.position().Z() << ", neh " << neh
-                               << ", steps " << nsteps << ", ion " << nloss << ", elas " << nscat << ", cl "
+                               << ", steps " << nsteps << ", ion " << nloss << ", elas " << (nsteps - nloss) << ", cl "
                                << clusters.size();
                 }
 
@@ -881,8 +880,6 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
 
             } else { // ELASTIC SCATTERING: Chaoui 2006
                 LOG(TRACE) << "Elastic scattering";
-                ++nscat;
-
                 double r = unirnd(random_generator);
                 double cost = 1 - 2 * screening_parameter * r / (2 + screening_parameter - 2 * r);
                 double sint = sqrt(1 - cost * cost);
@@ -903,7 +900,10 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                                           -sz * din[0] + cz * din[2]));
             } // elastic
         }     // while steps
-        LOG(DEBUG) << "Finished stepping for this particle";
+
+        LOG(INFO) << "Finished stepping for particle with " << nsteps << " steps, of which " << nloss << " inelastic and "
+                  << (nsteps - nloss) << " elastics, dE " << total_energy_loss * 1e-3 << " keV, " << nehpairs
+                  << " eh pairs in " << clusters.size() << " clusters";
 
         // Start and end position of MCParticle:
         auto start_global = detector->getGlobalPosition(particle.position_start());
@@ -928,14 +928,10 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                    << " and end " << Units::display(particle.position(), {"um", "mm"});
     } // while deltas
 
-    LOG(INFO) << "  steps " << nsteps << ", ion " << nloss << ", elas " << nscat << ", dE " << total_energy_loss * 1e-3
-              << " keV"
-              << ", eh " << nehpairs << ", cl " << clusters.size();
-
     if(output_plots_) {
         hncl[name]->Fill(static_cast<double>(clusters.size()));
         htde[name]->Fill(total_energy_loss * 1e-3); // [keV] energy conservation - binding energy
-        if(ndelta > 0) {
+        if(generated_secondary) {
             htde1[name]->Fill(total_energy_loss * 1e-3); // [keV]
         } else {
             htde0[name]->Fill(total_energy_loss * 1e-3); // [keV]
