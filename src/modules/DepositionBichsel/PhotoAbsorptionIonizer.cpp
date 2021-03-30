@@ -316,19 +316,15 @@ std::stack<double> PhotoAbsorptionIonizer::getIonization(double energy_gamma) {
 void PhotoAbsorptionIonizer::transition(double energy_auger, std::stack<double>& veh) {
 
     // AUGER ELECTRON
-    double rEv = (1 + triangular()) * energy_valence_; // 0..2*Ev
-    veh.push(energy_auger - rEv);
+    double energy = (1 + triangular()) * energy_valence_; // 0..2*Ev
+    veh.push(energy_auger - energy);
 
     // ASSIGN ENERGIES TO THE HOLES
-    double energy_hole1 = 0, energy_hole2 = 0;
-    do {
-        double rv = uniform();
-        energy_hole1 = rv * rEv;
-        energy_hole2 = (1 - rv) * rEv;
-    } while(energy_hole1 > energy_valence_ || energy_hole2 > energy_valence_); // holes stay below valence band edge (12 eV)
-
-    veh.push(energy_hole1);
-    veh.push(energy_hole2);
+    // holes share the Auger energy but both stay below valence band edge (12 eV)
+    std::uniform_real_distribution<double> share{std::max(0., energy - energy_valence_), std::min(energy, energy_valence_)};
+    double hole_energy = share(*random_engine_);
+    veh.push(hole_energy);
+    veh.push(energy - hole_energy);
 }
 
 double PhotoAbsorptionIonizer::uniform() {
