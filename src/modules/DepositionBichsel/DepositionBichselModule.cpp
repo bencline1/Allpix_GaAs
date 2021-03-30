@@ -332,78 +332,6 @@ void DepositionBichselModule::run(Event* event) {
     // FIXME divergence missing
     auto particle_direction = beam_direction_;
 
-    // P is the line origin, D is the unit-length line direction, and e contains the box extents. The box center has been
-    // translated to the origin and the line has been translated accordingly.
-    // It returns true if an intersection has been found and false if box and line do not intersect or the intersection is
-    // not in the direction of the line vector. If an intersection is found, the closest intersection point in the direction
-    // of the line vector is stored in the "intersection" parameter.
-    auto localTrackEntrance = [&](const std::shared_ptr<const Detector>& detector,
-                                  const ROOT::Math::XYZPoint& position_global,
-                                  const ROOT::Math::XYZVector& direction_global,
-                                  double& distance,
-                                  ROOT::Math::XYZPoint& position_local,
-                                  ROOT::Math::XYZVector& direction_local) {
-        // Obtain total sensor size
-        auto sensor = detector->getModel()->getSensorSize();
-
-        // Transformation from locally centered into global coordinate system, consisting of
-        // * The rotation into the global coordinate system
-        // * The shift from the origin to the detector position
-        ROOT::Math::Rotation3D rotation_center(detector->getOrientation());
-        ROOT::Math::Translation3D translation_center(static_cast<ROOT::Math::XYZVector>(detector->getPosition()));
-        ROOT::Math::Transform3D transform_center(rotation_center, translation_center);
-        auto position = transform_center.Inverse()(position_global);
-
-        // Direction vector can directly be rotated
-        direction_local = detector->getOrientation().Inverse()(direction_global);
-
-        // Liang–Barsky clipping of a line against faces of a box
-        auto clip = [](double denominator, double numerator, double& t0, double& t1) {
-            if(denominator > 0) {
-                if(numerator > denominator * t1) {
-                    return false;
-                }
-                if(numerator > denominator * t0) {
-                    t0 = numerator / denominator;
-                }
-                return true;
-            } else if(denominator < 0) {
-                if(numerator > denominator * t0) {
-                    return false;
-                }
-                if(numerator > denominator * t1) {
-                    t1 = numerator / denominator;
-                }
-                return true;
-            } else {
-                return numerator <= 0;
-            }
-        };
-
-        // Clip the particle track against the six possible box faces
-        double t0 = std::numeric_limits<double>::lowest(), t1 = std::numeric_limits<double>::max();
-        bool intersect = clip(direction_local.X(), -position.X() - sensor.X() / 2, t0, t1) &&
-                         clip(-direction_local.X(), position.X() - sensor.X() / 2, t0, t1) &&
-                         clip(direction_local.Y(), -position.Y() - sensor.Y() / 2, t0, t1) &&
-                         clip(-direction_local.Y(), position.Y() - sensor.Y() / 2, t0, t1) &&
-                         clip(direction_local.Z(), -position.Z() - sensor.Z() / 2, t0, t1) &&
-                         clip(-direction_local.Z(), position.Z() - sensor.Z() / 2, t0, t1);
-
-        // The intersection is a point P + t * D with t = t0. Return if positive (i.e. in direction of track vector)
-        if(intersect && t0 > 0) {
-            // Transform point from local-centered coordinate system to local coordinate system of the detector
-            ROOT::Math::Translation3D translation_local(
-                static_cast<ROOT::Math::XYZVector>(detector->getModel()->getCenter()));
-            ROOT::Math::Transform3D transform_local(translation_local);
-            position_local = transform_local(position + t0 * direction_local);
-            distance = t0;
-            return true;
-        } else {
-            // Otherwise: The line does not intersect the box.
-            return false;
-        }
-    };
-
     LOG(INFO) << "Initial particle position  (global): " << Units::display(particle_position, {"mm", "um"});
     std::deque<Particle> global_particles;
     global_particles.emplace_back(particle_energy, particle_position, particle_direction, particle_type_);
@@ -1170,6 +1098,72 @@ void DepositionBichselModule::read_emerctab() {
         tokenizer >> jt >> etbl >> oscillator_strength_ae[jt] >> xkmn[jt];
     }
     LOG(INFO) << "Read " << jt << " data lines from EMERC.TAB";
+}
+
+bool DepositionBichselModule::localTrackEntrance(const std::shared_ptr<const Detector>& detector,
+                                                 const ROOT::Math::XYZPoint& position_global,
+                                                 const ROOT::Math::XYZVector& direction_global,
+                                                 double& distance,
+                                                 ROOT::Math::XYZPoint& position_local,
+                                                 ROOT::Math::XYZVector& direction_local) const {
+    // Obtain total sensor size
+    auto sensor = detector->getModel()->getSensorSize();
+
+    // Transformation from locally centered into global coordinate system, consisting of
+    // * The rotation into the global coordinate system
+    // * The shift from the origin to the detector position
+    ROOT::Math::Rotation3D rotation_center(detector->getOrientation());
+    ROOT::Math::Translation3D translation_center(static_cast<ROOT::Math::XYZVector>(detector->getPosition()));
+    ROOT::Math::Transform3D transform_center(rotation_center, translation_center);
+    auto position = transform_center.Inverse()(position_global);
+
+    // Direction vector can directly be rotated
+    direction_local = detector->getOrientation().Inverse()(direction_global);
+
+    // Liang–Barsky clipping of a line against faces of a box
+    auto clip = [](double denominator, double numerator, double& t0, double& t1) {
+        if(denominator > 0) {
+            if(numerator > denominator * t1) {
+                return false;
+            }
+            if(numerator > denominator * t0) {
+                t0 = numerator / denominator;
+            }
+            return true;
+        } else if(denominator < 0) {
+            if(numerator > denominator * t0) {
+                return false;
+            }
+            if(numerator > denominator * t1) {
+                t1 = numerator / denominator;
+            }
+            return true;
+        } else {
+            return numerator <= 0;
+        }
+    };
+
+    // Clip the particle track against the six possible box faces
+    double t0 = std::numeric_limits<double>::lowest(), t1 = std::numeric_limits<double>::max();
+    bool intersect = clip(direction_local.X(), -position.X() - sensor.X() / 2, t0, t1) &&
+                     clip(-direction_local.X(), position.X() - sensor.X() / 2, t0, t1) &&
+                     clip(direction_local.Y(), -position.Y() - sensor.Y() / 2, t0, t1) &&
+                     clip(-direction_local.Y(), position.Y() - sensor.Y() / 2, t0, t1) &&
+                     clip(direction_local.Z(), -position.Z() - sensor.Z() / 2, t0, t1) &&
+                     clip(-direction_local.Z(), position.Z() - sensor.Z() / 2, t0, t1);
+
+    // The intersection is a point P + t * D with t = t0. Return if positive (i.e. in direction of track vector)
+    if(intersect && t0 > 0) {
+        // Transform point from local-centered coordinate system to local coordinate system of the detector
+        ROOT::Math::Translation3D translation_local(static_cast<ROOT::Math::XYZVector>(detector->getModel()->getCenter()));
+        ROOT::Math::Transform3D transform_local(translation_local);
+        position_local = transform_local(position + t0 * direction_local);
+        distance = t0;
+        return true;
+    } else {
+        // Otherwise: The line does not intersect the box.
+        return false;
+    }
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

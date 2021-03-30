@@ -140,6 +140,27 @@ namespace allpix {
                                                  const Particle& particle) const;
 
         /**
+         *
+         * P is the line origin, D is the unit-length line direction, and e contains the box extents. The box center has been
+         * translated to the origin and the line has been translated accordingly. It returns true if an intersection has been
+         * found and false if box and line do not intersect or the intersection is not in the direction of the line vector.
+         * If an intersection is found, the closest intersection point in the direction of the line vector is stored in the
+         * "intersection" parameter.
+         * @param  detector         [description]
+         * @param  position_global  [description]
+         * @param  direction_global [description]
+         * @param  distance         [description]
+         * @param  position_local   [description]
+         * @param  direction_local  [description]
+         * @return                  [description]
+         */
+        bool localTrackEntrance(const std::shared_ptr<const Detector>& detector,
+                                const ROOT::Math::XYZPoint& position_global,
+                                const ROOT::Math::XYZVector& direction_global,
+                                double& distance,
+                                ROOT::Math::XYZPoint& position_local,
+                                ROOT::Math::XYZVector& direction_local) const;
+        /**
          * Plotting of event displays
          * @param event_num Event number
          * @param detector  Detector to generate the plot for
