@@ -24,32 +24,26 @@ namespace allpix {
 #define N2 64
 
     /**
-     * @brief Type of particles
-     * FIXME move into particle class as Particle::Type
-     */
-    enum class ParticleType : unsigned int {
-        NONE = 0, ///< No particle
-        PROTON,
-        PION,
-        KAON,
-        ELECTRON,
-        MUON,
-        HELIUM,
-        LITHIUM,
-        CARBON,
-        IRON,
-    };
-
-    inline std::ostream& operator<<(std::ostream& os, const ParticleType type) {
-        os << static_cast<std::underlying_type<ParticleType>::type>(type);
-        return os;
-    }
-
-    /**
      * @brief Particle
      */
     class Particle {
     public:
+        /**
+         * @brief Type of particles
+         */
+        enum class Type : unsigned int {
+            NONE = 0, ///< No particle
+            PROTON,
+            PION,
+            KAON,
+            ELECTRON,
+            MUON,
+            HELIUM,
+            LITHIUM,
+            CARBON,
+            IRON,
+        };
+
         /**
          * Constructor for new particle
          * @param energy        Kinetic energy of the particle
@@ -58,12 +52,8 @@ namespace allpix {
          * @param particle_type Type of particle
          * @param parent        ID of the parent particle, none (primary) if negative.
          */
-        Particle(double energy,
-                 ROOT::Math::XYZPoint pos,
-                 ROOT::Math::XYZVector dir,
-                 ParticleType type,
-                 double time = 0,
-                 int parent = -1)
+        Particle(
+            double energy, ROOT::Math::XYZPoint pos, ROOT::Math::XYZVector dir, Type type, double time = 0, int parent = -1)
             : position_start_(pos), position_end_(std::move(pos)), direction_(std::move(dir)), time_(time),
               parent_id_(parent), energy_(energy), type_(type) {
             update();
@@ -93,13 +83,13 @@ namespace allpix {
             energy_ = energy;
             update();
         }
-        ParticleType type() const { return type_; }
+        Type type() const { return type_; }
 
         /**
          * Helper to obtain particle rest mass in units of MeV
          * @return Particle rest mass in MeV
          */
-        double mass() const { return mass_.at(static_cast<std::underlying_type<ParticleType>::type>(type_)); };
+        double mass() const { return mass_.at(static_cast<std::underlying_type<Type>::type>(type_)); };
 
         double gamma() const { return gamma_; }
 
@@ -119,8 +109,8 @@ namespace allpix {
         int parent_id_{};
 
         // Relativistic kinetic energy
-        double energy_{};                       // [MeV]
-        ParticleType type_{ParticleType::NONE}; // particle type
+        double energy_{};       // [MeV]
+        Type type_{Type::NONE}; // particle type
 
         void update() {
             gamma_ = energy_ / mass() + 1.0;
@@ -144,6 +134,11 @@ namespace allpix {
             105.65932   // mu
         };
     };
+
+    inline std::ostream& operator<<(std::ostream& os, const Particle::Type type) {
+        os << static_cast<std::underlying_type<Particle::Type>::type>(type);
+        return os;
+    }
 
     /**
      * @ingroup Modules
@@ -275,7 +270,7 @@ namespace allpix {
         ROOT::Math::XYZVector beam_direction_{};
         double beam_size_{};
         ROOT::Math::XYVector beam_divergence_{};
-        ParticleType particle_type_{};
+        Particle::Type particle_type_{};
 
         // COnfig parameter for data file paths:
         std::vector<std::string> data_paths_;

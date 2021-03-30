@@ -70,7 +70,7 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config, Messenge
         config_.get<double>("energy_threshold", 1.5 * 1.17 - 4.73e-4 * temperature * temperature / (636 + temperature));
 
     // FIXME make sure particle exists
-    particle_type_ = static_cast<ParticleType>(config_.get<unsigned int>("particle_type", 4));
+    particle_type_ = static_cast<Particle::Type>(config_.get<unsigned int>("particle_type", 4));
 
     // Register lookup paths for cross-section and oscillator strength data files:
     if(config_.has("data_paths")) {
@@ -587,7 +587,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                     (0.5 * particle.mass() / electron_mass_ + 0.5 * electron_mass_ / particle.mass() + particle.gamma());
 
                 // maximum energy loss for incident electrons
-                if(particle.type() == ParticleType::ELECTRON) {
+                if(particle.type() == Particle::Type::ELECTRON) {
                     Emax = 0.5 * particle.E();
                 }
                 Emax = 1e6 * Emax; // eV
@@ -650,7 +650,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
 
                     // uef from  Eqs. 9 & 2 in Uehling, Ann Rev Nucl Sci 4, 315 (1954)
                     double uef = 1 - E[j] * particle.betasquared() / Emax;
-                    if(particle.type() == ParticleType::ELECTRON) {
+                    if(particle.type() == Particle::Type::ELECTRON) {
                         uef = 1 + pow(E[j] / (EkeV - E[j]), 2) +
                               pow((particle.gamma() - 1) / particle.gamma() * E[j] / EkeV, 2) -
                               (2 * particle.gamma() - 1) * E[j] / (particle.gamma() * particle.gamma() * (EkeV - E[j]));
@@ -855,7 +855,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                         incoming.emplace_back(Eeh * 1E-6,
                                               particle.position(),
                                               delta_direction,
-                                              ParticleType::ELECTRON,
+                                              Particle::Type::ELECTRON,
                                               particle.time(),
                                               mcparticles.size());
 
@@ -941,7 +941,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                 }
 
                 // For electrons, update elastic cross section at new energy
-                if(particle.type() == ParticleType::ELECTRON) {
+                if(particle.type() == Particle::Type::ELECTRON) {
                     update_elastic_collision_parameters(inv_collision_length_elastic, screening_parameter, particle);
                 }
 
@@ -982,7 +982,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                                  start_global,
                                  particle.position(),
                                  end_global,
-                                 static_cast<std::underlying_type<ParticleType>::type>(particle.type()),
+                                 static_cast<std::underlying_type<Particle::Type>::type>(particle.type()),
                                  particle.time(),
                                  0.);
         // Store MCParticle ID of the parent particle
@@ -1016,7 +1016,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
 void DepositionBichselModule::update_elastic_collision_parameters(double& inv_collision_length_elastic,
                                                                   double& screening_parameter,
                                                                   const Particle& particle) const {
-    if(particle.type() == ParticleType::ELECTRON) {
+    if(particle.type() == Particle::Type::ELECTRON) {
         // screening_parameter = 2*2.61 * pow( atomic_number, 2.0/3.0 ) / EkeV; // Mazziotta
         // Moliere
         screening_parameter = 2 * 2.61 * pow(atomic_number_, 2.0 / 3.0) / (particle.momentum() * particle.momentum()) * 1e-6;
