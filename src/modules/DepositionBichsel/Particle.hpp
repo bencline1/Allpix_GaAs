@@ -19,15 +19,11 @@ namespace allpix {
          */
         enum class Type : unsigned int {
             NONE = 0, ///< No particle
-            PROTON,
-            PION,
-            KAON,
-            ELECTRON,
-            MUON,
-            HELIUM,
-            LITHIUM,
-            CARBON,
-            IRON,
+            ELECTRON = 11,
+            MUON = 13,
+            PION = 211,
+            KAON = 321,
+            PROTON = 2212,
         };
 
         /**
@@ -75,7 +71,7 @@ namespace allpix {
          * Helper to obtain particle rest mass in units of MeV
          * @return Particle rest mass in MeV
          */
-        double mass() const { return mass_.at(static_cast<std::underlying_type<Type>::type>(type_)); };
+        double mass() const { return mass_.at(type_); };
 
         double gamma() const { return gamma_; }
 
@@ -111,14 +107,11 @@ namespace allpix {
         double momentum_{};
         double velocity_{};
 
-        std::vector<double> mass_{
-            0,
-            938.2723,   // proton
-            139.578,    // pion
-            493.67,     // K
-            0.51099906, // e
-            105.65932   // mu
-        };
+        std::map<Type, double> mass_{{Type::ELECTRON, 0.51099906}, // e
+                                     {Type::MUON, 105.65932},      // mu
+                                     {Type::PION, 139.578},        // pion
+                                     {Type::KAON, 493.67},         // K
+                                     {Type::PROTON, 938.2723}};    // proton
     };
 
     inline std::ostream& operator<<(std::ostream& os, const Particle::Type type) {

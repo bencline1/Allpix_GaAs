@@ -70,7 +70,7 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config, Messenge
         config_.get<double>("energy_threshold", 1.5 * 1.17 - 4.73e-4 * temperature * temperature / (636 + temperature));
 
     // FIXME make sure particle exists
-    particle_type_ = static_cast<Particle::Type>(config_.get<unsigned int>("particle_type", 4));
+    particle_type_ = static_cast<Particle::Type>(config_.get<unsigned int>("particle_type", 11));
 
     // Register lookup paths for cross-section and oscillator strength data files:
     if(config_.has("data_paths")) {
@@ -389,8 +389,7 @@ void DepositionBichselModule::run(Event* event) {
                   << Units::display(position_local, {"um", "mm"}) << " (local) / "
                   << Units::display(detector->getGlobalPosition(position_local), {"um", "mm"}) << " (global)";
 
-        Particle incoming(particle.E(), position_local, direction_local, particle.type());
-        auto outgoing = stepping(std::move(incoming),
+        auto outgoing = stepping(std::move(Particle(particle.E(), position_local, direction_local, particle.type())),
                                  detector,
                                  map_mcparticles[detector],
                                  map_mcparticles_parent_id[detector],
