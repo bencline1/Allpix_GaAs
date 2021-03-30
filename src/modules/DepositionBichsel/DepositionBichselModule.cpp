@@ -414,6 +414,7 @@ void DepositionBichselModule::run(Event* event) {
     std::map<std::shared_ptr<const Detector>, std::vector<Cluster>> map_clusters;
 
     // Loop until no particle hits any detector anymore:
+    LOG(DEBUG) << "Starting particle tracking";
     while(!global_particles.empty()) {
         LOG(DEBUG) << "Have " << global_particles.size() << " more particles to treat";
 
@@ -478,6 +479,7 @@ void DepositionBichselModule::run(Event* event) {
                                           out.type());
         }
     }
+    LOG(DEBUG) << "Finished particle tracking";
 
     for(const auto& detector : geo_manager_->getDetectors()) {
         auto mcparticles = map_mcparticles[detector];
@@ -526,11 +528,15 @@ void DepositionBichselModule::run(Event* event) {
         }
 
         // Dispatch the messages to the framework
-        auto mcparticle_message = std::make_shared<MCParticleMessage>(std::move(mcparticles), detector);
-        messenger_->dispatchMessage(this, mcparticle_message, event);
+        if(!mcparticles.empty()) {
+            auto mcparticle_message = std::make_shared<MCParticleMessage>(std::move(mcparticles), detector);
+            messenger_->dispatchMessage(this, mcparticle_message, event);
+        }
 
-        auto deposit_message = std::make_shared<DepositedChargeMessage>(std::move(charges), detector);
-        messenger_->dispatchMessage(this, deposit_message, event);
+        if(!charges.empty()) {
+            auto deposit_message = std::make_shared<DepositedChargeMessage>(std::move(charges), detector);
+            messenger_->dispatchMessage(this, deposit_message, event);
+        }
     }
 }
 
@@ -969,6 +975,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                                           -sz * din[0] + cz * din[2]));
             } // elastic
         }     // while steps
+        LOG(DEBUG) << "Finished stepping for this particle";
 
         // Start and end position of MCParticle:
         auto start_global = detector->getGlobalPosition(particle.position_start());
