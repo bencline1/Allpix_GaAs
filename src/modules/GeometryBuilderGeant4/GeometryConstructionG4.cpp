@@ -34,6 +34,7 @@
 #include "core/module/exceptions.h"
 #include "core/utils/log.h"
 #include "tools/ROOT.h"
+#include "tools/geant4/G4LoggingDestination.hpp"
 #include "tools/geant4/geant4.h"
 
 #include "Parameterization2DG4.hpp"
@@ -45,16 +46,6 @@ GeometryConstructionG4::GeometryConstructionG4(GeometryManager* geo_manager, Con
     detector_builder_ = std::make_unique<DetectorConstructionG4>(geo_manager_);
     passive_builder_ = std::make_unique<PassiveMaterialConstructionG4>(geo_manager_);
     passive_builder_->registerVolumes();
-}
-
-/**
- * @brief Version of std::make_shared that does not delete the pointer
- *
- * This version is needed because some pointers are deleted by Geant4 internally, but they are stored as std::shared_ptr in
- * the framework.
- */
-template <typename T, typename... Args> static std::shared_ptr<T> make_shared_no_delete(Args... args) {
-    return std::shared_ptr<T>(new T(args...), [](T*) {});
 }
 
 /**
@@ -149,6 +140,8 @@ G4VPhysicalVolume* GeometryConstructionG4::Construct() {
  *   - PCB G-10
  *   - solder
  *   - paper
+ *   - polystyrene
+ *   - ppo foam
  *   - vacuum
  */
 void GeometryConstructionG4::init_materials() {
@@ -209,9 +202,26 @@ void GeometryConstructionG4::init_materials() {
     // Create paper material (cellulose C6H10O5)
     auto* Paper = new G4Material("Paper", 0.8 * CLHEP::g / CLHEP::cm3, 3);
     Paper->AddElement(C, 6);
-    Paper->AddElement(O, 10);
-    Paper->AddElement(H, 5);
+    Paper->AddElement(O, 5);
+    Paper->AddElement(H, 10);
     materials_["paper"] = Paper;
+
+    // Create polystyrene [(C6H5CHCH2)n]
+    // https://pdg.lbl.gov/2017/AtomicNuclearProperties/HTML/polystyrene.html
+    auto* Polystyrene = new G4Material("Polystyrene", 1.06 * CLHEP::g / CLHEP::cm3, 2);
+    Polystyrene->AddElement(C, 8);
+    Polystyrene->AddElement(H, 8);
+    materials_["polystyrene"] = Polystyrene;
+
+    // Create PPO foam [(C8H8O)n]
+    // https://en.wikipedia.org/wiki/Poly(p-phenylene_oxide)
+    // (approximate) material for Dortmund Cold Box (DOBOX) used in
+    // ATLAS ITk Pixels testbeams
+    auto* PPOFoam = new G4Material("PPOFoam", 0.05 * CLHEP::g / CLHEP::cm3, 3);
+    PPOFoam->AddElement(C, 8);
+    PPOFoam->AddElement(H, 8);
+    PPOFoam->AddElement(O, 1);
+    materials_["ppofoam"] = PPOFoam;
 
     // Add vacuum
     materials_["vacuum"] = new G4Material("Vacuum", 1, 1.008 * CLHEP::g / CLHEP::mole, CLHEP::universe_mean_density);
@@ -221,13 +231,14 @@ void GeometryConstructionG4::check_overlaps() {
     G4PhysicalVolumeStore* phys_volume_store = G4PhysicalVolumeStore::GetInstance();
     LOG(TRACE) << "Checking overlaps";
     bool overlapFlag = false;
-    // Release Geant4 output for better error description
-    IFLOG(WARNING) { RELEASE_STREAM(G4cout); }
+
+    auto current_level = G4LoggingDestination::getG4coutReportingLevel();
+    G4LoggingDestination::setG4coutReportingLevel(LogLevel::ERROR);
     for(auto* volume : (*phys_volume_store)) {
         overlapFlag = volume->CheckOverlaps(1000, 0., false) || overlapFlag;
     }
-    // Suppress again to prevent further complications
-    IFLOG(WARNING) { SUPPRESS_STREAM(G4cout); }
+    G4LoggingDestination::setG4coutReportingLevel(current_level);
+
     if(overlapFlag) {
         LOG(ERROR) << "Overlapping volumes detected.";
     } else {

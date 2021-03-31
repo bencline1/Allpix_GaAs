@@ -28,7 +28,7 @@ namespace allpix {
      *
      * Create LCIO file, compatible to EUTelescope analysis framework.
      */
-    class LCIOWriterModule : public BufferedModule {
+    class LCIOWriterModule : public SequentialModule {
     public:
         /**
          * @brief Constructor for this unique module
@@ -43,7 +43,7 @@ namespace allpix {
         /**
          * @brief Initialize LCIO and GEAR output files
          */
-        void init() override;
+        void initialize() override;
 
         /**
          * @brief Receive pixel hit messages, create lcio event, add hit collection and write event to file.

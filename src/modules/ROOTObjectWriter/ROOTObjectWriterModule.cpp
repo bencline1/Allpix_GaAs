@@ -30,7 +30,7 @@
 using namespace allpix;
 
 ROOTObjectWriterModule::ROOTObjectWriterModule(Configuration& config, Messenger* messenger, GeometryManager* geo_mgr)
-    : BufferedModule(config), messenger_(messenger), geo_mgr_(geo_mgr) {
+    : SequentialModule(config), messenger_(messenger), geo_mgr_(geo_mgr) {
     // Enable parallelization of this module if multithreading is enabled
     enable_parallelization();
 
@@ -47,7 +47,7 @@ ROOTObjectWriterModule::~ROOTObjectWriterModule() {
     }
 }
 
-void ROOTObjectWriterModule::init() {
+void ROOTObjectWriterModule::initialize() {
     // Create output file
     output_file_name_ =
         createOutputFile(allpix::add_file_extension(config_.get<std::string>("file_name", "data"), "root"), true);
@@ -111,6 +111,15 @@ void ROOTObjectWriterModule::run(Event* event) {
     auto root_lock = root_process_lock();
 
     auto messages = messenger_->fetchFilteredMessages(this, event);
+
+    // Mark objects to be stored:
+    for(auto& pair : messages) {
+        auto& message = pair.first;
+        auto object_array = message->getObjectArray();
+        for(Object& object : object_array) {
+            object.markForStorage();
+        }
+    }
 
     // Generate trees and index data
     for(auto& pair : messages) {

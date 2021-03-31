@@ -34,7 +34,7 @@ namespace allpix {
      * More detailed explanation of module
      */
 
-    class CorryvreckanWriterModule : public BufferedModule {
+    class CorryvreckanWriterModule : public SequentialModule {
     public:
         /**
          * @brief Constructor for this unique module
@@ -47,7 +47,7 @@ namespace allpix {
         /**
          * @brief Set up output file and ntuple for filewriting
          */
-        void init() override;
+        void initialize() override;
 
         /**
          * @brief Take the digitised pixel hits and write them into the output file

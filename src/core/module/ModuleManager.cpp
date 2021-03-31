@@ -528,10 +528,10 @@ void ModuleManager::set_module_after(std::tuple<LogLevel, LogFormat, std::string
 }
 
 /**
- * Sets the section header and logging settings before executing the  \ref Module::init() function.
+ * Sets the section header and logging settings before executing the  \ref Module::initialize() function.
  *  \ref Module::reset_delegates() "Resets" the delegates and the logging after initialization.
  */
-void ModuleManager::init(RandomNumberGenerator& seeder) {
+void ModuleManager::initialize() {
 
     Configuration& global_config = conf_manager_->getGlobalConfiguration();
     LOG(TRACE) << "Register number of workers for possible multithreading";
@@ -546,6 +546,11 @@ void ModuleManager::init(RandomNumberGenerator& seeder) {
         threads_num = global_config.get<unsigned int>("workers", std::max(available_hardware_concurrency, 1u));
         if(threads_num < 2) {
             throw InvalidValueError(global_config, "workers", "number of workers should be larger than one");
+        }
+
+        if(threads_num > std::thread::hardware_concurrency()) {
+            LOG(WARNING) << "Using more workers (" << threads_num << ") than supported concurrent threads on this system ("
+                         << std::thread::hardware_concurrency() << ") may impact simulation performance";
         }
     }
     global_config.set<size_t>("workers", threads_num);
@@ -588,9 +593,6 @@ void ModuleManager::init(RandomNumberGenerator& seeder) {
         local_directory->cd();
         module->set_ROOT_directory(local_directory);
 
-        // Set the RNG to be used by the module initialization
-        module->set_random_generator(&seeder);
-
         // Get current time
         auto start = std::chrono::steady_clock::now();
         // Set module specific settings
@@ -598,15 +600,12 @@ void ModuleManager::init(RandomNumberGenerator& seeder) {
         // Change to our ROOT directory
         module->getROOTDirectory()->cd();
         // Init module
-        module->init();
+        module->initialize();
         // Reset logging
         set_module_after(old_settings);
         // Update execution time
         auto end = std::chrono::steady_clock::now();
         module_execution_time_[module.get()] += static_cast<std::chrono::duration<long double>>(end - start).count();
-
-        // Reset the random number generator for this module
-        module->set_random_generator(nullptr);
     }
     LOG_PROGRESS(STATUS, "INIT_LOOP") << "Initialized " << modules_.size() << " module instantiations";
     auto end_time = std::chrono::steady_clock::now();
@@ -633,13 +632,8 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
     if(multithreading_flag_ && can_parallelize_) {
         LOG(STATUS) << "Multithreading enabled, processing events in parallel on " << threads_num << " worker threads";
 
-        if(threads_num > std::thread::hardware_concurrency()) {
-            LOG(WARNING) << "Using more workers (" << threads_num << ") than supported concurrent threads on this system ("
-                         << std::thread::hardware_concurrency() << ") may impact simulation performance";
-        }
-
         // Adjust the modules buffer size according to the number of threads used
-        max_buffer_size = global_config.get<size_t>("buffer_per_worker", 128) * threads_num;
+        max_buffer_size = global_config.get<size_t>("buffer_per_worker", 1024) * threads_num;
         if(max_buffer_size < threads_num) {
             throw InvalidValueError(global_config, "buffer_per_worker", "buffer per worker should be larger than one");
         }
@@ -712,8 +706,6 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
     auto max_queue_size = threads_num * 128;
     std::unique_ptr<ThreadPool> thread_pool =
         std::make_unique<ThreadPool>(threads_num, max_queue_size, max_buffer_size, initialize_function, finalize_function);
-    // Events start at one, mark zero identifier directly as completed
-    thread_pool->markComplete(0);
 
     // Record the run stage total time
     auto start_time = std::chrono::steady_clock::now();
@@ -722,7 +714,18 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
     std::atomic<uint64_t> finished_events{0};
     global_config.setDefault<uint64_t>("number_of_events", 1u);
     auto number_of_events = global_config.get<uint64_t>("number_of_events");
-    for(uint64_t i = 1; i <= number_of_events; i++) {
+
+    // Skip first N events and discard their event seed from the seeder engine:
+    auto skip_events = global_config.get<uint64_t>("skip_events", 0);
+    seeder.discard(skip_events);
+
+    // Mark the first N events as completed for the thread pool. Since events start at one, always mark zero identifier as
+    // completed
+    for(size_t n = 0; n <= skip_events; n++) {
+        thread_pool->markComplete(n);
+    }
+
+    for(uint64_t i = 1 + skip_events; i <= number_of_events + skip_events; i++) {
         // Check if run was aborted and stop pushing extra events to the threadpool
         if(terminate_) {
             LOG(INFO) << "Interrupting event loop after " << i << " events because of request to terminate";
@@ -749,6 +752,7 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
             if(event == nullptr) {
                 event = std::make_shared<Event>(*this->messenger_, event_num, event_seed);
                 event->set_and_seed_random_engine(&random_engine);
+                LOG(INFO) << "Starting event " << event_num << " with seed " << event_seed;
             } else {
                 LOG(TRACE) << "Continue with earlier event, restoring random seed";
                 event->set_and_seed_random_engine(&random_engine);
@@ -779,7 +783,7 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
                 // Run module
                 bool stop = false;
                 try {
-                    if(module->is_buffered() && event_num != thread_pool->minimumUncompleted()) {
+                    if(module->require_sequence() && event_num != thread_pool->minimumUncompleted()) {
                         stop = true;
                     } else {
                         module->run(event.get());
@@ -810,6 +814,9 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
                 if(stop) {
                     LOG(TRACE) << "Event " << event->number
                                << " was interrupted because of missing dependencies, rescheduling...";
+                    // Store state of PRNG engine:
+                    event->store_random_engine_state();
+                    // Reschedule the event:
                     auto event_function = std::bind(self_func, event, module_iter, event_time, self_func);
                     auto future = thread_pool->submit(event->number, event_function, false);
                     assert(future.valid() || !thread_pool->valid());

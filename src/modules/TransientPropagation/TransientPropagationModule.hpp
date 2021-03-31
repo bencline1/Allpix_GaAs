@@ -46,7 +46,7 @@ namespace allpix {
         /**
          * @brief Initialize the module and check field configuration
          */
-        void init() override;
+        void initialize() override;
 
         /**
          * @brief Propagate all deposited charges through the sensor
@@ -99,9 +99,19 @@ namespace allpix {
         // Precalculated value for Boltzmann constant:
         double boltzmann_kT_;
 
+        // Predefined values for reference charge carrier lifetime and doping concentration
+        double electron_lifetime_reference_;
+        double hole_lifetime_reference_;
+        double electron_doping_reference_;
+        double hole_doping_reference_;
+        double auger_coeff_;
+
         // Predefined values for electron/hole velocity calculation in magnetic fields
         double electron_Hall_;
         double hole_Hall_;
+
+        // Doping profile available?
+        bool has_doping_profile_;
 
         // Magnetic field
         bool has_magnetic_field_;

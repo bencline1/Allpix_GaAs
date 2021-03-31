@@ -32,7 +32,7 @@ namespace allpix {
      * sub-directory, it creates a Hits tree. Upon receiving the Pixel Hit messages, it writes the information to
      * the respective trees.
      */
-    class RCEWriterModule : public BufferedModule {
+    class RCEWriterModule : public SequentialModule {
     public:
         /**
          * @brief Constructor for this unique module
@@ -49,7 +49,7 @@ namespace allpix {
         /**
          * @brief Opens the file to write the objects to, and initializes the trees
          */
-        void init() override;
+        void initialize() override;
 
         /**
          * @brief Writes the objects fetched to their specific tree

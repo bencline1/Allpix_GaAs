@@ -293,7 +293,7 @@ static void write_proteus_config(const std::string& device_path,
 }
 
 RCEWriterModule::RCEWriterModule(Configuration& config, Messenger* messenger, GeometryManager* geo_mgr)
-    : BufferedModule(config), messenger_(messenger), geo_mgr_(geo_mgr) {
+    : SequentialModule(config), messenger_(messenger), geo_mgr_(geo_mgr) {
     // Enable parallelization of this module if multithreading is enabled
     enable_parallelization();
 
@@ -309,7 +309,7 @@ RCEWriterModule::RCEWriterModule(Configuration& config, Messenger* messenger, Ge
     config_.setDefault("geometry_file", "geometry.toml");
 }
 
-void RCEWriterModule::init() {
+void RCEWriterModule::initialize() {
     // We need a sorted list of names to assign monotonic, numeric ids
     std::vector<std::string> detector_names;
     for(const auto& detector : geo_mgr_->getDetectors()) {

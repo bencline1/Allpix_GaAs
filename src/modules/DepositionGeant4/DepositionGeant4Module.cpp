@@ -17,6 +17,7 @@
 #include <G4EmParameters.hh>
 #include <G4HadronicProcessStore.hh>
 #include <G4LogicalVolume.hh>
+#include <G4NuclearLevelData.hh>
 #include <G4PhysListFactory.hh>
 #include <G4RadioactiveDecayPhysics.hh>
 #include <G4StepLimiterPhysics.hh>
@@ -34,6 +35,7 @@
 #include "objects/DepositedCharge.hpp"
 #include "tools/ROOT.h"
 #include "tools/geant4/MTRunManager.hpp"
+#include "tools/geant4/RunManager.hpp"
 #include "tools/geant4/geant4.h"
 
 #include "ActionInitializationG4.hpp"
@@ -105,7 +107,7 @@ DepositionGeant4Module::DepositionGeant4Module(Configuration& config, Messenger*
 /**
  * Module depends on \ref GeometryBuilderGeant4Module loaded first, because it owns the pointer to the Geant4 run manager.
  */
-void DepositionGeant4Module::init() {
+void DepositionGeant4Module::initialize() {
     MTRunManager* run_manager_mt = nullptr;
 
     number_of_particles_ = config_.get<unsigned int>("number_of_particles", 1);
@@ -123,9 +125,6 @@ void DepositionGeant4Module::init() {
     if(run_manager_g4_ == nullptr) {
         throw ModuleError("Cannot deposit charges using Geant4 without a Geant4 geometry builder");
     }
-
-    // Suppress all output from G4
-    SUPPRESS_STREAM_EXCEPT(DEBUG, G4cout);
 
     // Get UI manager for sending commands
     G4UImanager* ui_g4 = G4UImanager::GetUIpointer();
@@ -231,19 +230,13 @@ void DepositionGeant4Module::init() {
     run_manager_g4_->SetUserInitialization(physicsList);
     run_manager_g4_->InitializePhysics();
 
-    // Prepare seeds for Geant4:
-    // NOTE Assumes this is the only Geant4 module using random numbers
-    std::string seed_command = "/random/setSeeds ";
-    for(int i = 0; i < G4_NUM_SEEDS; ++i) {
-        seed_command += std::to_string(static_cast<uint32_t>(getRandomSeed() % INT_MAX));
-        if(i != G4_NUM_SEEDS - 1) {
-            seed_command += " ";
-        }
-    }
-
-    // Set the random seed for Geant4 generation before calling initialize
-    // since it draws random numbers
-    ui_g4->ApplyCommand(seed_command);
+    // Disable verbose messages from processes
+    ui_g4->ApplyCommand("/process/verbose 0");
+    ui_g4->ApplyCommand("/process/eLoss/verbose 0");
+    G4EmParameters::Instance()->SetVerbose(0);
+    G4HadronicProcessStore::Instance()->SetVerbose(0);
+    physicsList->SetVerboseLevel(0);
+    G4NuclearLevelData::GetInstance()->GetParameters()->SetVerbose(0);
 
     // Initialize the full run manager to ensure correct state flags
     run_manager_g4_->Initialize();
@@ -272,22 +265,13 @@ void DepositionGeant4Module::init() {
         run_manager_mt->SetSDAndFieldConstruction(std::move(detector_construction));
     }
 
-    // Disable verbose messages from processes
-    ui_g4->ApplyCommand("/process/verbose 0");
-    ui_g4->ApplyCommand("/process/em/verbose 0");
-    ui_g4->ApplyCommand("/process/eLoss/verbose 0");
-    G4HadronicProcessStore::Instance()->SetVerbose(0);
-
-    // Release the output stream
-    RELEASE_STREAM(G4cout);
+    // Flush the Geant4 stream buffer because some elements in the initialization never do:
+    G4cout << G4endl;
 }
 
 void DepositionGeant4Module::initializeThread() {
 
     LOG(DEBUG) << "Initializing run manager";
-
-    // Suppress output stream if not in debugging mode
-    SUPPRESS_STREAM_EXCEPT(DEBUG, G4cout);
 
     // Initialize the thread local G4RunManager in case of MT
     if(canParallelize()) {
@@ -301,21 +285,9 @@ void DepositionGeant4Module::initializeThread() {
 
         run_manager_mt->InitializeForThread();
     }
-
-    // Release the output stream
-    RELEASE_STREAM(G4cout);
 }
 
 void DepositionGeant4Module::run(Event* event) {
-    MTRunManager* run_manager_mt = nullptr;
-
-    // Obtain the thread-local G4RunManager in case of MT
-    if(canParallelize()) {
-        run_manager_mt = static_cast<MTRunManager*>(run_manager_g4_);
-    }
-
-    // Suppress output stream if not in debugging mode
-    SUPPRESS_STREAM_EXCEPT(DEBUG, G4cout);
 
     // Seed the sensitive detectors RNG
     for(auto& sensor : sensors_) {
@@ -324,16 +296,20 @@ void DepositionGeant4Module::run(Event* event) {
 
     // Start a single event from the beam
     LOG(TRACE) << "Enabling beam";
-    if(run_manager_mt == nullptr) {
-        run_manager_g4_->BeamOn(static_cast<int>(number_of_particles_));
+    auto seed1 = event->getRandomNumber();
+    auto seed2 = event->getRandomNumber();
+    LOG(DEBUG) << "Seeding Geant4 event with seeds " << seed1 << " " << seed2;
+
+    if(canParallelize()) {
+        auto* run_manager_mt = static_cast<MTRunManager*>(run_manager_g4_);
+        run_manager_mt->Run(static_cast<int>(number_of_particles_), seed1, seed2);
     } else {
-        run_manager_mt->Run(static_cast<G4int>(event->number), static_cast<int>(number_of_particles_));
+        auto* run_manager = static_cast<RunManager*>(run_manager_g4_);
+        run_manager->Run(static_cast<int>(number_of_particles_), seed1, seed2);
     }
 
     uint64_t last_event_num = last_event_num_.load();
     last_event_num_.compare_exchange_strong(last_event_num, event->number);
-
-    RELEASE_STREAM(G4cout);
 
     track_info_manager_->createMCTracks();
     track_info_manager_->dispatchMessage(this, messenger_, event);
@@ -405,9 +381,10 @@ void DepositionGeant4Module::construct_sensitive_detectors_and_fields(double fan
     bool useful_deposition = false;
     for(auto& detector : geo_manager_->getDetectors()) {
         // Do not add sensitive detector for detectors that have no listeners for the deposited charges
-        // FIXME Probably the MCParticle has to be checked as well
         if(!messenger_->hasReceiver(this,
-                                    std::make_shared<DepositedChargeMessage>(std::vector<DepositedCharge>(), detector))) {
+                                    std::make_shared<DepositedChargeMessage>(std::vector<DepositedCharge>(), detector)) &&
+           !messenger_->hasReceiver(this, std::make_shared<MCParticleMessage>(std::vector<MCParticle>(), detector)) &&
+           !messenger_->hasReceiver(this, std::make_shared<MCTrackMessage>(std::vector<MCTrack>()))) {
             LOG(INFO) << "Not depositing charges in " << detector->getName()
                       << " because there is no listener for its output";
             continue;

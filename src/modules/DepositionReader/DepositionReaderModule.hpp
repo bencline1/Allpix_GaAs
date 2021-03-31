@@ -37,7 +37,7 @@ namespace allpix {
      * individual events with a list of energy deposits at specific position given in local coordinates of the respective
      * detector.
      */
-    class DepositionReaderModule : public BufferedModule {
+    class DepositionReaderModule : public SequentialModule {
     public:
         /**
          * @brief Constructor for this unique module
@@ -50,7 +50,7 @@ namespace allpix {
         /**
          * @brief Initialize the input file stream
          */
-        void init() override;
+        void initialize() override;
 
         /**
          * @brief Read the deposited energy for a given event and create a corresponding DepositedCharge message
@@ -94,7 +94,7 @@ namespace allpix {
         size_t volume_chars_{};
         std::string unit_length_{}, unit_time_{}, unit_energy_{};
 
-        bool create_mcparticles_{}, time_available_{};
+        bool require_sequential_events_{}, create_mcparticles_{}, time_available_{};
 
         bool read_csv(uint64_t event_num,
                       std::string& volume,
@@ -105,6 +105,7 @@ namespace allpix {
                       int& track_id,
                       int& parent_id);
         bool read_root(uint64_t event_num,
+                       int64_t& curr_event_id,
                        std::string& volume,
                        ROOT::Math::XYZPoint& position,
                        double& time,
@@ -115,7 +116,5 @@ namespace allpix {
 
         // Vector of histogram pointers for debugging plots
         std::map<std::string, Histogram<TH1D>> charge_per_event_;
-
-        std::mutex mutex_;
     };
 } // namespace allpix

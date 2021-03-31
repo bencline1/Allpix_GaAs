@@ -41,7 +41,7 @@ namespace allpix {
      *
      * The module base is the core of the modular framework. All modules should be descendants of this class. The base class
      * defines the methods the children can implement:
-     * - Module::init(): for initializing the module at the start
+     * - Module::initialize(): for initializing the module at the start
      * - Module::run(Event*): for doing the job of every module for every event
      * - Module::finalize(): for finalizing the module at the end
      *
@@ -114,12 +114,6 @@ namespace allpix {
         std::string createOutputFile(const std::string& path, bool global = false, bool delete_file = false);
 
         /**
-         * @brief Get seed to initialize random generators
-         * @warning This should be the only method used by modules to seed random numbers to allow reproducing results
-         */
-        uint64_t getRandomSeed();
-
-        /**
          * @brief Get ROOT directory which should be used to output histograms et cetera
          * @return ROOT directory for storage
          */
@@ -150,7 +144,7 @@ namespace allpix {
          *
          * Does nothing if not overloaded.
          */
-        virtual void init() {}
+        virtual void initialize() {}
 
         /**
          * @brief Execute the function of the module for every event
@@ -238,13 +232,6 @@ namespace allpix {
 
         std::vector<std::pair<Messenger*, BaseDelegate*>> delegates_;
 
-        /**
-         * @brief Set the random number generator for this module
-         * @param random_generator Generator to produce random numbers
-         */
-        void set_random_generator(RandomNumberGenerator* random_generator);
-        RandomNumberGenerator* random_generator_{nullptr};
-
         std::shared_ptr<Detector> detector_;
 
         /**
@@ -254,30 +241,39 @@ namespace allpix {
         bool parallelize_{false};
 
         /**
-         * @brief Checks if object is instance of BufferedModule class
+         * @brief Checks if object is instance of SequentialModule class
          */
-        virtual bool is_buffered() const { return false; }
+        virtual bool require_sequence() const { return false; }
     };
 
     /**
      * @brief A Module that always ensure to execute events in the order of event numbers. It
      * implements buffering out of the box so interested modules can directly use it
      */
-    class BufferedModule : public Module {
+    class SequentialModule : public Module {
         friend class Event;
         friend class ModuleManager;
         friend class Messenger;
 
     public:
-        explicit BufferedModule(Configuration& config) : Module(config) {}
-        explicit BufferedModule(Configuration& config, std::shared_ptr<Detector> detector)
+        explicit SequentialModule(Configuration& config) : Module(config) {}
+        explicit SequentialModule(Configuration& config, std::shared_ptr<Detector> detector)
             : Module(config, std::move(detector)) {}
+
+    protected:
+        /**
+         * @brief Release strict sequence processing requirement
+         */
+        void waive_sequence_requirement();
 
     private:
         /**
-         * @brief Checks if object is instance of BufferedModule class
+         * @brief Checks if this module needs to be executed in correct event sequence
+         *
+         * @return true if strict event sequence is required and false if any processing order is valid
          */
-        bool is_buffered() const override { return true; }
+        bool require_sequence() const override { return sequence_required_; }
+        bool sequence_required_{true};
     };
 
 } // namespace allpix

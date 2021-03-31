@@ -46,7 +46,7 @@ namespace allpix {
         /**
          * @brief Initialize - create plots if needed
          */
-        void init() override;
+        void initialize() override;
 
         /**
          * @brief Projection of the electrons to the surface
@@ -81,8 +81,18 @@ namespace allpix {
         double electron_Ec_;
         double electron_Beta_;
 
+        // Doping profile available?
+        bool has_doping_profile_;
+
         // Precalculated value for Boltzmann constant:
         double boltzmann_kT_;
+
+        // Predefined values for reference charge carrier lifetime and doping concentration
+        double electron_lifetime_reference_;
+        double hole_lifetime_reference_;
+        double electron_doping_reference_;
+        double hole_doping_reference_;
+        double auger_coeff_;
 
         // Output plot for drift time
         Histogram<TH1D> drift_time_histo_;

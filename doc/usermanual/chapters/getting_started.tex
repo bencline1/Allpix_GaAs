@@ -294,6 +294,7 @@ The \apsq framework provides a set of global parameters which control and alter 
 The only \textit{required} global parameter: the framework will fail to start if it is not specified.
 \item \parameter{number_of_events}: Determines the total number of events the framework should simulate.
 Defaults to one (simulating a single event).
+\item \parameter{skip_events}: A number of events (and therefore event seeds) to be skipped at start of the run. After skipping, the full \parameter{number_of_events} will be processed starting from the new event seed. Defaults to 0, i.e. starting with the first event seed.
 \item \parameter{root_file}: Location relative to the \parameter{output_directory} where the ROOT output data of all modules will be written to. The file extension \texttt{.root} will be appended if not present.
 Default value is \textit{modules.root}.
 Directories within the ROOT file will be created automatically for all module instantiations.
@@ -326,7 +327,7 @@ Refer to Section~\ref{sec:detector_models} for more information.
 \item \parameter{performance_plots}: Enable the creation of performance plots showing the processing time required per event both for individual modules and the full module stack. Defaults to \texttt{false}.
 \item \parameter{multithreading}: Enable multi-threading for the framework. More information about multi-threading can be found in Section~\ref{sec:multithreading}.
 \item \parameter{workers}: Specify the number of workers to use in total, should be strictly larger than zero. Only used if \parameter{multithreading} is set to true. Defaults to the number of native threads available on the system if this can be determined, otherwise one thread is used.
-\item \parameter{buffer_per_worker}: Specify the buffer depth available per worker for buffered modules to cache partially processed events until execution in the correct order can be guaranteed (see Section~\ref{sec:multithreading_approach}). Defaults to 128.
+\item \parameter{buffer_per_worker}: Specify the buffer depth available per worker for buffered modules to cache partially processed events until execution in the correct order can be guaranteed (see Section~\ref{sec:multithreading_approach}). Defaults to 1024.
 \item \parameter{progress_bar}: Enable or disable the display of a progress bar during the event loop. Defaults to \parameter{true}.
 \end{itemize}
 
@@ -362,7 +363,7 @@ These are specified by adding a dot (\texttt{.}) between the detector and the ac
 
 No interaction with the framework is possible during the simulation. Signals can however be send using keyboard shortcuts to terminate the simulation, either gracefully or with force. The executable understand the following signals:
 \begin{itemize}
-    \item SIGINT (\texttt{CTRL+C}): Request a graceful shutdown of the simulation. This means all currently simulated events are finished, while all other events requested in the configuration file are ignored. After finishing the event, the finalization stage is run for every module to ensure all modules finish properly. This signal can be very useful when too many events are specified and the simulation takes too long to finish entirely, but the output generated so far should still be kept.
+    \item SIGINT (\texttt{CTRL+C}): Request a graceful shutdown of the simulation. This means the currently processed events are finished, while events placed on the buffer as well as all additionally requested events from the configuration file are ignored. After finishing the current events, the finalization stage is run for every module to ensure that the simulation terminates properly. This signal can be very useful when too many events are specified and the simulation takes too long to finish entirely, but the output generated so far should still be kept.
     \item SIGTERM: Same as SIGINT, request a graceful shutdown of the simulation. This signal is emitted e.g.\ by the \command{kill} command or by cluster computing schedulers to ask for a termination of the job.
     \item SIGQUIT (\texttt{CTRL+\textbackslash}): Forcefully terminates the simulation. It is not recommended to use this signal as it will normally lead to the loss of all generated data. This signal should only be used when graceful termination is for any reason not possible.
 \end{itemize}

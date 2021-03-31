@@ -241,7 +241,7 @@ Unique modules can access the GeometryManager to fetch all detector descriptions
 
 In addition to the constructor, each module can override the following methods:
 \begin{itemize}
-\item \parameter{init()}: Called once per module from the main thread after loading and constructing all modules and before starting the event loop.
+\item \parameter{initialize()}: Called once per module from the main thread after loading and constructing all modules and before starting the event loop.
 This method can for example be used to initialize histograms.
 \item \parameter{initializeThread()}: Called after global initialization but before event processing and gives the possibility to initialize worker thread-specific members for modules if multi-threading is used.
 \item \parameter{run(Event* event)}: Called for every event in the simulation, with a pointer to the current event object as parameter.
@@ -255,7 +255,7 @@ Any exceptions should be thrown from here instead of the destructor.
 If necessary, modules can also access the ConfigurationManager directly in order to obtain configuration information from other module instances or other modules in the framework using the \parameter{getConfigManager()} call.
 This allows to retrieve and e.g. store the configuration actually used for the simulation alongside the data.
 
-If a module should be run using multi-threading but requires to execute its run method in the order of event numbers, for example a module that writes to an output file, then the module can inherit from the \textit{BufferedModule} class, without implementing additional functionality.
+If a module should be run using multi-threading but requires to execute its run method in the order of event numbers, for example a module that writes to an output file, then the module can inherit from the \textit{SequentialModule} class, without implementing additional functionality.
 This will ensure a sorting of the events before calling the run method.
 It should be noted that such modules cannot dispatch messages to the framework.
 
@@ -269,20 +269,22 @@ This section briefly lists the most important aspects to take into account.
 \subsection{Member Variables}
 \label{sec:multithreading_members}
 
-While the \command{init()} and \command{finalize()} of the module are guaranteed to be called sequentially, the \command{run()} method will be called simultaneously from different threads and for different events.
+While the \command{initialize()} and \command{finalize()} of the module are guaranteed to be called sequentially, the \command{run()} method will be called simultaneously from different threads and for different events.
 Therefore, no module data members must be altered from within the \command{run()} function, otherwise these changes will affect other events being processed in parallel.
-Configuration parameters cached as member variables should therefore be set only in the \command{init()} function.
+Configuration parameters cached as member variables should therefore be set only in the \command{initialize()} function.
+
+For initialization and finalization of thread-local data members, i.e.\ structures which have to be configured for each of the worker threads the module is executed on, the \command{initializeThread()} and \command{finalizeThread()} methods are available. They are called once on each worker thread after the \command{initialize()} and before the \command{finalize()} methods, respectively.
 
 \subsection{Histograms}
 
 \apsq uses ROOT histograms for collecting and storing statistics and other additional information about the simulation process.
 ROOT provides the template class \command{ROOT::TThreadedObject} which allows to use histograms in multi-threaded environments but slightly alters the interface of the histogram objects.
-In order to simplify their usage, \apsq provides a thin wrapper class which restores the original interface of the histogram classes, i.e. it is possible to instantiate, fill and store histograms the same way as in a single-threaded environment.
+Furthermore, there have been significant changes to the class between minor release version of ROOT and it doesn't scale very well with a large number of predefined threads.
+Therefore, \apsq provides its own re-implementation of this class, \command{allpix::ThreadedHistogram} which also restores the original interface of the histogram classes, i.e. it is possible to instantiate, fill and store histograms the same way as in a single-threaded environment.
 
-This wrapper class can be used as follows:
+This class can be used as follows:
 \begin{minted}[frame=single,framesep=3pt,breaklines=true,tabsize=2,linenos]{c++}
 // Declaration of a new histogram of type "TH1D"
-// Internally, this is a std::unique_ptr<ROOT::TThreadedObject<T>>
 Histogram<TH1D> my_histogram;
 
 // Creation of the histogram using the CreateHistogram helper method:

@@ -22,7 +22,7 @@
 using namespace allpix;
 
 CorryvreckanWriterModule::CorryvreckanWriterModule(Configuration& config, Messenger* messenger, GeometryManager* geoManager)
-    : BufferedModule(config), messenger_(messenger), geometryManager_(geoManager) {
+    : SequentialModule(config), messenger_(messenger), geometryManager_(geoManager) {
     // Enable parallelization of this module if multithreading is enabled
     enable_parallelization();
 
@@ -36,7 +36,7 @@ CorryvreckanWriterModule::CorryvreckanWriterModule(Configuration& config, Messen
 }
 
 // Set up the output trees
-void CorryvreckanWriterModule::init() {
+void CorryvreckanWriterModule::initialize() {
 
     // Check if MC data to be saved
     output_mc_truth_ = config_.get<bool>("output_mctruth");
@@ -83,6 +83,8 @@ void CorryvreckanWriterModule::init() {
 
 // Make instantiations of Corryvreckan pixels, and store these in the trees during run time
 void CorryvreckanWriterModule::run(Event* event) {
+    auto root_lock = root_process_lock();
+
     auto pixel_messages = messenger_->fetchMultiMessage<PixelHitMessage>(this, event);
 
     // Retrieve current object count:

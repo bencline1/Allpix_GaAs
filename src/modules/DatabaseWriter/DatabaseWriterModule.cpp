@@ -27,7 +27,7 @@
 using namespace allpix;
 
 DatabaseWriterModule::DatabaseWriterModule(Configuration& config, Messenger* messenger, GeometryManager*)
-    : BufferedModule(config), messenger_(messenger) {
+    : SequentialModule(config), messenger_(messenger) {
     // Enable parallelization of this module if multithreading is enabled
     enable_parallelization();
 
@@ -38,7 +38,7 @@ DatabaseWriterModule::DatabaseWriterModule(Configuration& config, Messenger* mes
     config_.setDefault("run_id", "none");
 }
 
-void DatabaseWriterModule::init() {
+void DatabaseWriterModule::initialize() {
 
     // retrieving configuration parameters
     host_ = config_.get<std::string>("host");
