@@ -389,7 +389,7 @@ void DepositionBichselModule::run(Event* event) {
                   << Units::display(position_local, {"um", "mm"}) << " (local) / "
                   << Units::display(detector->getGlobalPosition(position_local), {"um", "mm"}) << " (global)";
 
-        auto outgoing = stepping(std::move(Particle(particle.E(), position_local, direction_local, particle.type())),
+        auto outgoing = stepping(Particle(particle.E(), position_local, direction_local, particle.type()),
                                  detector,
                                  map_mcparticles[detector],
                                  map_mcparticles_parent_id[detector],
