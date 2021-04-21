@@ -152,7 +152,7 @@ void DetectorConstructionG4::build(const std::shared_ptr<G4LogicalVolume>& world
                             (model->getSensorSize().z() - implants.z()) / 2.0));
 
                     // Add the new solid to the MultiUnion:
-                    implant_union->AddNode(*implant_solid.get(), implant_transform);
+                    implant_union->AddNode(*implant_solid, implant_transform);
                 }
             }
 
