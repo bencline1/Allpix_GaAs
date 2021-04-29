@@ -26,6 +26,7 @@
 #include "objects/DepositedCharge.hpp"
 #include "objects/PropagatedCharge.hpp"
 
+#include "physics/ImpactIonization.hpp"
 #include "physics/Mobility.hpp"
 #include "physics/Recombination.hpp"
 
@@ -101,13 +102,13 @@ namespace allpix {
         double temperature_{}, timestep_min_{}, timestep_max_{}, timestep_start_{}, integration_time_{},
             target_spatial_precision_{}, threshold_field_{}, output_plots_step_{};
         bool output_plots_{}, output_linegraphs_{}, output_animations_{}, output_plots_lines_at_implants_{};
-        bool enable_multiplication_{}, propagate_electrons_{}, propagate_holes_{};
+        bool propagate_electrons_{}, propagate_holes_{};
         unsigned int charge_per_step_{};
-        std::string multiplication_model_{};
 
         // Models for electron and hole mobility and lifetime
         Mobility mobility_;
         Recombination recombination_;
+        ImpactIonization multiplication_;
 
         // Precalculated value for Boltzmann constant:
         double boltzmann_kT_;
@@ -115,10 +116,6 @@ namespace allpix {
         // Predefined values for electron/hole velocity calculation in magnetic fields
         double electron_Hall_;
         double hole_Hall_;
-
-        // Predefined values for charge multiplication
-        double optical_hbarOmega_;
-        double gamma_Overstraeten_;
 
         // Magnetic field
         bool has_magnetic_field_;
