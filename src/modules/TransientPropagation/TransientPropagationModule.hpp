@@ -22,6 +22,7 @@
 #include "objects/DepositedCharge.hpp"
 #include "objects/Pulse.hpp"
 
+#include "physics/ImpactIonization.hpp"
 #include "physics/Mobility.hpp"
 #include "physics/Recombination.hpp"
 
@@ -91,14 +92,13 @@ namespace allpix {
 
         // Local copies of configuration parameters to avoid costly lookup:
         double temperature_{}, timestep_{}, integration_time_{}, threshold_field_{};
-        bool output_plots_{}, enable_multiplication_{};
-        std::string multiplication_model_{};
+        bool output_plots_{};
         ROOT::Math::DisplacementVector2D<ROOT::Math::Cartesian2D<int>> matrix_;
         unsigned int charge_per_step_{};
 
         // Models for electron and hole mobility and lifetime
         Mobility mobility_;
-        Recombination recombination_;
+        ImpactIonization multiplication_;
 
         // Precalculated value for Boltzmann constant:
         double boltzmann_kT_;
@@ -107,9 +107,6 @@ namespace allpix {
         double electron_Hall_;
         double hole_Hall_;
 
-        // Predefined values for charge multiplication
-        double optical_hbarOmega_;
-        double gamma_Overstraeten_;
 
         // Magnetic field
         bool has_magnetic_field_{};
