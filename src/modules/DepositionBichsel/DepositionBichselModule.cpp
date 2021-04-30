@@ -310,10 +310,9 @@ void DepositionBichselModule::create_output_plots(uint64_t event_num,
 }
 
 void DepositionBichselModule::run(Event* event) {
-    std::uniform_real_distribution<double> unirnd(0, 1);
 
     // Add energy spread from Gaussian:
-    std::normal_distribution<double> energy_spread(0, source_energy_spread_);
+    allpix::normal_distribution<double> energy_spread(0, source_energy_spread_);
     double particle_energy = source_energy_ + energy_spread(event->getRandomEngine());
 
     if(output_plots_) {
@@ -322,8 +321,8 @@ void DepositionBichselModule::run(Event* event) {
 
     // Lambda for smearing the initial particle position with the beam size
     auto beam_pos_smearing = [&](auto size) {
-        double dx = std::normal_distribution<double>(0, size)(event->getRandomEngine());
-        double dy = std::normal_distribution<double>(0, size)(event->getRandomEngine());
+        double dx = allpix::normal_distribution<double>(0, size)(event->getRandomEngine());
+        double dy = allpix::normal_distribution<double>(0, size)(event->getRandomEngine());
         return ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<double>>(dx, dy, 0);
     };
 
@@ -498,7 +497,6 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
     std::deque<Particle> outgoing;
 
     PhotoAbsorptionIonizer ionizer(random_generator);
-    std::uniform_real_distribution<double> unirnd(0, 1);
     auto name = detector->getName();
 
     // Statistics:
@@ -1174,12 +1172,10 @@ bool DepositionBichselModule::localTrackEntrance(const std::shared_ptr<const Det
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 double DepositionBichselModule::gena1(RandomNumberGenerator& random_generator) {
-    std::uniform_real_distribution<double> uniform_dist(0, 1);
-
     double r1 = 0, r2 = 0, alph1 = 0;
     do {
-        r1 = uniform_dist(random_generator);
-        r2 = uniform_dist(random_generator);
+        r1 = unirnd(random_generator);
+        r2 = unirnd(random_generator);
         alph1 = 105. / 16. * (1. - r1) * (1 - r1) * sqrt(r1); // integral = 1, max = 1.8782971
     } while(alph1 > 1.8783 * r2);                             // rejection method
 
@@ -1188,12 +1184,11 @@ double DepositionBichselModule::gena1(RandomNumberGenerator& random_generator) {
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 double DepositionBichselModule::gena2(RandomNumberGenerator& random_generator) {
-    std::uniform_real_distribution<double> uniform_dist(0, 1);
 
     double r1 = 0, r2 = 0, alph2 = 0;
     do {
-        r1 = uniform_dist(random_generator);
-        r2 = uniform_dist(random_generator);
+        r1 = unirnd(random_generator);
+        r2 = unirnd(random_generator);
         alph2 = 8 / M_PI * sqrt(r1 * (1 - r1));
     } while(alph2 > 1.27324 * r2); // rejection method
 

@@ -8,9 +8,9 @@
  */
 
 #include <array>
-#include <random>
 #include <stack>
 
+#include "core/utils/distributions.h"
 #include "core/utils/prng.h"
 
 #include <Math/Vector3D.h>
@@ -49,10 +49,10 @@ namespace allpix {
          * Random number generator and distributions
          */
         RandomNumberGenerator* random_engine_{nullptr};
-        std::uniform_real_distribution<double> uniform_dist_{0, 1};
+        allpix::uniform_real_distribution<double> uniform_dist_{0, 1};
         std::vector<double> intervals{-1, 0, 1};
         std::vector<double> probabilities{1, 0, 1};
-        std::piecewise_linear_distribution<double> triangular_dist_{
+        allpix::piecewise_linear_distribution<double> triangular_dist_{
             intervals.begin(), intervals.end(), probabilities.begin()};
 
         /**

@@ -321,7 +321,8 @@ void PhotoAbsorptionIonizer::transition(double energy_auger, std::stack<double>&
 
     // ASSIGN ENERGIES TO THE HOLES
     // holes share the Auger energy but both stay below valence band edge (12 eV)
-    std::uniform_real_distribution<double> share{std::max(0., energy - energy_valence_), std::min(energy, energy_valence_)};
+    allpix::uniform_real_distribution<double> share{std::max(0., energy - energy_valence_),
+                                                    std::min(energy, energy_valence_)};
     double hole_energy = share(*random_engine_);
     veh.push(hole_energy);
     veh.push(energy - hole_energy);

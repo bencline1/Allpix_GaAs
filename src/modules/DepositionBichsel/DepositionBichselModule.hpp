@@ -12,6 +12,7 @@
 
 #include "core/geometry/GeometryManager.hpp"
 #include "core/module/Module.hpp"
+#include "core/utils/distributions.h"
 #include "objects/MCParticle.hpp"
 
 #include "Particle.hpp"
@@ -178,6 +179,8 @@ namespace allpix {
         table dfdE;
         table oscillator_strength_ae;
         table xkmn;
+
+        allpix::uniform_real_distribution<double> unirnd{0, 1};
 
         // Source parameters:
         ROOT::Math::XYZPoint source_position_{};
