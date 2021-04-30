@@ -822,7 +822,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                 } // while veh
 
                 if(fast_) {
-                    std::poisson_distribution<unsigned int> poisson(sumEeh / 3.645);
+                    allpix::poisson_distribution<unsigned int> poisson(sumEeh / 3.645);
                     neh = poisson(random_generator);
                 }
 
