@@ -269,8 +269,5 @@ namespace allpix {
          * Im(-1/epsilon) from equations in the Appendix of Emerson et al., Phys Rev B7, 1798 (1973) (also see CCS-63)
          */
         void read_emerctab();
-
-        double gena1(RandomNumberGenerator& random_generator);
-        double gena2(RandomNumberGenerator& random_generator);
     };
 } // namespace allpix

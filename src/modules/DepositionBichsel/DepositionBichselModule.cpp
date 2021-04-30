@@ -958,6 +958,26 @@ void DepositionBichselModule::slow_down_eh(double energy,
                                            std::stack<double>& eh_pairs,
                                            RandomNumberGenerator& random_generator) {
 
+    auto gena1 = [&]() {
+        double r1 = 0, r2 = 0, alph1 = 0;
+        do {
+            r1 = unirnd(random_generator);
+            r2 = unirnd(random_generator);
+            alph1 = 105. / 16. * (1. - r1) * (1 - r1) * sqrt(r1); // integral = 1, max = 1.8782971
+        } while(alph1 > 1.8783 * r2);                             // rejection method
+        return r1;
+    };
+
+    auto gena2 = [&]() {
+        double r1 = 0, r2 = 0, alph2 = 0;
+        do {
+            r1 = unirnd(random_generator);
+            r2 = unirnd(random_generator);
+            alph2 = 8 / M_PI * sqrt(r1 * (1 - r1));
+        } while(alph2 > 1.27324 * r2); // rejection method
+        return r1;
+    };
+
     while(energy > energy_threshold_) {
 
         const double eom0 = 0.063; // phonons
@@ -968,8 +988,8 @@ void DepositionBichselModule::slow_down_eh(double energy,
 
         if(unirnd(random_generator) < p_ionization) { // ionization
             ++neh;
-            double E1 = gena1(random_generator) * (energy - energy_threshold_);
-            double E2 = gena2(random_generator) * (energy - energy_threshold_ - E1);
+            double E1 = gena1() * (energy - energy_threshold_);
+            double E2 = gena2() * (energy - energy_threshold_ - E1);
 
             if(E1 > energy_threshold_) {
                 eh_pairs.push(E1);
@@ -1178,30 +1198,6 @@ bool DepositionBichselModule::localTrackEntrance(const std::shared_ptr<const Det
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-double DepositionBichselModule::gena1(RandomNumberGenerator& random_generator) {
-    double r1 = 0, r2 = 0, alph1 = 0;
-    do {
-        r1 = unirnd(random_generator);
-        r2 = unirnd(random_generator);
-        alph1 = 105. / 16. * (1. - r1) * (1 - r1) * sqrt(r1); // integral = 1, max = 1.8782971
-    } while(alph1 > 1.8783 * r2);                             // rejection method
-
-    return r1;
-}
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-double DepositionBichselModule::gena2(RandomNumberGenerator& random_generator) {
-
-    double r1 = 0, r2 = 0, alph2 = 0;
-    do {
-        r1 = unirnd(random_generator);
-        r2 = unirnd(random_generator);
-        alph2 = 8 / M_PI * sqrt(r1 * (1 - r1));
-    } while(alph2 > 1.27324 * r2); // rejection method
-
-    return r1;
-}
-
 void DepositionBichselModule::finalize() {
     if(output_plots_) {
         source_energy->Write();
