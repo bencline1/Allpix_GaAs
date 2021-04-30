@@ -14,7 +14,6 @@
 #include <deque>
 #include <fstream>
 #include <sstream>
-#include <stack>
 
 #include <TCanvas.h>
 #include <TH3F.h>
@@ -817,33 +816,10 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                     sumEeh += Eeh;
 
                     // slow down low energy e and h: 95% of CPU time
-                    while(!fast_ && Eeh > energy_threshold_) {
-
-                        const double eom0 = 0.063; // phonons
-                        const double aaa = 5.2;    // Alig 1980
-
-                        // for e and h
-                        double p_ionization =
-                            1 / (1 + aaa * 105 / 2 / M_PI * sqrt(Eeh - eom0) / pow(Eeh - energy_threshold_, 3.5));
-
-                        if(unirnd(random_generator) < p_ionization) { // ionization
-                            ++neh;
-                            double E1 = gena1(random_generator) * (Eeh - energy_threshold_);
-                            double E2 = gena2(random_generator) * (Eeh - energy_threshold_ - E1);
-
-                            if(E1 > energy_threshold_) {
-                                veh.push(E1);
-                            }
-                            if(E2 > energy_threshold_) {
-                                veh.push(E2);
-                            }
-
-                            Eeh = Eeh - E1 - E2 - energy_threshold_;
-                        } else {
-                            Eeh -= eom0; // phonon emission
-                        }
-                    } // slow: while Eeh
-                }     // while veh
+                    if(!fast_) {
+                        slow_down_eh(Eeh, neh, veh, random_generator);
+                    }
+                } // while veh
 
                 if(fast_) {
                     std::poisson_distribution<unsigned int> poisson(sumEeh / 3.645);
@@ -975,6 +951,38 @@ void DepositionBichselModule::update_elastic_collision_parameters(double& inv_co
             std::min(2232.0 * radiation_length * pow(particle.momentum() * particle.momentum() / (getot * zi_), 2),
                      10.0 * radiation_length);
         // units ?
+    }
+}
+
+void DepositionBichselModule::slow_down_eh(double energy,
+                                           unsigned& neh,
+                                           std::stack<double>& eh_pairs,
+                                           RandomNumberGenerator& random_generator) {
+
+    while(energy > energy_threshold_) {
+
+        const double eom0 = 0.063; // phonons
+        const double aaa = 5.2;    // Alig 1980
+
+        // for e and h
+        double p_ionization = 1 / (1 + aaa * 105 / 2 / M_PI * sqrt(energy - eom0) / pow(energy - energy_threshold_, 3.5));
+
+        if(unirnd(random_generator) < p_ionization) { // ionization
+            ++neh;
+            double E1 = gena1(random_generator) * (energy - energy_threshold_);
+            double E2 = gena2(random_generator) * (energy - energy_threshold_ - E1);
+
+            if(E1 > energy_threshold_) {
+                eh_pairs.push(E1);
+            }
+            if(E2 > energy_threshold_) {
+                eh_pairs.push(E2);
+            }
+
+            energy = energy - E1 - E2 - energy_threshold_;
+        } else {
+            energy -= eom0; // phonon emission
+        }
     }
 }
 

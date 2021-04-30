@@ -9,6 +9,7 @@
 
 #include <array>
 #include <random>
+#include <stack>
 
 #include "core/geometry/GeometryManager.hpp"
 #include "core/module/Module.hpp"
@@ -141,6 +142,17 @@ namespace allpix {
         void update_elastic_collision_parameters(double& inv_collision_length_elastic,
                                                  double& screening_parameter,
                                                  const Particle& particle) const;
+
+        /**
+         * Continuously slow down eh pairs, generating new pairs through ionization. This is a very slow process and only
+         * activated if the fast_ parameter is set to false.
+         *
+         * @param energy           Initial eh energy
+         * @param eh_pairs         Reference to stack of electron-hole pairs, new ones are added here
+         * @param random_generator Reference to random number generator of the event
+         */
+        void
+        slow_down_eh(double energy, unsigned& neh, std::stack<double>& eh_pairs, RandomNumberGenerator& random_generator);
 
         /**
          * @brief Helper to calculate if the projected particle path enters a given sensor, and if yes, the entrance point
