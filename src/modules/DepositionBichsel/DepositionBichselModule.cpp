@@ -37,6 +37,8 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config, Messenge
     config_.setDefault("beam_size", 0.);
     config_.setDefault("beam_divergence", ROOT::Math::XYVector(0., 0.));
 
+    config_.setDefault<double>("charge_creation_energy", Units::get(3.64, "eV"));
+    config_.setDefault<double>("fano_factor", 0.115);
     config_.setDefault<double>("temperature", 293.15);
     config_.setDefault("delta_energy_cut", 0.009);
     config_.setDefault<bool>("fast", true);
@@ -48,6 +50,9 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config, Messenge
     config_.setDefault<double>("output_plots_phi", 0.0f);
 
     explicit_delta_energy_cut_ = config_.get<double>("delta_energy_cut");
+    charge_creation_energy_ = config_.get<double>("charge_creation_energy");
+    fano_factor_ = config_.get<double>("fano_factor");
+
     fast_ = config_.get<bool>("fast");
     output_plots_ = config_.get<bool>("output_plots");
     output_event_displays_ = config_.get<bool>("output_event_displays");
@@ -822,8 +827,11 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                 } // while veh
 
                 if(fast_) {
-                    allpix::poisson_distribution<unsigned int> poisson(sumEeh / 3.645);
-                    neh = poisson(random_generator);
+                    allpix::poisson_distribution<unsigned int> poisson(sumEeh / charge_creation_energy_);
+                    auto mean_charge = poisson(random_generator);
+                    allpix::normal_distribution<double> charge_fluctuation(mean_charge,
+                                                                           std::sqrt(mean_charge * fano_factor_));
+                    neh = static_cast<unsigned int>(charge_fluctuation(random_generator));
                 }
 
                 nehpairs += neh;

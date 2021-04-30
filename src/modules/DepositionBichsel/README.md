@@ -7,11 +7,20 @@
 
 [@bichsel], [@mazziotta], elastic scattering [@chaoui], photoabsorption [@fraser]
 
-tracking using Liang-Barsky line clipping [@lineclipping]
+
+`fast` mode: number of charge carriers created is drawn from Poisson distribution around available energy divided by charge creation energy.
+Resulting number of charge carriers is fluctuated using Gaussian distribution with charge carriers as mean and charge carriers times Fano factor as width.
+
+
+Tracking between multiple detectors is peformed in vacuum, i.e. no additional scattering in other materials than the sensors is considered.
+The intersection between a particle track and the sensor volume is performed using the Liang-Barsky line-clipping algorithm [@lineclipping].
+
 ### Parameters
 * `temperature`:
 * `delta_energy_cut`: Lower cut-off energy for the production of delta rays. Defaults to `9keV`.
 * `energy_threshold`: Energy threshold above which ionization is considered in inelastic scatterings. Defaults to 1.5 times the band gap energy at the given temperature.
+* `charge_creation_energy_`: Defaults to `3.64eV`
+* `fano_factor`: Fano factor for charge carrier generation fluctuation, defaults to `0.115`.
 * `data_paths`: Paths that should be searched for the tabulated data files in addition to the standard installation path.
 * `fast`
 * `particle_type`

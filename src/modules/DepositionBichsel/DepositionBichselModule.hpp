@@ -210,6 +210,8 @@ namespace allpix {
         bool fast_{};
         double explicit_delta_energy_cut_{};
         double energy_threshold_{};
+        double charge_creation_energy_{};
+        double fano_factor_{};
 
         // Plotting configuration
         bool output_plots_{};
