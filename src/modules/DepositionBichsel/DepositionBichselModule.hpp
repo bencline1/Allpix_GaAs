@@ -116,6 +116,7 @@ namespace allpix {
          *
          * @param  primary Incoming particle entering the sensor (primary MCParticle), local coordinates
          * @param  detector             Detector to operate on
+         * @param  reference_time       Reference time in global coordinates for the detector currently
          * @param mcparticles           Vector of MCParticles in this detector, newly generated particles are added here
          * @param mcparticles_parent_id Vector of MCParticle-to-parent relations
          * @param clusters              Vector of electron-hole pair clusters generated in this detector, newly deposited
@@ -124,6 +125,7 @@ namespace allpix {
          */
         std::deque<Particle> stepping(Particle primary,
                                       const std::shared_ptr<const Detector>& detector,
+                                      const double reference_time,
                                       std::vector<MCParticle>& mcparticles,
                                       std::vector<int>& mcparticles_parent_id,
                                       std::vector<Cluster>& clusters,

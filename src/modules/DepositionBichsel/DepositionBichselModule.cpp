@@ -341,6 +341,9 @@ void DepositionBichselModule::run(Event* event) {
     std::map<std::shared_ptr<const Detector>, std::vector<int>> map_mcparticles_parent_id;
     std::map<std::shared_ptr<const Detector>, std::vector<Cluster>> map_clusters;
 
+    // Time references for each detector, gives the global time at which the local reference frame started
+    std::map<std::shared_ptr<const Detector>, double> time_reference;
+
     // Loop until no particle hits any detector anymore:
     LOG(DEBUG) << "Starting particle tracking";
     while(!global_particles.empty()) {
@@ -388,8 +391,21 @@ void DepositionBichselModule::run(Event* event) {
                   << Units::display(position_local, {"um", "mm"}) << " (local) / "
                   << Units::display(detector->getGlobalPosition(position_local), {"um", "mm"}) << " (global)";
 
-        auto outgoing = stepping(Particle(particle.E(), position_local, direction_local, particle.type()),
+        double local_time = 0;
+        // Check if the local time frame of this detector has started already, otherwise start it:
+        if(time_reference.find(detector) == time_reference.end()) {
+            // Starting time frame for this detector
+            time_reference[detector] = particle.time();
+        } else {
+            // Time frame of detetector has started already, let's adjust the particle time to it:
+            local_time = particle.time() - time_reference[detector];
+        }
+        LOG(INFO) << "Time of entry is " << Units::display(local_time, {"ns", "ps"}) << " (local) / "
+                  << Units::display(particle.time(), {"ns", "ps"}) << " (global)";
+
+        auto outgoing = stepping(Particle(particle.E(), position_local, direction_local, particle.type(), local_time),
                                  detector,
+                                 time_reference[detector],
                                  map_mcparticles[detector],
                                  map_mcparticles_parent_id[detector],
                                  map_clusters[detector],
@@ -399,10 +415,14 @@ void DepositionBichselModule::run(Event* event) {
             LOG(INFO) << "Particle leaving detector \"" << detector->getName() << "\" at "
                       << Units::display(out.position(), {"um", "mm"}) << " (local) / "
                       << Units::display(detector->getGlobalPosition(out.position()), {"um", "mm"}) << " (global)";
+            auto global_time = time_reference[detector] + out.time();
+            LOG(INFO) << "Time of exit is " << Units::display(out.time(), {"ns", "ps"}) << " (local) / "
+                      << Units::display(global_time, {"ns", "ps"}) << " (global)";
             global_particles.emplace_back(out.E(),
                                           detector->getGlobalPosition(out.position()),
                                           detector->getOrientation()(out.direction()),
-                                          out.type());
+                                          out.type(),
+                                          global_time);
         }
     }
     LOG(DEBUG) << "Finished particle tracking";
@@ -434,20 +454,19 @@ void DepositionBichselModule::run(Event* event) {
         for(const auto& cluster : clusters) {
             auto position_global = detector->getGlobalPosition(cluster.position());
 
-            // FIXME global time missing
             charges.emplace_back(cluster.position(),
                                  position_global,
                                  CarrierType::ELECTRON,
                                  cluster.ehpairs(),
                                  cluster.time(),
-                                 0.,
+                                 time_reference[detector] + cluster.time(),
                                  &(mcparticles.at(cluster.particleID())));
             charges.emplace_back(cluster.position(),
                                  position_global,
                                  CarrierType::HOLE,
                                  cluster.ehpairs(),
                                  cluster.time(),
-                                 0.,
+                                 time_reference[detector] + cluster.time(),
                                  &(mcparticles.at(cluster.particleID())));
             LOG(TRACE) << "Deposited " << cluster.ehpairs() << " charge carriers of both types at global position "
                        << Units::display(position_global, {"um", "mm"}) << " in detector " << detector->getName();
@@ -468,6 +487,7 @@ void DepositionBichselModule::run(Event* event) {
 
 std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                                                        const std::shared_ptr<const Detector>& detector,
+                                                       const double reference_time,
                                                        std::vector<MCParticle>& mcparticles,
                                                        std::vector<int>& mcparticles_parent_id,
                                                        std::vector<Cluster>& clusters,
@@ -907,7 +927,6 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
 
         // Finished treating this particle, let's store it:
         // Create MCParticle:
-        // FIXME global time missing.
         // FIXME PDG PID not correct
         mcparticles.emplace_back(particle.position_start(),
                                  start_global,
@@ -915,7 +934,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                                  end_global,
                                  static_cast<std::underlying_type<Particle::Type>::type>(particle.type()),
                                  particle.time(),
-                                 0.);
+                                 reference_time + particle.time());
         // Store MCParticle ID of the parent particle
         mcparticles_parent_id.push_back(particle.getParentID());
         LOG(DEBUG) << "Generated MCParticle with start " << Units::display(start_global, {"um", "mm"}) << " and end "
