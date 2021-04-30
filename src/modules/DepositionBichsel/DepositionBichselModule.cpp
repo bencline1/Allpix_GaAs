@@ -667,11 +667,11 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
             // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             // step:
 
-            double mean_free_path =
-                1 / (inv_collision_length_inelastic + inv_collision_length_elastic); // [cm] TOTAL MEAN FREE PATH (MFP)
-            double step = -log(1 - unirnd(random_generator)) * mean_free_path * 10;  // exponential step length, in MM
+            // Calculate total mean free path, in [cm]
+            double mean_free_path = 1 / (inv_collision_length_inelastic + inv_collision_length_elastic);
 
-            // Update position after step
+            // Perform exponention step, in [mm]
+            double step = -log(1 - unirnd(random_generator)) * mean_free_path * 10;
             particle.step(step);
 
             if(particle.E() < 1) {
@@ -684,7 +684,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                 hzz[name]->Fill(particle.position().Z());
             }
 
-            // Outside the sensor
+            // Check if the particle is still within the sensor volume
             if(!detector->isWithinSensor(particle.position())) {
                 LOG(DEBUG) << "Left the sensor at " << Units::display(particle.position(), {"mm", "um"});
                 outgoing.emplace_back(
@@ -694,7 +694,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
 
             ++nsteps;
 
-            // INELASTIC (ionization) PROCESS
+            // Inelastic scattering process
             if(unirnd(random_generator) > mean_free_path * inv_collision_length_elastic) {
                 LOG(TRACE) << "Inelastic scattering";
                 ++nloss;
