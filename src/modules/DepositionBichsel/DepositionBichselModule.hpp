@@ -219,8 +219,6 @@ namespace allpix {
 
         // Constants
         const double electron_mass_ = 0.51099906; // e mass [MeV]
-        const double rydberg_constant_ = 13.6056981;
-        const double fac_ = 8.0 * M_PI * rydberg_constant_ * rydberg_constant_ * pow(0.529177e-8, 2) / electron_mass_ / 1e6;
         const double zi_ = 1.0;
 
         // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

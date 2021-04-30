@@ -509,7 +509,8 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
     unsigned sumeh2 = 0;
 
     while(!incoming.empty()) {
-        double Ekprev = 9e9; // update flag for next delta
+        // Energy of the particle in its previous step
+        double previous_energy = std::numeric_limits<double>::max();
 
         auto particle = incoming.front();
         incoming.pop_front();
@@ -529,7 +530,9 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
 
         while(true) { // steps
             LOG(TRACE) << "Stepping...";
-            if(particle.E() < 0.9 * Ekprev) { // update
+
+            // Significant energy change necessitates update of collision parameters
+            if(particle.E() < 0.9 * previous_energy) { // update
                 LOG(TRACE) << "Updating...";
                 // Emax = maximum energy loss, see Uehling, also Sternheimer & Peierls Eq.(53)
                 double Emax =
@@ -544,6 +547,9 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
 
                 // Define parameters and calculate Inokuti"s sums,
                 // Sect 3.3 in Rev Mod Phys 43, 297 (1971)
+                static const double rydberg_constant = 13.6056981;
+                static const double fac_ =
+                    8.0 * M_PI * rydberg_constant * rydberg_constant * pow(0.529177e-8, 2) / electron_mass_ / 1e6;
 
                 double dec = zi_ * zi_ * atnu_ * fac_ / particle.betasquared();
                 double EkeV = particle.E() * 1e6; // [eV]
@@ -566,11 +572,11 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                     }
 
                     // Eq. (3.1) in RMP and red notebook CCS-33, 39 & 47
-                    double Q1 = rydberg_constant_;
+                    double Q1 = rydberg_constant;
                     if(E[j] < 11.9) {
-                        Q1 = pow(xkmn[j], 2) * rydberg_constant_;
+                        Q1 = pow(xkmn[j], 2) * rydberg_constant;
                     } else if(E[j] < 100.0) {
-                        Q1 = pow(0.025, 2) * rydberg_constant_;
+                        Q1 = pow(0.025, 2) * rydberg_constant;
                     }
 
                     double qmin = E[j] * E[j] / (2 * electron_mass_ * 1e6 * particle.betasquared());
@@ -647,7 +653,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                     invse[name]->Fill(log(particle.E()) / log(10), 1e4 / inv_collision_length_inelastic);
                 }
 
-                Ekprev = particle.E();
+                previous_energy = particle.E();
 
                 LOG(TRACE) << "type " << particle.type() << ", Ekin " << particle.E() * 1e3 << " keV"
                            << ", beta " << sqrt(particle.betasquared()) << ", gam " << particle.gamma() << std::endl
@@ -661,9 +667,9 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
             // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             // step:
 
-            double tlam =
+            double mean_free_path =
                 1 / (inv_collision_length_inelastic + inv_collision_length_elastic); // [cm] TOTAL MEAN FREE PATH (MFP)
-            double step = -log(1 - unirnd(random_generator)) * tlam * 10;            // exponential step length, in MM
+            double step = -log(1 - unirnd(random_generator)) * mean_free_path * 10;  // exponential step length, in MM
 
             // Update position after step
             particle.step(step);
@@ -689,7 +695,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
             ++nsteps;
 
             // INELASTIC (ionization) PROCESS
-            if(unirnd(random_generator) > tlam * inv_collision_length_elastic) {
+            if(unirnd(random_generator) > mean_free_path * inv_collision_length_elastic) {
                 LOG(TRACE) << "Inelastic scattering";
                 ++nloss;
 
