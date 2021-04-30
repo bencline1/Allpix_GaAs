@@ -836,12 +836,11 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                     // Using number of already created MCParticles as reference
                     clusters.emplace_back(neh, particle.position(), mcparticles.size(), particle.time());
 
-                    auto position_x = (particle.position_start().X() - particle.position().X()) * 1000;
-                    auto position_y = (particle.position_start().Y() - particle.position().Y()) * 1000;
-                    auto position_z = particle.position().Z() * 1000;
-                    auto position_r = sqrt(position_x * position_x + position_y * position_y);
-
                     if(output_plots_) {
+                        auto position_x = (particle.position_start().X() - particle.position().X()) * 1000;
+                        auto position_y = (particle.position_start().Y() - particle.position().Y()) * 1000;
+                        auto position_z = particle.position().Z() * 1000;
+                        auto position_r = sqrt(position_x * position_x + position_y * position_y);
                         hlogn[name]->Fill(log(neh) / log(10));
                         h2xy[name]->Fill(position_x, position_y, neh);
                         h2zx[name]->Fill(position_z, position_x, neh);
