@@ -351,18 +351,13 @@ void DepositionBichselModule::run(Event* event) {
         global_particles.pop_front();
 
         // Let's get intersection with closest sensor.
-        ROOT::Math::XYZPoint position_local;
-        ROOT::Math::XYZVector direction_local;
         double distance = std::numeric_limits<double>::max();
         std::shared_ptr<const Detector> detector = nullptr;
 
         // Check collision for all detectors and get the closest one
         for(const auto& det : geo_manager_->getDetectors()) {
-            ROOT::Math::XYZPoint this_position;
-            ROOT::Math::XYZVector this_direction;
             double this_distance = 0;
-            if(!localTrackEntrance(
-                   det, particle.position(), particle.direction(), this_distance, this_position, this_direction)) {
+            if(!localTrackEntrance(det, particle.position(), particle.direction(), this_distance)) {
                 // No intersection with sensor
                 LOG(DEBUG) << "Particle has no intersection with sensor of detector \"" << det->getName() << "\"";
                 continue;
@@ -372,8 +367,6 @@ void DepositionBichselModule::run(Event* event) {
             if(this_distance < distance) {
                 LOG(DEBUG) << "Found close hit on detector \"" << det->getName() << "\"";
                 distance = this_distance;
-                position_local = std::move(this_position);
-                direction_local = std::move(this_direction);
                 detector = det;
             } else {
                 LOG(DEBUG) << "Hit on detector \"" << det->getName() << "\" is further away";
@@ -384,6 +377,12 @@ void DepositionBichselModule::run(Event* event) {
             LOG(DEBUG) << "Particle has no intersection with the sensor of any detector";
             continue;
         }
+
+        // Move the particle to the detector:
+        particle.step(distance);
+
+        ROOT::Math::XYZPoint position_local = detector->getLocalPosition(particle.position());
+        ROOT::Math::XYZVector direction_local = detector->getOrientation().Inverse()(particle.direction());
 
         LOG(INFO) << "Particle enters detector \"" << detector->getName() << "\" at "
                   << Units::display(position_local, {"um", "mm"}) << " (local) / "
@@ -1096,9 +1095,7 @@ void DepositionBichselModule::read_emerctab() {
 bool DepositionBichselModule::localTrackEntrance(const std::shared_ptr<const Detector>& detector,
                                                  const ROOT::Math::XYZPoint& position_global,
                                                  const ROOT::Math::XYZVector& direction_global,
-                                                 double& distance,
-                                                 ROOT::Math::XYZPoint& position_local,
-                                                 ROOT::Math::XYZVector& direction_local) const {
+                                                 double& distance) const {
     // Obtain total sensor size
     auto sensor = detector->getModel()->getSensorSize();
 
@@ -1111,7 +1108,7 @@ bool DepositionBichselModule::localTrackEntrance(const std::shared_ptr<const Det
     auto position = transform_center.Inverse()(position_global);
 
     // Direction vector can directly be rotated
-    direction_local = detector->getOrientation().Inverse()(direction_global);
+    auto direction_local = detector->getOrientation().Inverse()(direction_global);
 
     // Liang–Barsky clipping of a line against faces of a box
     auto clip = [](double denominator, double numerator, double& t0, double& t1) {
@@ -1147,10 +1144,7 @@ bool DepositionBichselModule::localTrackEntrance(const std::shared_ptr<const Det
 
     // The intersection is a point P + t * D with t = t0. Return if positive (i.e. in direction of track vector)
     if(intersect && t0 > 0) {
-        // Transform point from local-centered coordinate system to local coordinate system of the detector
-        ROOT::Math::Translation3D translation_local(static_cast<ROOT::Math::XYZVector>(detector->getModel()->getCenter()));
-        ROOT::Math::Transform3D transform_local(translation_local);
-        position_local = transform_local(position + t0 * direction_local);
+        // Return distance to impact point
         distance = t0;
         return true;
     } else {

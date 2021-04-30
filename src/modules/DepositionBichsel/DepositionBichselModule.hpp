@@ -147,23 +147,19 @@ namespace allpix {
          * the unit-length line direction. The box for intersection is defined by the sensor volume of the detector. The box
          * center has been translated to the coordinate system origin and the line has been translated accordingly. The
          * method returns true if an intersection has been found and false if box and line do not intersect or the
-         * intersection is not in the direction of the line vector. If an intersection is found, the closest intersection
-         * point in the direction of the line vector is stored in the parameters position_local and direction_local.
+         * intersection is not in the direction of the line vector. If an intersection is found, the distance to the closest
+         * intersection point in the direction of the line vector is stored in the parameters distance.
          *
          * @param  detector         Shared pointer to the detector the intersection should be calculated with
          * @param  position_global  Particle position in global coordinates
          * @param  direction_global Particle direction unit vector in global coordinates
          * @param  distance         Distance from the particle position to the detector, if an intersection has been found
-         * @param  position_local   Position of the particle intersection in local coordinates of the detector, if any
-         * @param  direction_local  Direction of the particle in local coordinates of the detector
          * @return                  Flag if an intersection has been found or not
          */
         bool localTrackEntrance(const std::shared_ptr<const Detector>& detector,
                                 const ROOT::Math::XYZPoint& position_global,
                                 const ROOT::Math::XYZVector& direction_global,
-                                double& distance,
-                                ROOT::Math::XYZPoint& position_local,
-                                ROOT::Math::XYZVector& direction_local) const;
+                                double& distance) const;
         /**
          * Plotting of event displays
          * @param event_num Event number
