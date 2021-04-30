@@ -384,18 +384,16 @@ void DepositionBichselModule::run(Event* event) {
             continue;
         }
 
-        // Move the particle to the detector:
+        // Move the particle to the detector and calculate local coordinates:
         particle.step(distance);
-
-        ROOT::Math::XYZPoint position_local = detector->getLocalPosition(particle.position());
-        ROOT::Math::XYZVector direction_local = detector->getOrientation().Inverse()(particle.direction());
-
+        auto position_local = detector->getLocalPosition(particle.position());
+        auto direction_local = detector->getOrientation().Inverse()(particle.direction());
         LOG(INFO) << "Particle enters detector \"" << detector->getName() << "\" at "
                   << Units::display(position_local, {"um", "mm"}) << " (local) / "
                   << Units::display(detector->getGlobalPosition(position_local), {"um", "mm"}) << " (global)";
 
-        double local_time = 0;
         // Check if the local time frame of this detector has started already, otherwise start it:
+        double local_time = 0;
         if(time_reference.find(detector) == time_reference.end()) {
             // Starting time frame for this detector
             time_reference[detector] = particle.time();
@@ -406,6 +404,7 @@ void DepositionBichselModule::run(Event* event) {
         LOG(INFO) << "Time of entry is " << Units::display(local_time, {"ns", "ps"}) << " (local) / "
                   << Units::display(particle.time(), {"ns", "ps"}) << " (global)";
 
+        // Perform stepping of particle in the sensor
         auto outgoing = stepping(Particle(particle.E(), position_local, direction_local, particle.type(), local_time),
                                  detector,
                                  time_reference[detector],
@@ -415,17 +414,15 @@ void DepositionBichselModule::run(Event* event) {
                                  event->getRandomEngine());
 
         for(const auto& out : outgoing) {
+            auto position_global = detector->getGlobalPosition(out.position());
+            auto direction_global = detector->getOrientation()(out.direction());
             LOG(INFO) << "Particle leaving detector \"" << detector->getName() << "\" at "
                       << Units::display(out.position(), {"um", "mm"}) << " (local) / "
-                      << Units::display(detector->getGlobalPosition(out.position()), {"um", "mm"}) << " (global)";
+                      << Units::display(position_global, {"um", "mm"}) << " (global)";
             auto global_time = time_reference[detector] + out.time();
             LOG(INFO) << "Time of exit is " << Units::display(out.time(), {"ns", "ps"}) << " (local) / "
                       << Units::display(global_time, {"ns", "ps"}) << " (global)";
-            global_particles.emplace_back(out.E(),
-                                          detector->getGlobalPosition(out.position()),
-                                          detector->getOrientation()(out.direction()),
-                                          out.type(),
-                                          global_time);
+            global_particles.emplace_back(out.E(), position_global, direction_global, out.type(), global_time);
         }
     }
     LOG(DEBUG) << "Finished particle tracking";
