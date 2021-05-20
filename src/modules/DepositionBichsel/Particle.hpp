@@ -18,7 +18,6 @@ namespace allpix {
          * @brief Type of particles
          */
         enum class Type : unsigned int {
-            NONE = 0, ///< No particle
             ELECTRON = 11,
             MUON = 13,
             PION = 211,
@@ -91,8 +90,8 @@ namespace allpix {
         int parent_id_{};
 
         // Relativistic kinetic energy
-        double energy_{};       // [MeV]
-        Type type_{Type::NONE}; // particle type
+        double energy_{}; // [MeV]
+        Type type_{};     // particle type
 
         void update() {
             gamma_ = energy_ / mass() + 1.0;

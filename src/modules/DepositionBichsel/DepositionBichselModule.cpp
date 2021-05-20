@@ -73,8 +73,7 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config, Messenge
     energy_threshold_ =
         config_.get<double>("energy_threshold", 1.5 * 1.17 - 4.73e-4 * temperature * temperature / (636 + temperature));
 
-    // FIXME make sure particle exists
-    particle_type_ = static_cast<Particle::Type>(config_.get<unsigned int>("particle_type", 11));
+    particle_type_ = config_.get<Particle::Type>("particle_type");
 
     // Register lookup paths for cross-section and oscillator strength data files:
     if(config_.has("data_paths")) {
