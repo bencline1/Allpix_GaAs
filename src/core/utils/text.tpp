@@ -13,6 +13,9 @@
 #include <algorithm>
 #include <numeric>
 
+// Extend default range for enums
+#define MAGIC_ENUM_RANGE_MIN -4096
+#define MAGIC_ENUM_RANGE_MAX 4096
 #include <magic_enum/magic_enum.hpp>
 
 #include "unit.h"
