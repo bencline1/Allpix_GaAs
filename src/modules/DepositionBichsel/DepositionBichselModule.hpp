@@ -168,13 +168,12 @@ namespace allpix {
          * @param  detector         Shared pointer to the detector the intersection should be calculated with
          * @param  position_global  Particle position in global coordinates
          * @param  direction_global Particle direction unit vector in global coordinates
-         * @param  distance         Distance from the particle position to the detector, if an intersection has been found
-         * @return                  Flag if an intersection has been found or not
+         * @return                  Pair of flag if an intersection has been found or not and distance from the particle
+         * position to the detector, if an intersection has been found
          */
-        bool localTrackEntrance(const std::shared_ptr<const Detector>& detector,
-                                const ROOT::Math::XYZPoint& position_global,
-                                const ROOT::Math::XYZVector& direction_global,
-                                double& distance) const;
+        std::pair<bool, double> localTrackEntrance(const std::shared_ptr<const Detector>& detector,
+                                                   const ROOT::Math::XYZPoint& position_global,
+                                                   const ROOT::Math::XYZVector& direction_global) const;
         /**
          * Plotting of event displays
          * @param event_num Event number

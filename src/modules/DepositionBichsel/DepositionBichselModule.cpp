@@ -362,8 +362,8 @@ void DepositionBichselModule::run(Event* event) {
 
         // Check collision for all detectors and get the closest one
         for(const auto& det : geo_manager_->getDetectors()) {
-            double this_distance = 0;
-            if(!localTrackEntrance(det, particle.position(), particle.direction(), this_distance)) {
+            auto [intersection, this_distance] = localTrackEntrance(det, particle.position(), particle.direction());
+            if(!intersection) {
                 // No intersection with sensor
                 LOG(DEBUG) << "Particle has no intersection with sensor of detector \"" << det->getName() << "\"";
                 continue;
@@ -1149,10 +1149,9 @@ void DepositionBichselModule::read_emerctab() {
     LOG(INFO) << "Read " << jt << " data lines from EMERC.TAB";
 }
 
-bool DepositionBichselModule::localTrackEntrance(const std::shared_ptr<const Detector>& detector,
-                                                 const ROOT::Math::XYZPoint& position_global,
-                                                 const ROOT::Math::XYZVector& direction_global,
-                                                 double& distance) const {
+std::pair<bool, double> DepositionBichselModule::localTrackEntrance(const std::shared_ptr<const Detector>& detector,
+                                                                    const ROOT::Math::XYZPoint& position_global,
+                                                                    const ROOT::Math::XYZVector& direction_global) const {
     // Obtain total sensor size
     auto sensor = detector->getModel()->getSensorSize();
 
@@ -1202,11 +1201,10 @@ bool DepositionBichselModule::localTrackEntrance(const std::shared_ptr<const Det
     // The intersection is a point P + t * D with t = t0. Return if positive (i.e. in direction of track vector)
     if(intersect && t0 > 0) {
         // Return distance to impact point
-        distance = t0;
-        return true;
+        return std::make_pair(true, t0);
     } else {
         // Otherwise: The line does not intersect the box.
-        return false;
+        return std::make_pair(false, 0.);
     }
 }
 
