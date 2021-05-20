@@ -217,7 +217,6 @@ namespace allpix {
         bool output_event_displays_{};
 
         // Constants
-        const double electron_mass_ = 0.51099906; // e mass [MeV]
         const double zi_ = 1.0;
 
         // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

@@ -27,6 +27,12 @@
 
 using namespace allpix;
 
+std::map<Particle::Type, double> Particle::masses{{Particle::Type::ELECTRON, 0.51099906},
+                                                  {Particle::Type::MUON, 105.65932},
+                                                  {Particle::Type::PION, 139.578},
+                                                  {Particle::Type::KAON, 493.67},
+                                                  {Particle::Type::PROTON, 938.2723}};
+
 DepositionBichselModule::DepositionBichselModule(Configuration& config, Messenger* messenger, GeometryManager* geo_manager)
     : Module(config), geo_manager_(geo_manager), messenger_(messenger) {
     // Enable parallelization of this module if multithreading is enabled
@@ -534,9 +540,9 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
             if(particle.E() < 0.9 * previous_energy) { // update
                 LOG(TRACE) << "Updating...";
                 // Emax = maximum energy loss, see Uehling, also Sternheimer & Peierls Eq.(53)
-                double Emax =
-                    particle.mass() * (particle.gamma() * particle.gamma() - 1) /
-                    (0.5 * particle.mass() / electron_mass_ + 0.5 * electron_mass_ / particle.mass() + particle.gamma());
+                double Emax = particle.mass() * (particle.gamma() * particle.gamma() - 1) /
+                              (0.5 * particle.mass() / Particle::masses[Particle::Type::ELECTRON] +
+                               0.5 * Particle::masses[Particle::Type::ELECTRON] / particle.mass() + particle.gamma());
 
                 // maximum energy loss for incident electrons
                 if(particle.type() == Particle::Type::ELECTRON) {
@@ -547,8 +553,8 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                 // Define parameters and calculate Inokuti"s sums,
                 // Sect 3.3 in Rev Mod Phys 43, 297 (1971)
                 static const double rydberg_constant = 13.6056981;
-                static const double fac_ =
-                    8.0 * M_PI * rydberg_constant * rydberg_constant * pow(0.529177e-8, 2) / electron_mass_ / 1e6;
+                static const double fac_ = 8.0 * M_PI * rydberg_constant * rydberg_constant * pow(0.529177e-8, 2) /
+                                           Particle::masses[Particle::Type::ELECTRON] / 1e6;
 
                 double dec = zi_ * zi_ * atnu_ * fac_ / particle.betasquared();
                 double EkeV = particle.E() * 1e6; // [eV]
@@ -578,7 +584,8 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                         Q1 = pow(0.025, 2) * rydberg_constant;
                     }
 
-                    double qmin = E[j] * E[j] / (2 * electron_mass_ * 1e6 * particle.betasquared());
+                    double qmin =
+                        E[j] * E[j] / (2 * Particle::masses[Particle::Type::ELECTRON] * 1e6 * particle.betasquared());
                     if(E[j] < 11.9 && Q1 < qmin) {
                         sig[1][j] = 0;
                     } else {
@@ -737,8 +744,8 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
                 // COST = SQRT(1.-SINT**2) ! sqrt( 1 - ER*1e-6 / particle.E() ) ! wrong
 
                 // double cost = sqrt( energy_gamma / (2*electron_mass_ev + energy_gamma) ); // M. Swartz
-                double cost = sqrt(energy_gamma / (2 * electron_mass_ * 1e6 + energy_gamma) *
-                                   (particle.E() + 2 * electron_mass_) / particle.E());
+                double cost = sqrt(energy_gamma / (2 * Particle::masses[Particle::Type::ELECTRON] * 1e6 + energy_gamma) *
+                                   (particle.E() + 2 * Particle::masses[Particle::Type::ELECTRON]) / particle.E());
                 // Penelope, Geant4
                 double sint = 0;
                 if(cost * cost <= 1) {

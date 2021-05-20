@@ -70,7 +70,7 @@ namespace allpix {
          * Helper to obtain particle rest mass in units of MeV
          * @return Particle rest mass in MeV
          */
-        double mass() const { return mass_.at(type_); };
+        double mass() const { return masses.at(type_); };
 
         double gamma() const { return gamma_; }
 
@@ -81,6 +81,8 @@ namespace allpix {
         double velocity() const { return velocity_; }
 
         double time() const { return time_; }
+
+        static std::map<Type, double> masses;
 
     private:
         ROOT::Math::XYZPoint position_start_;
@@ -105,12 +107,6 @@ namespace allpix {
         double betasquared_{};
         double momentum_{};
         double velocity_{};
-
-        std::map<Type, double> mass_{{Type::ELECTRON, 0.51099906}, // e
-                                     {Type::MUON, 105.65932},      // mu
-                                     {Type::PION, 139.578},        // pion
-                                     {Type::KAON, 493.67},         // K
-                                     {Type::PROTON, 938.2723}};    // proton
     };
 
     inline std::ostream& operator<<(std::ostream& os, const Particle::Type type) {
