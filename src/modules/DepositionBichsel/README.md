@@ -12,7 +12,7 @@
 Resulting number of charge carriers is fluctuated using Gaussian distribution with charge carriers as mean and charge carriers times Fano factor as width.
 
 
-Tracking between multiple detectors is peformed in vacuum, i.e. no additional scattering in other materials than the sensors is considered.
+Tracking between multiple detectors is performed in vacuum, i.e. no additional scattering in other materials than the sensors is considered.
 The intersection between a particle track and the sensor volume is performed using the Liang-Barsky line-clipping algorithm [@lineclipping].
 
 ### Parameters
