@@ -12,6 +12,7 @@
 #include "PhotoAbsorptionIonizer.hpp"
 
 #include <deque>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 
@@ -19,7 +20,6 @@
 #include <TH3F.h>
 
 #include "core/messenger/Messenger.hpp"
-#include "core/utils/file.h"
 #include "core/utils/log.h"
 #include "objects/DepositedCharge.hpp"
 
@@ -82,7 +82,7 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config, Messenge
         data_paths_.insert(data_paths_.end(), extra_paths.begin(), extra_paths.end());
         LOG(TRACE) << "Registered data paths from configuration.";
     }
-    if(path_is_directory(ALLPIX_BICHSEL_DATA_DIRECTORY)) {
+    if(std::filesystem::is_directory(ALLPIX_BICHSEL_DATA_DIRECTORY)) {
         data_paths_.emplace_back(ALLPIX_BICHSEL_DATA_DIRECTORY);
         LOG(TRACE) << "Registered data path: " << ALLPIX_BICHSEL_DATA_DIRECTORY;
     }
@@ -97,7 +97,7 @@ DepositionBichselModule::DepositionBichselModule(Configuration& config, Messenge
         }
 
         data_dir += std::string(ALLPIX_PROJECT_NAME) + std::string("/data");
-        if(path_is_directory(data_dir)) {
+        if(std::filesystem::is_directory(data_dir)) {
             data_paths_.emplace_back(data_dir);
             LOG(TRACE) << "Registered global data path: " << data_dir;
         }
@@ -1021,14 +1021,16 @@ std::ifstream DepositionBichselModule::open_data_file(const std::string& file_na
     std::string file_path{};
     for(auto& path : data_paths_) {
         // Check if file or directory
-        if(allpix::path_is_directory(path)) {
-            std::vector<std::string> sub_paths = allpix::get_files_in_directory(path);
-            for(auto& sub_path : sub_paths) {
-                auto name = allpix::get_file_name_extension(sub_path);
+        if(std::filesystem::is_directory(path)) {
+            for(const auto& entry : std::filesystem::directory_iterator(path)) {
+                if(!entry.is_regular_file()) {
+                    continue;
+                }
 
                 // Accept only with correct suffix and file name
                 std::string suffix(ALLPIX_BICHSEL_DATA_SUFFIX);
-                if(name.first != file_name || name.second != suffix) {
+                auto sub_path = std::filesystem::canonical(entry);
+                if(sub_path.stem() != file_name || sub_path.extension() != suffix) {
                     continue;
                 }
 
