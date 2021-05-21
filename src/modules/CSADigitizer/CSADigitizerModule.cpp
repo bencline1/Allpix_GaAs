@@ -9,9 +9,11 @@
 
 #include "CSADigitizerModule.hpp"
 
+#include "core/utils/distributions.h"
 #include "core/utils/unit.h"
 #include "tools/ROOT.h"
 
+#include <TF1.h>
 #include <TFile.h>
 #include <TGraph.h>
 #include <TH1D.h>
@@ -23,30 +25,15 @@
 using namespace allpix;
 
 CSADigitizerModule::CSADigitizerModule(Configuration& config, Messenger* messenger, std::shared_ptr<Detector> detector)
-    : Module(config, std::move(detector)), messenger_(messenger), pixel_message_(nullptr) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    : Module(config, std::move(detector)), messenger_(messenger) {
 
     // Require PixelCharge message for single detector
-    messenger_->bindSingle(this, &CSADigitizerModule::pixel_message_, MsgFlags::REQUIRED);
-
-    // Seed the random generator with the global seed
-    random_generator_.seed(getRandomSeed());
+    messenger_->bindSingle<PixelChargeMessage>(this, MsgFlags::REQUIRED);
 
     // Read model
-    auto model = config_.get<std::string>("model");
-    std::transform(model.begin(), model.end(), model.begin(), ::tolower);
-    if(model == "simple") {
-        model_ = DigitizerType::SIMPLE;
-    } else if(model == "csa") {
-        model_ = DigitizerType::CSA;
-    } else {
-        throw InvalidValueError(config_, "model", "Invalid model, only 'simple' and 'csa' are supported.");
-    }
+    model_ = config_.get<DigitizerType>("model");
 
     // Set defaults for config variables
-    config_.setDefault<double>("feedback_capacitance", Units::get(5e-15, "C/V"));
-
     config_.setDefault<double>("integration_time", Units::get(500, "ns"));
     config_.setDefault<double>("threshold", Units::get(10e-3, "V"));
     config_.setDefault<bool>("ignore_polarity", false);
@@ -60,10 +47,12 @@ CSADigitizerModule::CSADigitizerModule(Configuration& config, Messenger* messeng
 
     if(model_ == DigitizerType::SIMPLE) {
         // defaults for the "simple" parametrisation
+        config_.setDefault<double>("feedback_capacitance", Units::get(5e-15, "C/V"));
         config_.setDefault<double>("rise_time_constant", Units::get(1e-9, "s"));
         config_.setDefault<double>("feedback_time_constant", Units::get(10e-9, "s")); // R_f * C_f
     } else if(model_ == DigitizerType::CSA) {
         // and for the "advanced" csa
+        config_.setDefault<double>("feedback_capacitance", Units::get(5e-15, "C/V"));
         config_.setDefault<double>("krummenacher_current", Units::get(20e-9, "C/s"));
         config_.setDefault<double>("detector_capacitance", Units::get(100e-15, "C/V"));
         config_.setDefault<double>("amp_output_capacitance", Units::get(20e-15, "C/V"));
@@ -90,14 +79,19 @@ CSADigitizerModule::CSADigitizerModule(Configuration& config, Messenger* messeng
     ignore_polarity_ = config.get<bool>("ignore_polarity");
 
     if(model_ == DigitizerType::SIMPLE) {
-        tauF_ = config_.get<double>("feedback_time_constant");
-        tauR_ = config_.get<double>("rise_time_constant");
+        auto tauF = config_.get<double>("feedback_time_constant");
+        auto tauR = config_.get<double>("rise_time_constant");
         auto capacitance_feedback = config_.get<double>("feedback_capacitance");
-        resistance_feedback_ = tauF_ / capacitance_feedback;
+        auto resistance_feedback = tauF / capacitance_feedback;
+
+        calculate_impulse_response_ = std::make_unique<TF1>(
+            "response_function", "[0]*(TMath::Exp(-x/[1])-TMath::Exp(-x/[2]))/([1]-[2])", 0., integration_time_);
+        calculate_impulse_response_->SetParameters(resistance_feedback, tauF, tauR);
+
         LOG(DEBUG) << "Parameters: cf = " << Units::display(capacitance_feedback, {"C/V", "fC/mV"})
-                   << ", rf = " << Units::display(resistance_feedback_, "V*s/C")
-                   << ", tauF = " << Units::display(tauF_, {"ns", "us", "ms", "s"})
-                   << ", tauR = " << Units::display(tauR_, {"ns", "us", "ms", "s"});
+                   << ", rf = " << Units::display(resistance_feedback, "V*s/C")
+                   << ", tauF = " << Units::display(tauF, {"ns", "us", "ms", "s"})
+                   << ", tauR = " << Units::display(tauR, {"ns", "us", "ms", "s"});
     } else if(model_ == DigitizerType::CSA) {
         auto ikrum = config_.get<double>("krummenacher_current");
         if(ikrum <= 0) {
@@ -116,24 +110,61 @@ CSADigitizerModule::CSADigitizerModule(Configuration& config, Messenger* messeng
         // n is the weak inversion slope factor (degradation of exponential MOS drain current compared to bipolar transistor
         // collector current) n_wi typically 1.5, for circuit described in  Kleczek 2016 JINST11 C12001: I->I_krumm/2
         auto transconductance_feedback = ikrum / (2.0 * 1.5 * boltzmann_kT);
-        resistance_feedback_ = 2. / transconductance_feedback; // feedback resistor
-        tauF_ = resistance_feedback_ * capacitance_feedback;
-        tauR_ = (capacitance_detector * capacitance_output) / (gm * capacitance_feedback);
-        LOG(DEBUG) << "Parameters: rf = " << Units::display(resistance_feedback_, "V*s/C")
+        auto resistance_feedback = 2. / transconductance_feedback; // feedback resistor
+        auto tauF = resistance_feedback * capacitance_feedback;
+        auto tauR = (capacitance_detector * capacitance_output) / (gm * capacitance_feedback);
+
+        calculate_impulse_response_ = std::make_unique<TF1>(
+            "response_function", "[0]*(TMath::Exp(-x/[1])-TMath::Exp(-x/[2]))/([1]-[2])", 0., integration_time_);
+        calculate_impulse_response_->SetParameters(resistance_feedback, tauF, tauR);
+
+        LOG(DEBUG) << "Parameters: rf = " << Units::display(resistance_feedback, "V*s/C")
                    << ", capacitance_feedback = " << Units::display(capacitance_feedback, {"C/V", "fC/mV"})
                    << ", capacitance_detector = " << Units::display(capacitance_detector, {"C/V", "fC/mV"})
                    << ", capacitance_output = " << Units::display(capacitance_output, {"C/V", "fC/mV"})
                    << ", gm = " << Units::display(gm, "C/s/V")
-                   << ", tauF = " << Units::display(tauF_, {"ns", "us", "ms", "s"})
-                   << ", tauR = " << Units::display(tauR_, {"ns", "us", "ms", "s"})
+                   << ", tauF = " << Units::display(tauF, {"ns", "us", "ms", "s"})
+                   << ", tauR = " << Units::display(tauR, {"ns", "us", "ms", "s"})
                    << ", temperature = " << Units::display(config_.get<double>("temperature"), "K");
+    } else if(model_ == DigitizerType::CUSTOM) {
+        calculate_impulse_response_ = std::make_unique<TF1>(
+            "response_function", (config_.get<std::string>("response_function")).c_str(), 0., integration_time_);
+
+        if(!calculate_impulse_response_->IsValid()) {
+            throw InvalidValueError(
+                config_, "response_function", "The response function is not a valid ROOT::TFormula expression.");
+        }
+
+        auto parameters = config_.getArray<double>("response_parameters");
+
+        // check if number of parameters match up
+        if(static_cast<size_t>(calculate_impulse_response_->GetNumberFreeParameters()) != parameters.size()) {
+            throw InvalidValueError(
+                config_,
+                "response_parameters",
+                "The number of function parameters does not line up with the amount of parameters in the function.");
+        }
+
+        for(size_t n = 0; n < parameters.size(); ++n) {
+            calculate_impulse_response_->SetParameter(static_cast<int>(n), parameters[n]);
+        }
+
+        LOG(DEBUG) << "Response function successfully initialized with " << parameters.size() << " parameters";
     }
 
     output_plots_ = config_.get<bool>("output_plots");
     output_pulsegraphs_ = config_.get<bool>("output_pulsegraphs");
+
+    // Enable parallelization of this module if multithreading is enabled and no per-event output plots are requested:
+    // FIXME: Review if this is really the case or we can still use multithreading
+    if(!output_pulsegraphs_) {
+        enable_parallelization();
+    } else {
+        LOG(WARNING) << "Per-event pulse graphs requested, disabling parallel event processing";
+    }
 }
 
-void CSADigitizerModule::init() {
+void CSADigitizerModule::initialize() {
 
     // Check for sensible configuration of threshold:
     if(ignore_polarity_ && threshold_ < 0) {
@@ -149,32 +180,35 @@ void CSADigitizerModule::init() {
         auto nbins = config_.get<int>("output_plots_bins");
 
         // Create histograms if needed
-        h_tot = new TH1D("signal",
-                         (store_tot_ ? "Time-over-Threshold;time over threshold [clk];pixels" : "Signal;signal;pixels"),
-                         nbins,
-                         0,
-                         (store_tot_ ? integration_time_ / clockToT_ : 1000));
-        h_toa = new TH1D(
+        h_tot = CreateHistogram<TH1D>(
+            "signal",
+            (store_tot_ ? "Time-over-Threshold;time over threshold [clk];pixels" : "Signal;signal;pixels"),
+            (store_tot_ ? static_cast<int>(integration_time_ / clockToT_) : nbins),
+            0,
+            (store_tot_ ? integration_time_ / clockToT_ : 1000));
+        h_toa = CreateHistogram<TH1D>(
             "time",
             (store_toa_ ? "Time-of-Arrival;time of arrival [clk];pixels" : "Time-of-Arrival;time of arrival [ns];pixels"),
-            nbins,
+            (store_toa_ ? static_cast<int>(integration_time_ / clockToA_) : nbins),
             0,
             (store_toa_ ? integration_time_ / clockToA_ : integration_time_));
-        h_pxq_vs_tot = new TH2D("pxqvstot",
-                                "ToT vs raw pixel charge;pixel charge [ke];ToT [ns]",
-                                nbins,
-                                0,
-                                maximum,
-                                nbins,
-                                0,
-                                integration_time_);
+        h_pxq_vs_tot = CreateHistogram<TH2D>("pxqvstot",
+                                             "ToT vs raw pixel charge;pixel charge [ke];ToT [ns]",
+                                             nbins,
+                                             0,
+                                             maximum,
+                                             nbins,
+                                             0,
+                                             integration_time_);
     }
 }
 
-void CSADigitizerModule::run(unsigned int event_num) {
+void CSADigitizerModule::run(Event* event) {
+    auto pixel_message = messenger_->fetchMessage<PixelChargeMessage>(this, event);
+
     // Loop through all pixels with charges
     std::vector<PixelHit> hits;
-    for(const auto& pixel_charge : pixel_message_->getData()) {
+    for(const auto& pixel_charge : pixel_message->getData()) {
         auto pixel = pixel_charge.getPixel();
         auto pixel_index = pixel.getIndex();
         auto inputcharge = static_cast<double>(pixel_charge.getCharge());
@@ -182,18 +216,22 @@ void CSADigitizerModule::run(unsigned int event_num) {
         LOG(DEBUG) << "Received pixel " << pixel_index << ", charge " << Units::display(inputcharge, "e");
 
         const auto& pulse = pixel_charge.getPulse(); // the pulse containing charges and times
-        auto pulse_vec = pulse.getPulse();           // the vector of the charges
+
+        if(!pulse.isInitialized()) {
+            throw ModuleError("No pulse information available.");
+        }
+
+        auto pulse_vec = pulse.getPulse(); // the vector of the charges
         auto timestep = pulse.getBinning();
+        LOG(DEBUG) << "Timestep: " << timestep << " integration_time: " << integration_time_;
         auto ntimepoints = static_cast<size_t>(ceil(integration_time_ / timestep));
 
         std::call_once(first_event_flag_, [&]() {
             // initialize impulse response function - assume all time bins are equal
             impulse_response_function_.reserve(ntimepoints);
-            auto calculate_impulse_response = [&](double x) {
-                return (resistance_feedback_ * (exp(-x / tauF_) - exp(-x / tauR_)) / (tauF_ - tauR_));
-            };
             for(size_t itimepoint = 0; itimepoint < ntimepoints; ++itimepoint) {
-                impulse_response_function_.push_back(calculate_impulse_response(timestep * static_cast<double>(itimepoint)));
+                impulse_response_function_.push_back(
+                    calculate_impulse_response_->Eval(timestep * static_cast<double>(itimepoint)));
             }
 
             if(output_plots_) {
@@ -236,7 +274,7 @@ void CSADigitizerModule::run(unsigned int event_num) {
 
         if(output_pulsegraphs_) {
             // Fill a graph with the pulse:
-            create_output_pulsegraphs(std::to_string(event_num),
+            create_output_pulsegraphs(std::to_string(event->number),
                                       std::to_string(pixel_index.x()) + "-" + std::to_string(pixel_index.y()),
                                       "amp_pulse",
                                       "Amplifier signal without noise",
@@ -245,16 +283,16 @@ void CSADigitizerModule::run(unsigned int event_num) {
         }
 
         // Apply noise to the amplified pulse
-        std::normal_distribution<double> pulse_smearing(0, sigmaNoise_);
+        allpix::normal_distribution<double> pulse_smearing(0, sigmaNoise_);
         LOG(TRACE) << "Adding electronics noise with sigma = " << Units::display(sigmaNoise_, {"mV", "V"});
         std::transform(amplified_pulse_vec.begin(),
                        amplified_pulse_vec.end(),
                        amplified_pulse_vec.begin(),
-                       [&pulse_smearing, this](auto& c) { return c + (pulse_smearing(random_generator_)); });
+                       [&pulse_smearing, &event](auto& c) { return c + (pulse_smearing(event->getRandomEngine())); });
 
         // Fill a graphs with the individual pixel pulses:
         if(output_pulsegraphs_) {
-            create_output_pulsegraphs(std::to_string(event_num),
+            create_output_pulsegraphs(std::to_string(event->number),
                                       std::to_string(pixel_index.x()) + "-" + std::to_string(pixel_index.y()),
                                       "amp_pulse_noise",
                                       "Amplifier signal with added noise",
@@ -291,7 +329,7 @@ void CSADigitizerModule::run(unsigned int event_num) {
         }
 
         // Add the hit to the hitmap
-        hits.emplace_back(pixel, time, pixel_charge.getGlobalTime() + time, charge, &pixel_charge);
+        hits.emplace_back(pixel, time, pixel_charge.getGlobalTime() + std::get<2>(arrival), charge, &pixel_charge);
     }
 
     // Output summary and update statistics
@@ -300,7 +338,7 @@ void CSADigitizerModule::run(unsigned int event_num) {
     if(!hits.empty()) {
         // Create and dispatch hit message
         auto hits_message = std::make_shared<PixelHitMessage>(std::move(hits), getDetector());
-        messenger_->dispatchMessage(this, hits_message);
+        messenger_->dispatchMessage(this, hits_message, event);
     }
 }
 

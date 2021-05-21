@@ -90,8 +90,7 @@ Note: Neutrons have a lifetime of 882 seconds and will not be propagated in the 
 * `beam_size` : Width of the Gaussian beam profile.
 * `beam_divergence` : Standard deviation of the particle angles in x and y from the particle beam
 * `beam_direction` : Direction of the beam as a unit vector.
-
-Please note that the old source parameters from version v1.1.2 and before (`beam_energy`, `beam_energy_spread` and `beam_position`) are still supported but it is recommended to use the new corresponding ones.
+* `flat_beam` : Boolean to change your Gaussian beam profile to a flat beam profile. If true, the `beam_size` gives the radius of the beam profile. Defaults to false.
 
 #### Parameters for source `square`
 * `square_side` : Length of the square side.
@@ -141,7 +140,7 @@ beam_direction = 0 0 1
 number_of_particles = 1
 ```
 
-[@g4physicslists]: http://geant4.cern.ch/support/proc_mod_catalog/physics_lists/referencePL.shtml
+[@g4physicslists]: https://geant4-userdoc.web.cern.ch/UsersGuides/PhysicsListGuide/html/index.html
 [@g4particles]: http://geant4-userdoc.web.cern.ch/geant4-userdoc/UsersGuides/ForApplicationDeveloper/html/TrackingAndPhysics/particle.html
 [@g4radioactive]: https://doi.org/10.1109/TNS.2013.2270894
 [@g4gps]:  http://geant4-userdoc.web.cern.ch/geant4-userdoc/UsersGuides/ForApplicationDeveloper/html/GettingStarted/generalParticleSource.html

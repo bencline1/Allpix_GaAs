@@ -8,26 +8,11 @@
  * Intergovernmental Organization or submit itself to any jurisdiction.
  */
 
-#include <memory>
 #include <string>
-#include <utility>
-
-#include <Math/RotationX.h>
-#include <Math/RotationY.h>
-#include <Math/RotationZ.h>
-#include <Math/RotationZYX.h>
-#include <Math/Vector3D.h>
-
-#include <G4Box.hh>
-#include <G4IntersectionSolid.hh>
-#include <G4Sphere.hh>
-#include <G4SubtractionSolid.hh>
-#include <G4Tubs.hh>
-#include <G4UnionSolid.hh>
-#include "G4Material.hh"
 
 #include <G4LogicalVolume.hh>
 #include <G4LogicalVolumeStore.hh>
+#include <G4Material.hh>
 #include <G4PVPlacement.hh>
 #include <G4RotationMatrix.hh>
 #include <G4ThreeVector.hh>
@@ -35,25 +20,16 @@
 
 #include "core/module/exceptions.h"
 #include "tools/ROOT.h"
-#include "tools/geant4.h"
+#include "tools/geant4/geant4.h"
 
+#include "MaterialManager.hpp"
 #include "PassiveMaterialModel.hpp"
-#include "Passive_Material_Models/BoxModel.hpp"
-#include "Passive_Material_Models/CylinderModel.hpp"
-#include "Passive_Material_Models/SphereModel.hpp"
+#include "passive_models/BoxModel.hpp"
+#include "passive_models/CylinderModel.hpp"
+#include "passive_models/SphereModel.hpp"
 
 using namespace allpix;
 using namespace ROOT::Math;
-
-/**
- * @brief Version of std::make_shared that does not delete the pointer
- *
- * This version is needed because some pointers are deleted by Geant4 internally, but they are stored as std::shared_ptr in
- * the framework.
- */
-template <typename T, typename... Args> static std::shared_ptr<T> make_shared_no_delete(Args... args) {
-    return std::shared_ptr<T>(new T(args...), [](T*) {});
-}
 
 std::shared_ptr<PassiveMaterialModel>
 allpix::PassiveMaterialModel::factory(const std::string& type, const Configuration& config, GeometryManager* geo_manager) {
@@ -89,8 +65,7 @@ PassiveMaterialModel::PassiveMaterialModel(Configuration config, GeometryManager
     LOG(DEBUG) << "Registered volume.";
 }
 
-void PassiveMaterialModel::buildVolume(const std::map<std::string, G4Material*>& materials,
-                                       const std::shared_ptr<G4LogicalVolume>& world_log) {
+void PassiveMaterialModel::buildVolume(const std::shared_ptr<G4LogicalVolume>& world_log) {
 
     LOG(TRACE) << "Building passive material: " << getName();
     G4LogicalVolume* mother_log_volume = nullptr;
@@ -108,35 +83,41 @@ void PassiveMaterialModel::buildVolume(const std::map<std::string, G4Material*>&
     G4ThreeVector position_vector = toG4Vector(position_);
     G4Transform3D transform_phys(*rotation_, position_vector);
 
+    auto& materials = Materials::getInstance();
     auto material = config_.get<std::string>("material");
-    std::transform(material.begin(), material.end(), material.begin(), ::tolower);
-    if(materials.find(material) == materials.end()) {
-        throw InvalidValueError(config_, "material", "material does not exists");
+    G4Material* g4material = nullptr;
+    try {
+        g4material = materials.get(material);
+    } catch(ModuleError& e) {
+        throw InvalidValueError(config_, "material", e.what());
     }
 
     LOG(TRACE) << "Creating Geant4 model for '" << getName() << "' of type '" << config_.get<std::string>("type") << "'";
-    LOG(TRACE) << " -Material\t\t:\t " << material << "( " << materials.at(material)->GetName() << " )";
+    LOG(TRACE) << " -Material\t\t:\t " << material << "( " << g4material->GetName() << " )";
     LOG(TRACE) << " -Position\t\t:\t " << Units::display(position_, {"mm", "um"});
 
     // Get the solid from the Model
-    auto solid = std::shared_ptr<G4VSolid>(getSolid());
-    if(solid == nullptr) {
-        throw ModuleError("Passive Material '" + getName() + "' does not have a solid associated with its model");
-    }
-    solids_.push_back(solid);
+    auto solid = getSolid();
 
     // Place the logical volume of the passive material
-    auto log_volume = make_shared_no_delete<G4LogicalVolume>(solid.get(), materials.at(material), getName() + "_log");
+    auto log_volume = make_shared_no_delete<G4LogicalVolume>(solid.get(), g4material, getName() + "_log");
     geo_manager_->setExternalObject(getName(), "passive_material_log", log_volume);
 
+    // Set VisAttribute of the material
+    auto pm_color = config_.get<ROOT::Math::XYZPoint>("color", ROOT::Math::XYZPoint());
+    auto opacity = config_.get<double>("opacity", 0.4);
+    if(pm_color != ROOT::Math::XYZPoint()) {
+        auto* pm_vol_col = new G4VisAttributes(G4Colour(pm_color.x(), pm_color.y(), pm_color.z(), opacity));
+        log_volume->SetVisAttributes(pm_vol_col);
+    }
     // Set VisAttribute to invisible if material is equal to the material of its mother volume
-    if(materials.at(material) == mother_log_volume->GetMaterial()) {
+    else if(g4material == mother_log_volume->GetMaterial()) {
         LOG(WARNING) << "Material of passive material " << getName()
                      << " is the same as the material of its mother volume! Material will not be shown in the simulation.";
         log_volume->SetVisAttributes(G4VisAttributes::GetInvisible());
     }
     // Set VisAttribute to white if material = world_material
-    else if(materials.at(material) == materials.at("world_material")) {
+    else if(g4material == materials.get("world_material")) {
         auto* white_vol = new G4VisAttributes(G4Colour(1.0, 1.0, 1.0, 0.4));
         log_volume->SetVisAttributes(white_vol);
     }

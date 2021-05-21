@@ -27,6 +27,13 @@ namespace allpix {
      * whole volume
      */
     class MagneticFieldReaderModule : public Module {
+        /**
+         * @brief Different magnetic field types
+         */
+        enum class MagneticField {
+            CONSTANT, ///< Constant magnetic field
+        };
+
     public:
         /**
          * @brief Constructor for this unique module
@@ -39,7 +46,7 @@ namespace allpix {
         /**
          * @brief Read magnetic field, feed it back to the geometry manager and apply it to the bound detectors
          */
-        void init() override;
+        void initialize() override;
 
     private:
         GeometryManager* geometryManager_;

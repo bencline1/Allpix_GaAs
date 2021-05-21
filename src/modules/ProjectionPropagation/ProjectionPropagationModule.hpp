@@ -16,10 +16,16 @@
 #include "core/config/Configuration.hpp"
 #include "core/geometry/DetectorModel.hpp"
 #include "core/messenger/Messenger.hpp"
+#include "core/module/Event.hpp"
 #include "core/module/Module.hpp"
 
 #include "objects/DepositedCharge.hpp"
 #include "objects/PropagatedCharge.hpp"
+
+#include "physics/Mobility.hpp"
+#include "physics/Recombination.hpp"
+
+#include "tools/ROOT.h"
 
 namespace allpix {
     /**
@@ -43,12 +49,12 @@ namespace allpix {
         /**
          * @brief Initialize - create plots if needed
          */
-        void init() override;
+        void initialize() override;
 
         /**
          * @brief Projection of the electrons to the surface
          */
-        void run(unsigned int) override;
+        void run(Event*) override;
 
         /**
          * @brief Write plots if needed
@@ -60,40 +66,33 @@ namespace allpix {
         std::shared_ptr<const Detector> detector_;
         std::shared_ptr<DetectorModel> model_;
 
-        // Random generator for diffusion calculation
-        std::mt19937_64 random_generator_;
-
-        // Config parameters: Check whether plots should be generated
+        // Config parameters
         bool output_plots_;
         double integration_time_{};
         bool diffuse_deposit_;
+        unsigned int charge_per_step_{};
 
         // Carrier type to be propagated
         CarrierType propagate_type_;
         // Side to propagate too
         double top_z_;
 
-        // Precalculated values for electron and hole mobility
-        double hole_Vm_;
+        // Precalculated values for electron and hole critical fields
         double hole_Ec_;
-        double hole_Beta_;
-        double electron_Vm_;
         double electron_Ec_;
-        double electron_Beta_;
 
-        // Calculated slope of the electric field
-        double slope_efield_;
+        // Models for electron and hole mobility and lifetime
+        Mobility mobility_;
+        Recombination recombination_;
 
         // Precalculated value for Boltzmann constant:
         double boltzmann_kT_;
 
         // Output plot for drift time
-        TH1D* drift_time_histo_;
-        TH1D* diffusion_time_histo_;
-        TH1D* propagation_time_histo_;
-        TH1D* initial_position_histo_;
-
-        // Deposits for the bound detector in this event
-        std::shared_ptr<DepositedChargeMessage> deposits_message_;
+        Histogram<TH1D> drift_time_histo_;
+        Histogram<TH1D> diffusion_time_histo_;
+        Histogram<TH1D> propagation_time_histo_;
+        Histogram<TH1D> initial_position_histo_;
+        Histogram<TH1D> recombine_histo_;
     };
 } // namespace allpix

@@ -9,7 +9,9 @@ It offers the best visualization experience.
 The module allows for changing a variety of parameters to control the output visualization both for the different detector components and the particle beam.
 
 Both detectors and passive materials will be displayed.
-If the material of a passive material is the same as the material of its `mother_volume`, the passive material will not be shown in the visualization. In the case that the material is the same as the material of the world frame, the material will have a white colour instead of the default blue in the visualisation.
+If the material of a passive material is the same as the material of its `mother_volume`, the passive material will not be shown in the visualization. In the case that the material is the same as the material of the world frame, the material will have a white color instead of the default blue in the visualization.
+
+This module does not support multithreading and will force the simulation chain to be executed on a single thread when activated.
 
 ### Dependencies
 
@@ -51,5 +53,5 @@ accumulate = 0
 accumulate_time_step = 2s
 ```
 
-[@g4drivers]: https://geant4.web.cern.ch/geant4/UserDocumentation/UsersGuides/ForApplicationDeveloper/html/ch08s03.html
-[@g4particles]: http://geant4.cern.ch/G4UsersDocuments/UsersGuides/ForApplicationDeveloper/html/TrackingAndPhysics/particle.html
+[@g4drivers]: https://geant4-userdoc.web.cern.ch/UsersGuides/ForApplicationDeveloper/html/Visualization/visdrivers.html
+[@g4particles]: https://geant4-userdoc.web.cern.ch/UsersGuides/ForApplicationDeveloper/html/TrackingAndPhysics/particle.html

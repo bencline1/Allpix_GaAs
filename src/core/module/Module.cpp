@@ -10,6 +10,7 @@
 
 #include "Module.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <memory>
 #include <stdexcept>
@@ -17,7 +18,6 @@
 
 #include "core/messenger/Messenger.hpp"
 #include "core/module/exceptions.h"
-#include "core/utils/file.h"
 #include "core/utils/log.h"
 
 using namespace allpix;
@@ -69,7 +69,7 @@ std::shared_ptr<Detector> Module::getDetector() const {
  * The output path is automatically created if it does not exists. The path is always accessible if this functions returns.
  * Obeys the "deny_overwrite" parameter of the module.
  */
-std::string Module::createOutputFile(const std::string& path, bool global, bool delete_file) {
+std::string Module::createOutputFile(const std::string& path, const std::string& extension, bool global, bool delete_file) {
     std::string file;
     if(global) {
         file = config_.get<std::string>("_global_dir", std::string());
@@ -84,21 +84,22 @@ std::string Module::createOutputFile(const std::string& path, bool global, bool 
 
     try {
         // Create all the required main directories
-        allpix::create_directories(file);
+        std::filesystem::create_directories(file);
 
         // Add the file itself
         file += "/";
-        file += path;
+        file +=
+            (extension.empty() ? path : static_cast<std::string>(std::filesystem::path(path).replace_extension(extension)));
 
-        if(path_is_file(file)) {
+        if(std::filesystem::is_regular_file(file)) {
             auto global_overwrite = getConfigManager()->getGlobalConfiguration().get<bool>("deny_overwrite", false);
             if(config_.get<bool>("deny_overwrite", global_overwrite)) {
                 throw ModuleError("Overwriting of existing file " + file + " denied.");
             }
             LOG(WARNING) << "File " << file << " exists and will be overwritten.";
             try {
-                allpix::remove_file(file);
-            } catch(std::invalid_argument& e) {
+                std::filesystem::remove(file);
+            } catch(std::filesystem::filesystem_error& e) {
                 throw ModuleError("Deleting file " + file + " failed: " + e.what());
             }
         }
@@ -110,50 +111,15 @@ std::string Module::createOutputFile(const std::string& path, bool global, bool 
         }
 
         // Convert the file to an absolute path
-        file = get_canonical_path(file);
-    } catch(std::invalid_argument& e) {
+        file = std::filesystem::canonical(file);
+    } catch(std::filesystem::filesystem_error& e) {
         throw ModuleError("Path " + file + " cannot be created");
     }
 
     if(delete_file) {
-        allpix::remove_file(file);
+        std::filesystem::remove(file);
     }
     return file;
-}
-
-/**
- * The framework will automatically create proper values for the seeds. Those are either generated from a predefined seed if
- * results have to be reproduced or from a high-entropy source to ensure a good quality of randomness
- */
-uint64_t Module::getRandomSeed() {
-    if(initialized_random_generator_ == false) {
-        auto seed = config_.get<uint64_t>("_seed");
-        std::seed_seq seed_seq({seed});
-        random_generator_.seed(seed_seq);
-
-        initialized_random_generator_ = true;
-    }
-
-    return random_generator_();
-}
-
-/**
- * @throws InvalidModuleActionException If the thread pool is accessed outside the run-method
- * @warning Any multithreaded task should be carefully checked to ensure it is thread-safe
- *
- * The thread pool is only available during the run-phase of every module. If no error is thrown by thrown, the threadpool
- * should be safe to use.
- */
-ThreadPool& Module::getThreadPool() {
-    // The thread pool will only be set when the run-method is executed
-    if(thread_pool_ == nullptr) {
-        throw InvalidModuleActionException("Cannot access thread pool outside the run method");
-    }
-
-    return *thread_pool_;
-}
-void Module::set_thread_pool(std::shared_ptr<ThreadPool> thread_pool) {
-    thread_pool_ = std::move(thread_pool);
 }
 
 /**
@@ -178,7 +144,7 @@ void Module::set_ROOT_directory(TDirectory* directory) {
  * @throws InvalidModuleActionException If this method is called from the constructor or destructor
  * @warning This function technically allows to write to the configurations of other modules, but this should never be done
  */
-ConfigManager* Module::getConfigManager() {
+ConfigManager* Module::getConfigManager() const {
     if(conf_manager_ == nullptr) {
         throw InvalidModuleActionException("Cannot access the config manager in constructor or destructor.");
     };
@@ -193,6 +159,9 @@ bool Module::canParallelize() const {
 }
 void Module::enable_parallelization() {
     parallelize_ = true;
+}
+void Module::set_parallelize(bool parallelize) {
+    parallelize_ = parallelize;
 }
 
 Configuration& Module::get_configuration() {
@@ -209,18 +178,13 @@ ModuleIdentifier Module::get_identifier() const {
 void Module::add_delegate(Messenger* messenger, BaseDelegate* delegate) {
     delegates_.emplace_back(messenger, delegate);
 }
-void Module::reset_delegates() {
-    for(auto& delegate : delegates_) {
-        delegate.first->clearMessages();
-        delegate.second->reset();
-    }
+bool Module::check_delegates(Messenger* messenger, Event* event) {
+    // Return false if any delegate is not satisfied
+    return std::all_of(delegates_.cbegin(), delegates_.cend(), [messenger, event](auto& delegate) {
+        return !delegate.second->isRequired() || messenger->isSatisfied(delegate.second, event);
+    });
 }
-bool Module::check_delegates() {
-    for(auto& delegate : delegates_) {
-        // Return false if any delegate is not satisfied
-        if(!delegate.second->isSatisfied()) {
-            return false;
-        }
-    }
-    return true;
+
+void SequentialModule::waive_sequence_requirement() {
+    sequence_required_ = false;
 }

@@ -9,33 +9,9 @@
  */
 
 #include "PassiveMaterialConstructionG4.hpp"
-#include <functional>
-#include <memory>
-#include <string>
-#include <utility>
-
-#include <Math/RotationX.h>
-#include <Math/RotationY.h>
-#include <Math/RotationZ.h>
-#include <Math/RotationZYX.h>
-#include <Math/Vector3D.h>
-
-#include <G4LogicalVolume.hh>
-#include <G4LogicalVolumeStore.hh>
-#include <G4PVPlacement.hh>
-#include <G4RotationMatrix.hh>
-#include <G4ThreeVector.hh>
-#include <G4VisAttributes.hh>
-
-#include "Passive_Material_Models/BoxModel.hpp"
-#include "Passive_Material_Models/CylinderModel.hpp"
-#include "Passive_Material_Models/SphereModel.hpp"
 #include "core/module/exceptions.h"
-#include "tools/ROOT.h"
-#include "tools/geant4.h"
 
 using namespace allpix;
-using namespace ROOT::Math;
 
 PassiveMaterialConstructionG4::PassiveMaterialConstructionG4(GeometryManager* geo_manager) : geo_manager_(geo_manager) {}
 
@@ -75,9 +51,8 @@ void PassiveMaterialConstructionG4::registerVolumes() {
               });
 }
 
-void PassiveMaterialConstructionG4::buildVolumes(const std::map<std::string, G4Material*>& materials,
-                                                 const std::shared_ptr<G4LogicalVolume>& world_log) {
+void PassiveMaterialConstructionG4::buildVolumes(const std::shared_ptr<G4LogicalVolume>& world_log) {
     for(auto& passive_volume : passive_volumes_) {
-        passive_volume->buildVolume(materials, world_log);
+        passive_volume->buildVolume(world_log);
     }
 }

@@ -34,6 +34,7 @@ namespace allpix {
         DEBUG,     ///< Detailed information about physics process
         NONE,      ///< Indicates the log level has not been set (cannot be selected by the user)
         TRACE,     ///< Software debugging information about what part is currently running
+        PRNG,      ///< Logging level printing every pseudo-random number requested
     };
     /**
      * @brief Format of the logger
@@ -185,13 +186,18 @@ namespace allpix {
          */
         static std::string getSection();
 
-    private:
         /**
-         * @brief The number of exceptions that are uncaught
-         * @param cons If true: always return zero if amount of exceptions cannot be properly determined
-         * @return Number of uncaught exceptions
+         * @brief Set the current event number from now on
+         * @param event_num Event number to use
          */
-        int get_uncaught_exceptions(bool cons);
+        static void setEventNum(uint64_t event_num);
+        /**
+         * @brief Get the current event number
+         * @return Event number used
+         */
+        static uint64_t getEventNum();
+
+    private:
         /**
          * @brief Get the current date as a printable string
          * @return Current date as a string
@@ -214,6 +220,7 @@ namespace allpix {
 
         // Internal methods to store static values
         static std::string& get_section();
+        static uint64_t& get_event_num();
         static LogLevel& get_reporting_level();
         static LogFormat& get_format();
         static std::vector<std::ostream*>& get_streams();
@@ -271,7 +278,7 @@ namespace allpix {
  * @param  Count Number of allowed counts
  * @return       Local counter variable
  */
-#define GENERATE_LOG_VAR(Count) thread_local size_t local___FUNCTION__##Count##__LINE__ = Count
+#define GENERATE_LOG_VAR(Count) static std::atomic<int> local___FUNCTION__##Count##__LINE__(Count)
 #define GET_LOG_VARIABLE(Count) local___FUNCTION__##Count##__LINE__
 
 /**
@@ -282,19 +289,28 @@ namespace allpix {
  */
 #define LOG_N(level, max_log_count)                                                                                         \
     GENERATE_LOG_VAR(max_log_count);                                                                                        \
-    if(GET_LOG_VARIABLE(max_log_count) != 0 && GET_LOG_VARIABLE(max_log_count)-- != 0)                                      \
+    if(GET_LOG_VARIABLE(max_log_count) > 0)                                                                                 \
         if(allpix::LogLevel::level <= allpix::Log::getReportingLevel() && !allpix::Log::getStreams().empty())               \
     allpix::Log().getStream(                                                                                                \
         allpix::LogLevel::level, __FILE_NAME__, std::string(static_cast<const char*>(__func__)), __LINE__)                  \
-        << std::string(GET_LOG_VARIABLE(max_log_count) == 0 ? "[further messages will be suppressed] " : "")
+        << std::string(--GET_LOG_VARIABLE(max_log_count) == 0 ? "[further messages suppressed] " : "")
 
     /**
-     * @brief Suppress an stream from writing any output
+     * @brief Suppress a stream from writing any output
      * @param stream The stream to suppress
      */
     // suppress a (logging) stream
     // TODO [doc] rewrite as a lowercase function in a namespace?
     inline void SUPPRESS_STREAM(std::ostream& stream) { stream.setstate(std::ios::failbit); }
+
+/**
+ * @brief Suppress a stream from writing output unless logging is below \ref level
+ * @param  level  The log level of the stream
+ * @param  stream Stream to suppress
+ */
+#define SUPPRESS_STREAM_EXCEPT(level, stream)                                                                               \
+    IFLOG(level);                                                                                                           \
+    else SUPPRESS_STREAM(stream);
 
     /**
      * @brief Release an suppressed stream so it can write again

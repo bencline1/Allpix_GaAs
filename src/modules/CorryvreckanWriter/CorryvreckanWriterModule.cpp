@@ -10,21 +10,23 @@
 #include "CorryvreckanWriterModule.hpp"
 
 #include <Math/RotationZYX.h>
+#include <TProcessID.h>
 
 #include <fstream>
 #include <string>
 #include <utility>
 
-#include "core/utils/file.h"
 #include "core/utils/log.h"
 
 using namespace allpix;
 
 CorryvreckanWriterModule::CorryvreckanWriterModule(Configuration& config, Messenger* messenger, GeometryManager* geoManager)
-    : Module(config), messenger_(messenger), geometryManager_(geoManager) {
+    : SequentialModule(config), messenger_(messenger), geometryManager_(geoManager) {
+    // Enable parallelization of this module if multithreading is enabled
+    enable_parallelization();
 
     // Require PixelHit messages for single detector
-    messenger_->bindMulti(this, &CorryvreckanWriterModule::pixel_messages_, MsgFlags::REQUIRED);
+    messenger_->bindMulti<PixelHitMessage>(this, MsgFlags::REQUIRED);
 
     config_.setDefault("file_name", "corryvreckanOutput.root");
     config_.setDefault("geometry_file", "corryvreckanGeometry.conf");
@@ -33,7 +35,7 @@ CorryvreckanWriterModule::CorryvreckanWriterModule(Configuration& config, Messen
 }
 
 // Set up the output trees
-void CorryvreckanWriterModule::init() {
+void CorryvreckanWriterModule::initialize() {
 
     // Check if MC data to be saved
     output_mc_truth_ = config_.get<bool>("output_mctruth");
@@ -53,13 +55,13 @@ void CorryvreckanWriterModule::init() {
     timing_global_ = config_.get<bool>("global_timing");
 
     // Create output file and directories
-    fileName_ = createOutputFile(allpix::add_file_extension(config_.get<std::string>("file_name"), "root"));
+    fileName_ = createOutputFile(config_.get<std::string>("file_name"), "root");
     LOG(TRACE) << "Creating output file \"" << fileName_ << "\"";
     output_file_ = std::make_unique<TFile>(fileName_.c_str(), "RECREATE");
     output_file_->cd();
 
     // Create geometry file:
-    geometryFileName_ = createOutputFile(allpix::add_file_extension(config_.get<std::string>("geometry_file"), "conf"));
+    geometryFileName_ = createOutputFile(config_.get<std::string>("geometry_file"), "conf");
 
     // Create trees:
     LOG(TRACE) << "Booking event tree";
@@ -79,9 +81,15 @@ void CorryvreckanWriterModule::init() {
 }
 
 // Make instantiations of Corryvreckan pixels, and store these in the trees during run time
-void CorryvreckanWriterModule::run(unsigned int event) {
+void CorryvreckanWriterModule::run(Event* event) {
+    auto root_lock = root_process_lock();
 
-    LOG(TRACE) << "Processing event " << event;
+    auto pixel_messages = messenger_->fetchMultiMessage<PixelHitMessage>(this, event);
+
+    // Retrieve current object count:
+    auto object_count = TProcessID::GetObjectCount();
+
+    LOG(TRACE) << "Processing event " << event->number;
 
     // Create and store a new Event:
     event_ = new corryvreckan::Event(time_, time_ + 5);
@@ -90,10 +98,10 @@ void CorryvreckanWriterModule::run(unsigned int event) {
     event_tree_->Fill();
 
     // Events start with 1, pre-filling only with empty events before:
-    event--;
+    auto event_id = event->number - 1;
 
     // Loop through all received messages
-    for(auto& message : pixel_messages_) {
+    for(auto& message : pixel_messages) {
 
         auto detector_name = message->getDetector()->getName();
         LOG(DEBUG) << "Received " << message->getData().size() << " pixel hits from detector " << detector_name;
@@ -104,11 +112,11 @@ void CorryvreckanWriterModule::run(unsigned int event) {
                                 std::string("std::vector<corryvreckan::Pixel*>").c_str(),
                                 &write_list_px_[detector_name]);
 
-            if(event > 0) {
-                LOG(DEBUG) << "Pre-filling new branch " << detector_name << " of corryvreckan::Pixel with " << event
+            if(event_id > 0) {
+                LOG(DEBUG) << "Pre-filling new branch " << detector_name << " of corryvreckan::Pixel with " << event_id
                            << " empty events";
                 auto* branch = pixel_tree_->GetBranch(detector_name.c_str());
-                for(unsigned int i = 0; i < event; ++i) {
+                for(unsigned int i = 0; i < event_id; ++i) {
                     branch->Fill();
                 }
             }
@@ -120,12 +128,12 @@ void CorryvreckanWriterModule::run(unsigned int event) {
                                      std::string("std::vector<corryvreckan::MCParticle*>").c_str(),
                                      &write_list_mcp_[detector_name]);
 
-            if(event > 0) {
+            if(event_id > 0) {
 
-                LOG(DEBUG) << "Pre-filling new branch " << detector_name << " of corryvreckan::MCParticle with " << event
+                LOG(DEBUG) << "Pre-filling new branch " << detector_name << " of corryvreckan::MCParticle with " << event_id
                            << " empty events";
                 auto* branch = mcparticle_tree_->GetBranch(detector_name.c_str());
-                for(unsigned int i = 0; i < event; ++i) {
+                for(unsigned int i = 0; i < event_id; ++i) {
                     branch->Fill();
                 }
             }
@@ -191,6 +199,9 @@ void CorryvreckanWriterModule::run(unsigned int event) {
 
     // Delete the currently stored event object
     delete event_;
+
+    // Reset object count:
+    TProcessID::SetObjectCount(object_count);
 }
 
 // Save the output trees to file

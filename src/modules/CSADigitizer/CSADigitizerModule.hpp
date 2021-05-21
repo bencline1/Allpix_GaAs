@@ -42,6 +42,7 @@ namespace allpix {
         enum class DigitizerType {
             SIMPLE, ///< Simplified parametrisation
             CSA,    ///< Enter all contributions to the transfer function as parameters
+            CUSTOM, ///< Custom impulse response function using a ROOT::TFormula expression
         };
 
     public:
@@ -56,12 +57,12 @@ namespace allpix {
         /**
          * @brief Initialize optional ROOT histograms
          */
-        void init() override;
+        void initialize() override;
 
         /**
          * @brief Simulate digitization process
          */
-        void run(unsigned int) override;
+        void run(Event* event) override;
 
         /**
          * @brief Finalize and write optional histograms
@@ -72,29 +73,23 @@ namespace allpix {
         // Control of module output settings
         bool output_plots_{}, output_pulsegraphs_{};
         bool store_tot_{false}, store_toa_{false}, ignore_polarity_{};
-
-        std::mt19937_64 random_generator_;
-
         Messenger* messenger_;
         DigitizerType model_;
 
-        // Input message with the charges on the pixels
-        std::shared_ptr<PixelChargeMessage> pixel_message_;
-
-        // Parameters of the amplifier: Feedback time constant, risetime time constant
-        double tauF_{}, tauR_{};
+        // Function to calculate impulse response
+        std::unique_ptr<TF1> calculate_impulse_response_;
 
         // Parameters of the electronics: Noise, time-over-threshold logic
         double sigmaNoise_{}, clockToT_{}, clockToA_{}, threshold_{};
 
         // Helper variables for transfer function
-        double resistance_feedback_{}, integration_time_{};
+        double integration_time_{};
         std::vector<double> impulse_response_function_;
         std::once_flag first_event_flag_;
 
         // Output histograms
-        TH1D *h_tot{}, *h_toa{};
-        TH2D* h_pxq_vs_tot{};
+        Histogram<TH1D> h_tot{}, h_toa{};
+        Histogram<TH2D> h_pxq_vs_tot{};
 
         /**
          * @brief Calculate time of first threshold crossing

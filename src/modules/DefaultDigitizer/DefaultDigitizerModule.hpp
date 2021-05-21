@@ -16,9 +16,12 @@
 
 #include "core/config/Configuration.hpp"
 #include "core/messenger/Messenger.hpp"
+#include "core/module/Event.hpp"
 #include "core/module/Module.hpp"
 
 #include "objects/PixelCharge.hpp"
+
+#include "tools/ROOT.h"
 
 #include <TH1D.h>
 #include <TH2D.h>
@@ -46,12 +49,12 @@ namespace allpix {
         /**
          * @brief Initialize optional ROOT histograms
          */
-        void init() override;
+        void initialize() override;
 
         /**
          * @brief Simulate digitization process
          */
-        void run(unsigned int) override;
+        void run(Event*) override;
 
         /**
          * @brief Finalize and write optional histograms
@@ -59,12 +62,7 @@ namespace allpix {
         void finalize() override;
 
     private:
-        std::mt19937_64 random_generator_;
-
         Messenger* messenger_;
-
-        // Input message with the charges on the pixels
-        std::shared_ptr<PixelChargeMessage> pixel_message_;
 
         /**
          * @brief Helper function to calculate time of crossing the threshold
@@ -74,13 +72,36 @@ namespace allpix {
          */
         double time_of_arrival(const PixelCharge& pixel_charge, double threshold) const;
 
+        // Configuration
+        bool output_plots_{};
+
+        unsigned int electronics_noise_{};
+        double gain_{}, gain_smearing_{};
+
+        bool saturation_{};
+        unsigned int saturation_mean_{}, saturation_width_{};
+
+        unsigned int threshold_{}, threshold_smearing_{};
+
+        int qdc_resolution_{};
+        unsigned int qdc_smearing_{};
+        double qdc_offset_{};
+        double qdc_slope_{};
+        bool allow_zero_qdc_{};
+
+        int tdc_resolution_{};
+        unsigned int tdc_smearing_{};
+        double tdc_offset_{};
+        double tdc_slope_{};
+        bool allow_zero_tdc_{};
+
         // Statistics
-        unsigned long long total_hits_{};
+        std::atomic<unsigned long long> total_hits_{};
 
         // Output histograms
-        TH1D *h_pxq{}, *h_pxq_noise{}, *h_gain{}, *h_pxq_gain{}, *h_thr{}, *h_pxq_thr{}, *h_pxq_adc_smear{}, *h_pxq_adc{};
-        TH1D *h_px_toa{}, *h_px_tdc_smear{}, *h_px_tdc{};
-        TH2D *h_calibration{}, *h_toa_calibration;
+        Histogram<TH1D> h_pxq, h_pxq_noise, h_gain, h_pxq_gain, h_thr, h_pxq_thr, h_pxq_sat, h_pxq_adc_smear, h_pxq_adc,
+            h_px_toa, h_px_tdc_smear, h_px_tdc;
+        Histogram<TH2D> h_calibration, h_toa_calibration;
     };
 } // namespace allpix
 

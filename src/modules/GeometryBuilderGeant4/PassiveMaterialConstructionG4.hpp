@@ -10,13 +10,11 @@
 #ifndef ALLPIX_MODULE_PASSIVE_MATERIAL_CONSTRUCTION_H
 #define ALLPIX_MODULE_PASSIVE_MATERIAL_CONSTRUCTION_H
 
-#include <memory>
-#include <utility>
 #include <vector>
 
-#include "G4LogicalVolume.hh"
-#include "G4Material.hh"
-#include "core/config/Configuration.hpp"
+#include <G4LogicalVolume.hh>
+#include <G4Material.hh>
+
 #include "core/geometry/GeometryManager.hpp"
 
 #include "PassiveMaterialModel.hpp"
@@ -30,7 +28,7 @@ namespace allpix {
         /**
          * @brief Constructs passive material construction module
          */
-        PassiveMaterialConstructionG4(GeometryManager* geo_manager);
+        explicit PassiveMaterialConstructionG4(GeometryManager* geo_manager);
 
         /**
          * @brief Registers the passive material
@@ -40,8 +38,7 @@ namespace allpix {
         /**
          * @brief Constructs the passive materials
          */
-        void buildVolumes(const std::map<std::string, G4Material*>& materials,
-                          const std::shared_ptr<G4LogicalVolume>& world_log);
+        void buildVolumes(const std::shared_ptr<G4LogicalVolume>& world_log);
 
     private:
         GeometryManager* geo_manager_;

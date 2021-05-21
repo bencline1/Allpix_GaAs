@@ -11,11 +11,11 @@
 #define ALLPIX_FIELD_PARSER_H
 
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <map>
 
-#include "core/utils/file.h"
 #include "core/utils/log.h"
 #include "core/utils/unit.h"
 
@@ -213,6 +213,24 @@ namespace allpix {
 
     private:
         /**
+         * @brief Check if the file is a binary file
+         * @param path The path to the file to be checked check
+         * @return True if the file contains null bytes, false otherwise
+         *
+         * This helper function checks the first 256 characters of a file for the occurrence of a nullbyte.
+         * For binary files it is very unlikely not to have at least one. This approach is also used e.g. by diff
+         */
+        bool file_is_binary(const std::string& path) const {
+            std::ifstream file(path);
+            for(size_t i = 0; i < 256; i++) {
+                if(file.get() == '\0') {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
          * @brief Function to guess the type of a field data file
          * @param path Path to the file to be tested
          * @return Type of the file
@@ -295,13 +313,13 @@ namespace allpix {
             file >> tmp;               // ignore cluster length
             file >> tmp >> tmp >> tmp; // ignore the incident pion direction
             file >> tmp >> tmp >> tmp; // ignore the magnetic field (specify separately)
-            double thickness, xpixsz, ypixsz;
+            double thickness = NAN, xpixsz = NAN, ypixsz = NAN;
             file >> thickness >> xpixsz >> ypixsz;
             thickness = Units::get(thickness, "um");
             xpixsz = Units::get(xpixsz, "um");
             ypixsz = Units::get(ypixsz, "um");
             file >> tmp >> tmp >> tmp >> tmp; // ignore temperature, flux, rhe (?) and new_drde (?)
-            size_t xsize, ysize, zsize;
+            size_t xsize = 0, ysize = 0, zsize = 0;
             file >> xsize >> ysize >> zsize;
             file >> tmp;
 
@@ -323,7 +341,7 @@ namespace allpix {
                 }
 
                 // Get index of field
-                size_t xind, yind, zind;
+                size_t xind = 0, yind = 0, zind = 0;
                 file >> xind >> yind >> zind;
 
                 if(file.fail() || xind > xsize || yind > ysize || zind > zsize) {
@@ -335,7 +353,7 @@ namespace allpix {
 
                 // Loop through components of field
                 for(size_t j = 0; j < N_; ++j) {
-                    double input;
+                    double input = NAN;
                     file >> input;
 
                     // Set the field at a position

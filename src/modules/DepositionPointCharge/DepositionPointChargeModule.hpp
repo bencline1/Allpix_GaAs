@@ -23,19 +23,17 @@ namespace allpix {
          * @brief Types of deposition
          */
         enum class DepositionModel {
-            NONE = 0, ///< No deposition
-            FIXED,    ///< Deposition at a specific point
-            SCAN,     ///< Scan through the volume of a pixel
-            SPOT,     ///< Deposition around fixed position with Gaussian profile
+            FIXED, ///< Deposition at a specific point
+            SCAN,  ///< Scan through the volume of a pixel
+            SPOT,  ///< Deposition around fixed position with Gaussian profile
         };
 
         /**
          * @brief Types of sources
          */
         enum class SourceType {
-            NONE = 0, ///< No source
-            POINT,    ///< Deposition at a single point
-            MIP,      ///< MIP-like linear deposition of charge carrier
+            POINT, ///< Deposition at a single point
+            MIP,   ///< MIP-like linear deposition of charge carrier
         };
 
     public:
@@ -48,32 +46,33 @@ namespace allpix {
         DepositionPointChargeModule(Configuration& config, Messenger* messenger, std::shared_ptr<Detector> detector);
 
         /**
-         * @brief Deposit charge carriers for every simulated event
-         */
-        void run(unsigned int) override;
-
-        /**
          * @brief Initialize the histograms
          */
-        void init() override;
+        void initialize() override;
+
+        /**
+         * @brief Deposit charge carriers for every simulated event
+         */
+        void run(Event*) override;
 
     private:
         /**
          * @brief Helper function to deposit charges at a single point
-         * @param event event number
+         * @param event Pointer to current event
+         * @param position
          */
-        void DepositPoint(const ROOT::Math::XYZPoint& position);
+        void DepositPoint(Event*, const ROOT::Math::XYZPoint& position);
 
         /**
          * @brief Helper function to deposit charges along a line
-         * @param event event number
+         * @param event Pointer to current event
+         * @param position
          */
-        void DepositLine(const ROOT::Math::XYZPoint& position);
+        void DepositLine(Event*, const ROOT::Math::XYZPoint& position);
 
-        std::shared_ptr<Detector> detector_;
         Messenger* messenger_;
 
-        std::mt19937_64 random_generator_;
+        std::shared_ptr<Detector> detector_;
 
         DepositionModel model_;
         SourceType type_;
@@ -81,5 +80,6 @@ namespace allpix {
         ROOT::Math::XYZVector voxel_;
         double step_size_z_{};
         unsigned int root_{}, carriers_{};
+        ROOT::Math::XYZVector position_{};
     };
 } // namespace allpix

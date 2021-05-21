@@ -15,7 +15,6 @@
 #include <vector>
 
 #include "core/messenger/Messenger.hpp"
-#include "core/utils/file.h"
 #include "core/utils/log.h"
 
 #include <Math/RotationZYX.h>
@@ -91,11 +90,9 @@ inline std::array<long double, 3> getRotationAnglesFromMatrix(ROOT::Math::Rotati
 }
 
 LCIOWriterModule::LCIOWriterModule(Configuration& config, Messenger* messenger, GeometryManager* geo)
-    : Module(config), geo_mgr_(geo) {
-
-    // Bind pixel hits message
-    messenger->bindMulti(this, &LCIOWriterModule::pixel_messages_, MsgFlags::REQUIRED);
-    messenger->bindSingle(this, &LCIOWriterModule::mctracks_message_, MsgFlags::REQUIRED);
+    : SequentialModule(config), messenger_(messenger), geo_mgr_(geo) {
+    // Enable parallelization of this module if multithreading is enabled
+    enable_parallelization();
 
     // Set configuration defaults:
     config_.setDefault("file_name", "output.slcio");
@@ -112,6 +109,13 @@ LCIOWriterModule::LCIOWriterModule(Configuration& config, Messenger* messenger, 
     // provided
     auto has_short_config = config_.has("output_collection_name");
     auto has_long_config = config_.has("detector_assignment");
+
+    // Bind pixel hits message
+    messenger_->bindMulti<PixelHitMessage>(this, MsgFlags::REQUIRED);
+    messenger_->bindMulti<MCParticleMessage>(this, MsgFlags::REQUIRED);
+    if(dump_mc_truth_) {
+        messenger_->bindSingle<MCTrackMessage>(this, MsgFlags::REQUIRED);
+    }
 
     if(has_short_config && has_long_config) {
         throw InvalidCombinationError(config_,
@@ -232,11 +236,11 @@ LCIOWriterModule::LCIOWriterModule(Configuration& config, Messenger* messenger, 
     }
 }
 
-void LCIOWriterModule::init() {
+void LCIOWriterModule::initialize() {
     // Create the output GEAR file for the detector geometry
-    geometry_file_name_ = createOutputFile(allpix::add_file_extension(config_.get<std::string>("geometry_file"), "xml"));
+    geometry_file_name_ = createOutputFile(config_.get<std::string>("geometry_file"), "xml");
     // Open LCIO file and write run header
-    lcio_file_name_ = createOutputFile(allpix::add_file_extension(config_.get<std::string>("file_name"), "slcio"));
+    lcio_file_name_ = createOutputFile(config_.get<std::string>("file_name"), "slcio");
     lcWriter_ = std::shared_ptr<IO::LCWriter>(LCFactory::getInstance()->createLCWriter());
     lcWriter_->open(lcio_file_name_, LCIO::WRITE_NEW);
     auto run = std::make_unique<LCRunHeaderImpl>();
@@ -245,10 +249,12 @@ void LCIOWriterModule::init() {
     lcWriter_->writeRunHeader(run.get());
 }
 
-void LCIOWriterModule::run(unsigned int eventNb) {
+void LCIOWriterModule::run(Event* event) {
+    auto pixel_messages = messenger_->fetchMultiMessage<PixelHitMessage>(this, event);
+
     auto evt = std::make_unique<LCEventImpl>(); // create the event
     evt->setRunNumber(1);
-    evt->setEventNumber(static_cast<int>(eventNb)); // set the event attributes
+    evt->setEventNumber(static_cast<int>(event->number)); // set the event attributes
     evt->parameters().setValue("EventType", 2);
 
     auto output_col_vec = std::vector<LCCollectionVec*>();
@@ -297,7 +303,7 @@ void LCIOWriterModule::run(unsigned int eventNb) {
     }
 
     // Receive all pixel messages, fill charge vectors
-    for(const auto& hit_msg : pixel_messages_) {
+    for(const auto& hit_msg : pixel_messages) {
         LOG(DEBUG) << hit_msg->getDetector()->getName();
         for(const auto& hitdata : hit_msg->getData()) {
 

@@ -10,19 +10,21 @@ The descriptions of all detectors and passive volumes have to be specified withi
 
 All available detector models are fully supported.
 
+#### Passive Volumes
+
 For passive materials, the implemented models are "box", "cylinder" and "sphere".
 The dimensions of the individual volumes are defined by the following parameters for the specific models and to be set within the corresponding section of the geometry configuration:
 
 For each model, a set of specific size parameters need to be given, of which some are optional.
 
-#### Box:
+##### Box:
 A rectangular box which can be massive or have an hole in the middle along the z-axis.
 
 * The `size` of the box is an XYZ vector which defines the total size of the box.
 * (Optional) The `inner_size` of the box is an XYZ vector which defines the size of the volume that will be removed at the center of the original box volume. Defaults to 0mm 0mm 0mm (no volume removed).
 * (Optional) The `thickness` of the box is a value which defines the thickness of the walls of a box. This has a similar effect as the parameter `inner_size`, and such they can't be used together. Defaults to 0mm.
 
-#### Cylinder:
+##### Cylinder:
 A cylindrical tube which can be massive or have an hole in the middle along the z-axis.
 
 * The `outer_radius` of the cylinder is the total radius of the cylinder (in the XY-plane).
@@ -32,7 +34,7 @@ A cylindrical tube which can be massive or have an hole in the middle along the 
 * (Optional) The `arc_length` of the cylinder is the arc-length of the circumference that will be drawn, starting from the given `starting_angle`. Defaults to 360deg which is the full circumference.
 Note that the if the `arc_length` is set to 360 degrees, the Allpix² framework will always draw the full circumference, regardless of the value of `starting_angle`.
 
-#### Sphere:
+##### Sphere:
 A full or partly made sphere with an inner- and outer radius.
 
 * The `outer_radius` of the sphere is the total radius of the sphere in all directions.
@@ -43,11 +45,19 @@ A full or partly made sphere with an inner- and outer radius.
 * (Optional) The `arc_length_theta` of the sphere is the arc-length of the polar angle which will be rotated around the z-axis to build the sphere, starting from the given `starting_angle_theta`. Defaults to 100deg which creates the full circle.
 
 Note that `arc_length_phi` works the same as the `arc_length` from the cylinder, but the `arc_length_theta` works different.
-The Allpix² framework will only draw the full circle if `starting_angle_theta` = 0deg, and `arc_length_theta` = 180deg. 
+The Allpix² framework will only draw the full circle if `starting_angle_theta` = 0deg, and `arc_length_theta` = 180deg.
 In all other situations, the sphere will start at `starting_angle_theta` and continue the `arc_length_theta` until `arc_length_theta` + `starting_angle_theta` = 180deg. After this it will stop.
 The necessary module errors and warnings have been included to make sure the user will know will and won't be build.
 Note: If the VisualizationGeant4 module is used in conjunction with and `arc_length_theta` different from 180deg, the Visualization GUI will show an error "Inconsistency in bounding boxes for solid". The origin of this error is unknown but the error can be ignored.
 
+For each of the above mentioned models, a color and opacity can be added to the passive material.
+* The `color` of the passive material is given in an R G B vector, where each color value is between 0 and 1. Defaults to `color = 0 0 1` (blue) 
+* The `opacity` of the passive material is given as a number between 0 and 1, where 0 is completely transparent, and 1 is completely opaque.
+
+
+#### Materials
+
+The following materials are pre-defined and can directly be used for the world volume, detector support layers as well as passive volumes:
 This module can create support layers and passive volumes of the following materials:
 
 * Materials listed by Geant4:
@@ -67,7 +77,12 @@ This module can create support layers and passive volumes of the following mater
     * fused silica
     * PCB G-10
     * solder
+    * polystyrene
+    * ppo foam
     * vacuum
+
+Furthermore, this module can automatically load any material defined in the Geant4 material database [@g4materials]. This comprises both simple materials and pre-defined NIST compounds.
+It should be noted that when loading a material from the Geant4 material database, the name comparison is case sensitive. Names can be provided with or without `G4_` prefix.
 
 ### Dependencies
 
@@ -77,6 +92,8 @@ This module requires an installation of Geant4.
 * `world_material` : Material of the world, should either be **air** or **vacuum**. Defaults to **air** if not specified.
 * `world_margin_percentage` : Percentage of the world size to add to every dimension compared to the internally calculated minimum world size. Defaults to 0.1, thus 10%.
 * `world_minimum_margin` : Minimum absolute margin to add to all sides of the internally calculated minimum world size. Defaults to zero for all axis, thus not requiring any minimum margin.
+* `log_level_g4cerr`: Target logging level for Geant4 messages from the G4cerr (error) stream. Defaults to `WARNING`.
+* `log_level_g4cout`: Target logging level for Geant4 messages from the G4cout stream. Defaults to `TRACE`.
 
 ### Usage
 To create a Geant4 geometry using vacuum as world material and with always exactly one meter added to the minimum world size in every dimension, the following configuration could be used:
@@ -87,3 +104,5 @@ world_material = "vacuum"
 world_margin_percentage = 0
 world_minimum_margin = 1m 1m 1m
 ```
+
+[@g4materials]: https://geant4-userdoc.web.cern.ch/UsersGuides/ForApplicationDeveloper/html/Appendix/materialNames.html

@@ -18,6 +18,7 @@
 #include "core/config/ConfigReader.hpp"
 #include "core/config/Configuration.hpp"
 #include "core/config/exceptions.h"
+#include "core/module/ThreadPool.hpp"
 #include "core/utils/log.h"
 #include "core/utils/unit.h"
 #include "tools/ROOT.h"
@@ -26,12 +27,12 @@
 
 #include "MeshElement.hpp"
 #include "MeshParser.hpp"
-#include "ThreadPool.hpp"
 #include "combinations/combinations.h"
 #include "octree/Octree.hpp"
 
 using namespace mesh_converter;
 using namespace ROOT::Math;
+using allpix::ThreadPool;
 
 void interrupt_handler(int);
 
@@ -199,11 +200,9 @@ int main(int argc, char** argv) {
         auto start = std::chrono::system_clock::now();
 
         std::string grid_file = file_prefix + ".grd";
-        LOG(STATUS) << "Reading mesh grid from file \"" << grid_file << "\"";
         std::vector<Point> points = parser->getMesh(grid_file, regions);
 
         std::string data_file = file_prefix + ".dat";
-        LOG(STATUS) << "Reading field from file \"" << data_file << "\"";
         std::vector<Point> field = parser->getField(data_file, observable, regions);
 
         if(points.size() != field.size()) {
@@ -289,9 +288,13 @@ int main(int argc, char** argv) {
             LOG(STATUS) << "TCAD mesh (x,y,z) coords. transformation into: (" << rot.at(0) << "," << rot.at(1) << ","
                         << rot.at(2) << ")";
         }
+
+        const auto mesh_points_total = divisions.x() * divisions.y() * divisions.z();
         LOG(STATUS) << "Mesh dimensions: " << maxx - minx << " x " << maxy - miny << " x " << maxz - minz << std::endl
-                    << "New mesh element dimension: " << xstep << " x " << ystep << " x " << zstep
-                    << " ==>  Volume = " << cell_volume;
+                    << "New mesh element dimension: " << xstep << " x " << ystep << " x " << zstep << std::endl
+                    << "Volume: " << cell_volume << std::endl
+                    << "New mesh grid points: " << static_cast<ROOT::Math::XYZVector>(divisions) << " (" << mesh_points_total
+                    << " total)";
 
         if(rot.at(0).find('-') != std::string::npos) {
             LOG(WARNING) << "Inverting coordinate X. This might change the right-handness of the coordinate system!";
@@ -327,6 +330,7 @@ int main(int argc, char** argv) {
         unibn::Octree<Point> octree;
         octree.initialize(points);
 
+        int mesh_points_done = 0;
         auto mesh_section = [&](double x, double y) {
             allpix::Log::setReportingLevel(log_level);
 
@@ -397,11 +401,16 @@ int main(int argc, char** argv) {
                 z += zstep;
             }
 
+            mesh_points_done += divisions.z();
+            LOG_PROGRESS(INFO, "m") << "Interpolating new mesh: " << mesh_points_done << " of " << mesh_points_total << ", "
+                                    << (100 * mesh_points_done / mesh_points_total) << "%";
+
             return new_mesh;
         };
 
         // Start the interpolation on many threads:
         auto num_threads = config.get<unsigned int>("workers", std::max(std::thread::hardware_concurrency(), 1u));
+        ThreadPool::registerThreadCount(num_threads);
         LOG(STATUS) << "Starting regular grid interpolation with " << num_threads << " threads.";
         std::vector<Point> e_field_new_mesh;
 
@@ -413,8 +422,8 @@ int main(int argc, char** argv) {
             allpix::Log::setFormat(log_format);
         };
 
-        ThreadPool pool(num_threads, init_function);
-        std::vector<std::future<std::vector<Point>>> mesh_futures;
+        ThreadPool pool(num_threads, num_threads * 1024, init_function);
+        std::vector<std::shared_future<std::vector<Point>>> mesh_futures;
         // Set starting point
         double x = minx + xstep / 2.0;
         // Loop over x coordinate, add tasks for each coordinate to the queue
@@ -428,13 +437,9 @@ int main(int argc, char** argv) {
         }
 
         // Merge the result vectors:
-        unsigned int mesh_slices_done = 0;
         for(auto& mesh_future : mesh_futures) {
             auto mesh_slice = mesh_future.get();
             e_field_new_mesh.insert(e_field_new_mesh.end(), mesh_slice.begin(), mesh_slice.end());
-            LOG_PROGRESS(INFO, "m") << "Interpolating new mesh: " << mesh_slices_done << " of " << mesh_futures.size()
-                                    << ", " << (100 * mesh_slices_done / mesh_futures.size()) << "%";
-            mesh_slices_done++;
         }
         pool.destroy();
 

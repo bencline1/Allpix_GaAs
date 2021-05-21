@@ -28,6 +28,17 @@ namespace allpix {
     class GeneratorActionG4 : public G4VUserPrimaryGeneratorAction {
     public:
         /**
+         * @brief Different types of particle sources
+         */
+        enum class SourceType {
+            MACRO,  ///< Source defined by a macro file
+            BEAM,   ///< Beam particle source
+            SPHERE, ///< Spherical particle source
+            SQUARE, ///< Square particle source
+            POINT,  ///< Point source
+        };
+
+        /**
          * @brief Constructs the generator action
          * @param config Configuration of the \ref DepositionGeant4Module module
          */
@@ -37,6 +48,28 @@ namespace allpix {
          * @brief Generate the particle for every event
          */
         void GeneratePrimaries(G4Event*) override;
+
+    private:
+        std::unique_ptr<G4GeneralParticleSource> particle_source_;
+
+        static std::map<std::string, std::tuple<int, int, int, double>> isotopes_;
+
+        const Configuration& config_;
+
+        std::string particle_type_;
+
+        bool initialize_ion_as_particle_{false};
+    };
+
+    /**
+     * @brief Creates and initialize the GPS messenger on master before workers use it
+     */
+    class GeneratorActionInitializationMaster {
+    public:
+        /**
+         * Constructs a particle source for master and apply common UI macros if requested.
+         */
+        explicit GeneratorActionInitializationMaster(const Configuration& config);
 
     private:
         std::unique_ptr<G4GeneralParticleSource> particle_source_;

@@ -29,13 +29,13 @@ namespace allpix {
          * @brief Constructs geometry construction module
          * @param geo_manager Pointer to the geometry manager, containing the detectors
          */
-        DetectorConstructionG4(GeometryManager* geo_manager);
+        explicit DetectorConstructionG4(GeometryManager* geo_manager);
 
         /**
          * @brief Constructs the world geometry with all detectors
          * @return Physical volume representing the world
          */
-        void build(std::map<std::string, G4Material*> materials_, const std::shared_ptr<G4LogicalVolume>& world_log);
+        void build(const std::shared_ptr<G4LogicalVolume>& world_log);
 
     private:
         GeometryManager* geo_manager_;
