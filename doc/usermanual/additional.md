@@ -10,7 +10,7 @@ Framework Tools
 ---------------
 
 The following tools are part of the Allpix² framework and are located in
-the `src/tools` directory. They are intended as centralized components
+the `/src/tools` directory. They are intended as centralized components
 which can be shared between different modules rather than independent
 tools.
 
@@ -25,6 +25,17 @@ configuration parameters to these types, making the code in the modules
 both shorter and cleaner. In addition, more conversions functions are
 provided together with other useful utilities such as the possibility to
 display a ROOT vector with units.
+
+### Geant4 Interface
+
+The framework provides an interfacing library with Geant4 that provides alternative run managers to be used by modules interested in using Geant4 as follows:
+
+-   `MTRunManager`: A run manager that can only be used in parallel. Internally, it creates thread-local managers to handle operations for each calling thread independently. It also maintains a stable seed distribution mechanism to ensure results are the same regardless of the number of threads that use the manager in parallel.
+
+-   `RunManager`: A run manager that can not be used in parallel. It uses the same seeding mechanism as the multi-threaded version so they can be used interchangeably depending on whether multi-threading is enabled or not, while ensuring identical results.
+
+The DepositionGeant4 module uses `MTRunManager` to be able to call the `BeamOn` method in parallel thus benefiting from the multi-threading feature while the VisualizationGeant4 module uses `RunManager` to be able to visualize the particles passage through the detectors.
+
 
 ### Runge-Kutta integrator
 
@@ -43,11 +54,10 @@ created with the initial position of the charge carrier to be
 transported, the `step()` function allows to advance the simulation to
 the next step.
 
-``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+```cpp
 // Define lambda functions to compute the charge carrier velocity at each step
 std::function<Eigen::Vector3d(double, Eigen::Vector3d)> carrier_velocity =
-    [&](double, Eigen::Vector3d cur_pos) -> Eigen::Vector3d 
-	{...};
+    [&](double, Eigen::Vector3d cur_pos) -> Eigen::Vector3d {...};
 
 // Create the Runge-Kutta solver with a RK5 tableau, the carrier velocity function to be used
 // as well as the initial timestep and position of the charge carrier
@@ -73,8 +83,8 @@ time, the cached field is returned. In conjunction with a static
 instance of the field parser class in a module, this allows to share
 field data across multiple module instances.
 
-``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-class MyVectorFieldModule(...) : Module(...) 
+```cpp
+class MyVectorFieldModule(...) : Module(...)
 {
 private:
     void some_function(std::string canonical_path);
@@ -85,7 +95,7 @@ private:
 // Create static instance of field parser in the translation unit:
 FieldParser<double> MyVectorFieldModule::field_parser_(FieldQuantity::VECTOR);
 
-void MyVectorFieldModule::some_function(std::string canonical_path) 
+void MyVectorFieldModule::some_function(std::string canonical_path)
 {
     // Get vector field from file:
     auto field_data = field_parser_.getByFileName(canonical_path, "V/cm");
@@ -98,7 +108,7 @@ automatically converted to the framework base units described in
 Section [Parsing types and units](getting_started.md#parsing-types-and-units). Fields in the APF format are always stored
 in framework base units and do not require conversion. The file path
 provided to the field parser should always be canonical, if the file is
-not found or cannot be parsed, a `std::runtimeerror` exception is
+not found or cannot be parsed, a `std::runtime_error` exception is
 thrown.
 
 The type of field data to be parsed is automatically deduced from the
@@ -108,6 +118,10 @@ bytes in the file. If every byte in that part of the file is non-null,
 the parser considers the file to be text and reads it as INIT file;
 otherwise it considers the file to be binary and parses the field as APF
 data.
+
+FIXME input mesh converter README
+
+FIXME input ROOT analysis README
 
 [^8]:Gaël Guennebaud, Benoît Jacob, et al. Eigen v3. 2010. url: [http://eigen.tuxfamily.org](http://eigen.tuxfamily.org).
 [^19]:Erwin Fehlberg. Low-order classical Runge-Kutta formulas with stepsize control and their application to some heat transfer problems. NASA Technical Report NASA-TR-R-315. [http://hdl.handle.net/2060/19690021375](http://hdl.handle.net/2060/19690021375). 1969.
