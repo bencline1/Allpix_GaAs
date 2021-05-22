@@ -10,14 +10,12 @@ framework.
 Installation & Usage
 --------------------
 
-What is the easiest way to use Allpix² on CERN’s LXPLUS?
-:   Central installations of Allpix² on LXPLUS are provided via CVMFS
-    for both supported LXPLUS operating systems, SLC6 and CERN CentOS7.
+-   *What is the easiest way to use Allpix² on CERN’s LXPLUS?* Central installations of Allpix² on LXPLUS are provided via CVMFS
+    for both supported LXPLUS operating systems, CERN CentOS7 and CentOS8.
     Please refer to Section [Software deployment to CVMFS](testing.md#software-deployment-to-cvmfs) for the details of how to access
     these installations.
 
-What is the quickest way to get a local installation of Allpix²?
-:   The project provides ready-to-use Docker containers which contain
+-   *What is the quickest way to get a local installation of Allpix²?* The project provides ready-to-use Docker containers which contain
     all dependencies such as Geant4 and ROOT. Please refer to
     Section [Docker images](installation.md#docker-images) for more information on how to start and use
     these containers.
@@ -25,27 +23,25 @@ What is the quickest way to get a local installation of Allpix²?
 Configuration
 -------------
 
-How do I run a module only for one detector?
-:   This is only possible for detector modules (which are constructed to
+-   *How do I run a module only for one detector?* This is only possible for detector modules (which are constructed to
     work on individual detectors). To run it on a single detector, one
     should add a parameter `name` specifying the name of the detector
     (as defined in the detector configuration file):
 
-    ``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```toml
     [ElectricFieldReader]
     name = "dut"
     model = "mesh"
     file_name = "../example_electric_field.init"
     ```
 
-How do I run a module only for a specific detector type?
-:   This is only possible for detector modules (which are constructed to
+-   *How do I run a module only for a specific detector type?* This is only possible for detector modules (which are constructed to
     work on individual detectors). To run it for a specific type of
     detector, one should add a parameter `type` with the type of the
     detector model (as set in the detector configuration file by the
     `model` parameter):
 
-    ``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```toml
     [ElectricFieldReader]
     type = "timepix"
     model = "linear"
@@ -56,11 +52,10 @@ How do I run a module only for a specific detector type?
     Please refer to Section [Module instantiation](framework-modules-manager.md#module-instantiation) for more
     information.
 
-How can I run the exact same type of module with different settings?
-:   This is possible by using the `input` and `output` parameters of a
+-   *How can I run the exact same type of module with different settings?* This is possible by using the `input` and `output` parameters of a
     module that specify the messages of the module:
 
-    ``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```toml
     [DefaultDigitizer]
     name = "dut0"
     adc_resolution = 4
@@ -77,7 +72,7 @@ How can I run the exact same type of module with different settings?
     modules require the `input` parameter to not receive multiple
     messages:
 
-    ``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```toml
     [DetectorHistogrammer]
     input = "low_adc_resolution"
     name = "dut0"
@@ -90,33 +85,29 @@ How can I run the exact same type of module with different settings?
     Please refer to Section [Passing Objects using Messages](framework-passing-objects-using-messages.md) for more
     information.
 
-How can I temporarily ignore a module during development?
-:   The section header of a particular module in the configuration file
+-   *How can I temporarily ignore a module during development?* The section header of a particular module in the configuration file
     can be replaced by the string `Ignore`. The section and all of its
     key/value pairs are then ignored. Modules can also be excluded from
     the compilation process as explained in Section [Conﬁguration via CMake](installation.md#configuration-via-cmake).
 
-Can I get a high verbosity level only for a specific module?
-:   Yes, it is possible to specify verbosity levels and log formats per
-    module. This can be done by adding the `loglevel` and/or `logformat`
+-   *Can I get a high verbosity level only for a specific module?* Yes, it is possible to specify verbosity levels and log formats per
+    module. This can be done by adding the `log_level` and/or `log_format`
     key to a specific module to replace the parameter in the global
     configuration sections.
 
-Can I import an electric field from TCAD and use it for simulating propagation?
-:   Yes, the framework includes a tool to convert DF-ISE files from TCAD
+-   *Can I import an electric field from TCAD and use it for simulating propagation?* Yes, the framework includes a tool to convert DF-ISE files from TCAD
     to an internal format which Allpix² can parse. More information
     about this tool can be found in
-    Section [Octree](../tools/mesh_converter.md#octree), instructions to
+    Section [MeshConverter](../tools/mesh_converter.md), instructions to
     import the generated field are provided in
     Section [Electric Fields](getting_started.md#electric-fields).
 
 Detector Models
 ---------------
 
-I want to use a detector model with one or several small changes, do I have to create a whole new model for this?
-:   No, models can be specialized in the detector configuration file. To
+-   *I want to use a detector model with one or several small changes, do I have to create a whole new model for this?* No, models can be specialized in the detector configuration file. To
     specialize a detector model, the key that should be changed in the
-    standard detector model, e.g. like `sensorthickness`, should be
+    standard detector model, e.g. like `sensor_thickness`, should be
     added as key to the section of the detector configuration (which
     already contains the position, orientation and the base model of the
     detector). Only parameters in the header of detector models can be
@@ -127,9 +118,8 @@ I want to use a detector model with one or several small changes, do I have to c
 Data Analysis
 -------------
 
-How do I access the history of a particular object?
-:   Many objects can include an internal link to related other objects
-    (for example `getPropagatedCharges` in the `PixelCharge` object),
+-   *How do I access the history of a particular object?* Many objects can include an internal link to related other objects
+    (for example `getPropagatedCharges()` in the `PixelCharge` object),
     containing the history of the object (thus the objects that were
     used to construct the current object). These referenced objects are
     stored as special ROOT pointers inside the object, which can only be
@@ -142,8 +132,7 @@ How do I access the history of a particular object?
     retrieving method. Please refer to Section [Object History](objects.md#object-history) for more
     information.
 
-How do I access the Monte Carlo truth of a specific PixelHit?
-:   The Monte Carlo truth is part of the history of a PixelHit. This
+-   *How do I access the Monte Carlo truth of a specific PixelHit?* The Monte Carlo truth is part of the history of a PixelHit. This
     means that the Monte Carlo truth can be retrieved as described in
     the question above. Because accessing the Monte Carlo truth of a
     PixelHit is quite a common task, these references are stored
@@ -152,8 +141,7 @@ How do I access the Monte Carlo truth of a specific PixelHit?
     including all intermediate steps in memory. Please refer to
     Section [Object History](objects.md#object-history) for more information.
 
-How do I find out, which Monte Carlo particles are primary particles and which have been generated in the sensor?
-:   The Monte Carlo truth information is stored per-sensor as MCParticle
+-   *How do I find out, which Monte Carlo particles are primary particles and which have been generated in the sensor?* The Monte Carlo truth information is stored per-sensor as MCParticle
     objects. Each MCParticle stores, among other information, a
     reference to its parent. Particles which have entered the sensor
     from the outside world do not have parent MCParticles in the
@@ -166,15 +154,15 @@ How do I find out, which Monte Carlo particles are primary particles and which h
     Below is some pseudo-code to filter a list of MCParticle objects for
     primaries based on their parent relationship:
 
-    ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```cpp
     // Collect all primary particles of the event:
     std::vector<const MCParticle*> primaries;
 
     // Loop over all MCParticles available
-    for(auto& mc_particle : my_mc_particles) 
+    for(auto& mc_particle : my_mc_particles)
 	{
         // Check for possible parents:
-        if(mc_particle.getParent() != nullptr) 
+        if(mc_particle.getParent() != nullptr)
 		{
             // Has a parent, thus was created inside this sensor.
             continue;
@@ -187,9 +175,9 @@ How do I find out, which Monte Carlo particles are primary particles and which h
 
     A similar function is used e.g. in the DetectorHistogrammer module
     to filter primary particles and create position-resolved graphs.
+    Furthermore, the PixelHit object provides two member functions to access Monte Carlo particles, one which returns all known particles, `getMCParticles()`, and a second function called `getPrimaryMCParticles()` which already performs the above filtering and only returns primary particle references.
 
-How do I access data stored in a file produced with the ROOTObjectWriter from an analysis script?
-:   Allpix² uses ROOT trees to directly store the relevant C++ objects as
+-   *How do I access data stored in a file produced with the ROOTObjectWriter from an analysis script?* Allpix² uses ROOT trees to directly store the relevant C++ objects as
     binary data in the file. This retains all information present during
     the simulation run, including relations between different objects
     such as assignment of Monte Carlo particles. In order to read such a
@@ -199,7 +187,7 @@ How do I access data stored in a file produced with the ROOTObjectWriter from an
     In ROOT this can be done interactively by loading a data file, the
     necessary shared library objects and a macro for the analysis:
 
-    ``` {.bash frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```shell
     $ root -l data_file.root
     root [1] .L ~/path/to/your/allpix-squared/lib/libAllpixObjects.so
     root [2] .L analysisMacro.C+
@@ -209,7 +197,7 @@ How do I access data stored in a file produced with the ROOTObjectWriter from an
     A simple macro for reading DepositedCharges from a file and
     displaying their position is presented below:
 
-    ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```shell
     #include <TFile.h>
     #include <TTree.h>
 
@@ -217,19 +205,19 @@ How do I access data stored in a file produced with the ROOTObjectWriter from an
     #include "/path/to/your/allpix-squared/DepositedCharge.hpp"
 
     // Read data from tree
-    void readTree(TFile* file, std::string detector) 
+    void readTree(TFile* file, std::string detector)
 	{
 
         // Read tree of deposited charges:
         TTree* dc_tree = static_cast<TTree*>(file->Get("DepositedCharge"));
-        if(!dc_tree) 
+        if(!dc_tree)
 		{
             throw std::runtime_error("Could not read tree");
         }
 
         // Find branch for the detector requested:
         TBranch* dc_branch = dc_tree->FindBranch(detector.c_str());
-        if(!dc_branch) 
+        if(!dc_branch)
 		{
             throw std::runtime_error("Could not find detector branch");
         }
@@ -239,11 +227,11 @@ How do I access data stored in a file produced with the ROOTObjectWriter from an
         dc_branch->SetObject(&deposited_charges);
 
         // Go through the tree event-by-event:
-        for(int i = 0; i < dc_tree->GetEntries(); ++i) 
+        for(int i = 0; i < dc_tree->GetEntries(); ++i)
 		{
             dc_tree->GetEntry(i);
             // Loop over all deposited charge objects
-            for(auto& charge : deposited_charges) 
+            for(auto& charge : deposited_charges)
 			{
                 std::cout << "Event " << i << ": "
                           << "charge = " << charge->getCharge() << ", "
@@ -259,8 +247,7 @@ How do I access data stored in a file produced with the ROOTObjectWriter from an
     Section [ROOT Analysis & Helper Macros](../../tools/root_analysis_macros/) of this user manual. Scripts
     written in both C++ and in Python are provided.
 
-How can I convert data from the ROOTObject format to other formats?
-:   Since the ROOTObject format is the native format of Allpix², the
+-   *How can I convert data from the ROOTObject format to other formats?* Since the ROOTObject format is the native format of Allpix², the
     stored data can be read into the framework again. To convert it to
     another format, a simple pseudo-simulation setup can be used, which
     reads in data with one module and stores it with another.
@@ -269,7 +256,7 @@ How can I convert data from the ROOTObject format to other formats?
     used by the Corryvreckan reconstruction framework, the following
     configuration could be used:
 
-    ``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```toml
     [Allpix]
     number_of_events = 999999999
     detectors_file = "telescope.conf"
@@ -286,19 +273,17 @@ How can I convert data from the ROOTObject format to other formats?
 Development
 -----------
 
-How do I write my own output module?
-:   An essential requirement of any output module is its ability to
+-   *How do I write my own output module?* An essential requirement of any output module is its ability to
     receive any message of the framework. This can be implemented by
-    defining a private `listener` function for the module as described
+    defining a private `filter` function for the module as described
     in Section [Passing Objects using Messages](framework-passing-objects-using-messages.md). This function will be called for
     every new message dispatched within the framework, and should
     contain code to decide whether to discard or cache a message for
     processing. Heavy-duty tasks such as handling data should not be
-    performed in the `listener` routine, but deferred to the `run`
+    performed in the `filter` routine, but deferred to the `run`
     function of the respective output module.
 
-How do I process data from multiple detectors?
-:   When developing a new Allpix² module which processes data from
+-   *How do I process data from multiple detectors?* When developing a new Allpix² module which processes data from
     multiple detectors, e.g. as the simulation of a track trigger
     module, this module has to be of type `unique` as described in
     Section [Modules and the Module Manager](framework-modules-manager.md). As a `detector` module, it would
@@ -308,21 +293,17 @@ How do I process data from multiple detectors?
     `bindMulti` as described in Section [Passing Objects using Messages](framework-passing-objects-using-messages.md). For
     `PixelHit` messages, an example code would be:
 
-    ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-    TrackTriggerModule(Configuration&, Messenger* messenger, GeometryManager* geo_manager) 
+    ```cpp
+    TrackTriggerModule(Configuration&, Messenger* messenger, GeometryManager* geo_manager)
 	{
-        messenger->bindMulti(this,
-                             &TrackTriggerModule::messages,
-                             MsgFlags::NONE);
+        messenger->bindMulti<MCTrackMessage>(this, MsgFlags::NONE);
     }
-    std::vector<std::shared_ptr<PixelHitMessage>> messages;
     ```
 
     The correct detectors have then to be selected in the `run` function
     of the module implementation.
 
-How do I calculate an efficiency in a module?
-:   Calculating efficiencies always requires a reference. For hit
+-   *How do I calculate an efficiency in a module?* Calculating efficiencies always requires a reference. For hit
     detection efficiencies in Allpix², this could be the Monte Carlo
     truth information available via the `MCParticle` objects. Since the
     framework only runs modules, if all input message requirements are
@@ -332,22 +313,21 @@ How do I calculate an efficiency in a module?
     should always be required (using `MsgFlags::REQUIRED`) while the
     `PixelHit` message should be optional:
 
-    ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```cpp
     MyModule::MyModule(Configuration& config, Messenger* messenger, std::shared_ptr<Detector> detector)
-        : Module(config, detector), detector_(std::move(detector)) 
+        : Module(config, detector), detector_(std::move(detector))
 		{
 
         // Bind messages
-        messenger->bindSingle(this, &MyModule::pixels_message_);
-        messenger->bindSingle(this, &MyModule::mcparticle_message_, MsgFlags::REQUIRED);
+        messenger->bindSingle<PixelHitMessage>(this);
+        messenger->bindSingle<MCParticleMessage>(this, MsgFlags::REQUIRED);
     }
     ```
 
 Miscellaneous
 -------------
 
-How can I produce nicely looking drift-diffusion line graphs?
-:   The GenericPropagation module offers the possibility to produce line
+-   *How can I produce nicely looking drift-diffusion line graphs?* The GenericPropagation module offers the possibility to produce line
     graphs depicting the path each of the charge carrier groups have
     taken during the simulation. This is a very useful way to visualize
     the drift and diffusion along field lines.
@@ -366,7 +346,7 @@ How can I produce nicely looking drift-diffusion line graphs?
     silicon sensor. Settings of the module irrelevant for the line graph
     production have been omitted.
 
-    ``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```toml
     [GenericPropagation]
     charge_per_step = 5
     timestep_min = 1ps
@@ -390,10 +370,8 @@ How can I produce nicely looking drift-diffusion line graphs?
     drawn.](../assets/images/linegraph_hrcmos_collected.png)
 
     With these settings, a graph of similar precision to the one
-    presented in the figure can be produced. The required
+    presented in the figure above can be produced. The required
     time stepping size and number of output plot steps varies greatly
     with the sensor and its applied electric field. The number of charge
     carriers per group can be used to vary the density of lines drawn.
     Larger groups result in fewer lines.
-
-
