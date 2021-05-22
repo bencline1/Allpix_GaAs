@@ -11,13 +11,13 @@ running any Allpix² simulation, ROOT and (in most cases) Geant4 should
 be initialized. Refer to Section [Initializing the dependencies](installation.md#initializing-the-dependencies) for
 instructions on how to load these libraries.
 
-Configuration Files 
+Configuration Files
 -------------------
 
 The framework is configured with simple human-readable configuration
 files. The configuration format is described in detail in
 Section [File format](framework.md#file-format), and consists of several section
-headers within $[$ and $]$ brackets, and a section without header at the
+headers within `[` and `]` brackets, and a section without header at the
 start. Each of these sections contains a set of key/value pairs
 separated by the `=` character. Comments are indicated using the hash
 symbol (`#`).
@@ -54,7 +54,7 @@ In the following paragraphs, the available types and the unit system are
 explained and an introduction to the different configuration files is
 given.
 
-### Parsing types and units 
+### Parsing types and units
 
 The Allpix² framework supports the use of a variety of types for all
 configuration values. The module specifies how the value type should be
@@ -122,7 +122,7 @@ Table: List of units supported by Allpix²
 
 Combinations of base units can be specified by using the multiplication
 sign `*` and the division sign `/` that are parsed in linear order (thus
-$\frac{V m}{s^2}$ should be specified as $V*m/s/s$). The framework
+$\frac{V m}{s^2}$ should be specified as `V*m/s/s`). The framework
 assumes the default units (as given in the table) if the unit is
 not explicitly specified. It is recommended to always specify the unit
 explicitly for all parameters that are not dimensionless as well as for
@@ -131,7 +131,7 @@ angles.
 Examples of specifying key/values pairs of various types are given
 below:
 
-``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+```toml
 # All whitespace at the front and back is removed
 first_string =   string_without_quotation
 # All whitespace within the quotation marks is preserved
@@ -163,7 +163,7 @@ my_switch = true
 my_other_switch = 0
 ```
 
-### Main configuration 
+### Main configuration
 
 The main configuration consists of a set of sections specifying the
 modules used. All modules are executed in the `linear` order in which
@@ -223,7 +223,7 @@ determines how the module is instantiated:
 
 A valid example configuration using the detector configuration above is:
 
-``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+```toml
 # Key is part of the empty section and therefore the global configuration
 string_value = "example1"
 # The location of the detector configuration is a global parameter
@@ -257,7 +257,7 @@ configuration file with valid configuration is presented, as opposed to
 the above examples with hypothetical module names for illustrative
 purpose.
 
-### Detector configuration 
+### Detector configuration
 
 The detector configuration consists of a set of sections describing the
 detectors in the setup. Each section starts with a header describing the
@@ -286,16 +286,16 @@ Section [Framework parameters](getting_started.md#framework-parameters). Misalig
 for shifts along the three global axes and the three rotations angles
 with the following parameters:
 
--   The parameter `alignmentprecisionposition` allows the specification
+-   The parameter `alignment_precision_position` allows the specification
     of the alignment precision along the three global axes. Each value
     represents the Gaussian width with which the detector will be
     randomly misaligned along the corresponding axis.
 
--   The parameter `alignmentprecisionorientation` allows to specify the
+-   The parameter `alignment_precision_orientation` allows to specify the
     alignment precision in the three rotation angles defined by the
     `orientation` parameter. The misalignments are added to the
     individual angles before combining them into the final rotation as
-    defined by the `orientationmode` parameter.
+    defined by the `orientation_mode` parameter.
 
 The optional parameter `role` accepts the values `active` for detectors
 and `passive` for passive elements in the setup. If no value is given,
@@ -312,7 +312,10 @@ material of the detector in the center](../assets/images/telescope.png)
 
 An example configuration file describing a setup with one CLICpix2
 detector and two Timepix[^14] models is the following:
-Figure Telescope shows a visualization of the setup described in
+
+FIXME include timepix3 model file here
+
+The figure above shows a visualization of the setup described in
 the file. This configuration is used in the rest of this chapter for
 explaining concepts.
 
@@ -346,122 +349,131 @@ Every passive material has to contain all of the following parameters:
     The size parameters for the specific models are described in
     Section [GeometryBuilderGeant4](../../modules/GeometryBuilderGeant4/).
 
-In addition, an optional string referring to the `mothervolume`, which
+In addition, an optional string referring to the `mother_volume`, which
 defines another passive material the volume will be placed in, can be
-specified.  
+specified.
 
 !!! note
-    If a mother volume is chosen, the position defined in the configuration file will be relative to the center of the mother volume. 
+    If a mother volume is chosen, the position defined in the configuration file will be relative to the center of the mother volume.
 
 An error will be given if the specified mother volume is too small for the specified size or position of this volume. Per default,
-the mother volume is the world frame.  
+the mother volume is the world frame.
 
-!!! note 
-    If the `mothervolume` is a hollow material, only the non-hollow part of the material is considered part of the material. Placing a passive volume in the hollow part requires a different `mothervolume`.
+!!! note
+    If the `mother_volume` is a hollow material, only the non-hollow part of the material is considered part of the material. Placing a passive volume in the hollow part requires a different `mother_volume`.
 
-Similar to the detector configuration, the parameters `orientationmode`
-(see Section [Geometry and Detectors](framework-geometry-detectors.md)), `alignmentprecisionposition` and
-`alignmentprecisionorientation` (see Section [Detector configuration](getting_started.md#detector-configuration)) can
+Similar to the detector configuration, the parameters `orientation_mode`
+(see Section [Geometry and Detectors](framework-geometry-detectors.md)), `alignment_precision_position` and
+`alignment_precision_orientation` (see Section [Detector configuration](getting_started.md#detector-configuration)) can
 be used optionally to define the rotation order and a possible
 misalignment of passive materials.
 
 An example configuration file describing a set of passive materials with
-different configuration options is the following figure that shows a visualization of the setup
+different configuration options is the following
+
+FIXME insert manual_passive_material configuration here
+
+The figure shows a visualization of the setup
 described in the file.
 
 ![Visualization of a set of passive materials showing different
 configuration options.](../assets/images/passive_materials.png)
 
-Framework parameters 
+Framework parameters
 --------------------
 
 The Allpix² framework provides a set of global parameters which control
 and alter its behavior:
 
--   `detectorsfile`: Location of the file describing the detector
+-   `detectors_file`: Location of the file describing the detector
     configuration (introduced in Section [Detector configuration](getting_started.md#detector-configuration)). The
     only *required* global parameter: the framework will fail to start
     if it is not specified.
 
--   `numberofevents`: Determines the total number of events the
+-   `number_of_events`: Determines the total number of events the
     framework should simulate. Defaults to one (simulating a single
     event).
 
--   `rootfile`: Location relative to the `outputdirectory` where the
+-   `skip_events`: A number of events (and therefore event seeds) to be skipped at start of the run.
+    After skipping, the full `number_of_events` will be processed starting from the new event seed.
+    Defaults to 0, i.e. starting with the first event seed.
+
+-   `root_file`: Location relative to the `output_directory` where the
     ROOT output data of all modules will be written to. The file
     extension `.root` will be appended if not present. Default value is
     *modules.root*. Directories within the ROOT file will be created
     automatically for all module instantiations.
 
--   `loglevel`: Specifies the lowest log level which should be reported.
-    Possible values are `FATAL`, `STATUS`, `ERROR`, `WARNING`, `INFO`
-    and `DEBUG`, where all options are case-insensitive. Defaults to the
+-   `log_level`: Specifies the lowest log level which should be reported.
+    Possible values are `FATAL`, `STATUS`, `ERROR`, `WARNING`, `INFO`, `DEBUG`,
+    `TRACE` and `PRNG` where all options are case-insensitive. Defaults to the
     `INFO` level. More details and information about the log levels,
     including how to change them for a particular module, can be found
     in Section [Logging and Verbosity Levels](getting_started.md#logging-and-verbosity-levels). Can be overwritten by the `-v`
     parameter on the command line (see
     Section [The allpix Executable](getting_started.md#the-allpix-executable)).
 
--   `logformat`: Determines the log message format to display. Possible
+-   `log_format`: Determines the log message format to display. Possible
     options are `SHORT`, `DEFAULT` and `LONG`, where all options are
     case-insensitive. More information can be found in
     Section [Logging and Verbosity Levels](getting_started.md#logging-and-verbosity-levels).
 
--   `logfile`: File where the log output should be written to in
+-   `log_file`: File where the log output should be written to in
     addition to printing to the standard output (usually the terminal).
     Only writes to standard output if this option is not provided.
     Another (additional) location to write to can be specified on the
     command line using the `-l` parameter (see
     Section [The allpix Executable](getting_started.md#the-allpix-executable)).
 
--   `outputdirectory`: Directory to write all output files into.
+-   `output_directory`: Directory to write all output files into.
     Subdirectories are created automatically for all module
-    instantiations. This directory will also contain the `rootfile`
+    instantiations. This directory will also contain the `root_file`
     specified via the parameter described above. Defaults to the current
     working directory with the subdirectory *output/* attached.
 
--   `purgeoutputdirectory`: Decides whether the content of an already
+-   `purge_output_directory`: Decides whether the content of an already
     existing output directory is deleted before a new run starts.
     Defaults to `false`, i.e. files are kept but will be overwritten by
     new files created by the framework.
 
--   `denyoverwrite`: Forces the framework to abort the run and throw an
+-   `deny_overwrite`: Forces the framework to abort the run and throw an
     exception when attempting to overwrite an existing file. Defaults to
     `false`, i.e. files are overwritten when requested. This setting is
     inherited by all modules, but can be overwritten in the
     configuration section of each of the modules.
 
--   `randomseed`: Seed for the global random seed generator used to
+-   `random_seed`: Seed for the global random seed generator used to
     initialize seeds for module instantiations. The 64-bit Mersenne
     Twister `mt1993764` from the C++ Standard Library is used to generate
     seeds. A random seed from multiple entropy sources will be generated
     if the parameter is not specified. Can be used to reproduce an
     earlier simulation run.
 
--   `randomseedcore`: Optional seed used for pseudo-random number
+-   `random_seed_core`: Optional seed used for pseudo-random number
     generators in the core components of the framework. If not set
-    explicitly, the value $(\textrm{{random_seed}} + 1)$ is used.
+    explicitly, the value `random_seed + 1` is used.
 
--   `librarydirectories`: Additional directories to search for module
+-   `library_directories`: Additional directories to search for module
     libraries, before searching the default paths. See
     Section [Module instantiation](framework-modules-manager.md#module-instantiation) for details.
 
--   `modelpaths`: Additional files or directories from which detector
+-   `model_paths`: Additional files or directories from which detector
     models should be read besides the standard search locations. Refer
     to Section [Detector models](framework-geometry-detectors.md#detector-models) for more information.
 
--   `experimentalmultithreading`: Enable **experimental**
-    multi-threading for the framework. This can speed up simulations of
-    multiple detectors significantly. More information about
-    multi-threading can be found in Section [Parallel execution of modules](framework-modules-manager.md#parallel-execution-of-modules).
+-   `performance_plots`: Enable the creation of performance plots showing the processing time required per event both for individual modules and the full module stack. Defaults to `false`.
 
--   `workers`: Specify the number of workers to use in total, should be
-    strictly larger than zero. Only used if `experimentalmultithreading`
-    is set to true. Defaults to the number of native threads available
-    on the system if this can be determined, otherwise one thread is
-    used.
+-   `multithreading`: Enable multi-threading for the framework. More information about multithreading can
+    be found in Section [Multithreading](framework-multithreading.md).
 
-The *allpix* Executable 
+-   `workers`: Specify the number of workers to use in total, should be strictly larger than zero. Only
+    used if `multithreading` is set to true. Defaults to the number of native threads available on the system if this can be determined, otherwise one thread is used.
+
+-   `buffer_per_worker`: Specify the buffer depth available per worker for buffered modules to cache
+    partially processed events until execution in the correct order can be guaranteed (see
+    Section [Multithreading](framework-multithreading.md). Defaults to 512.
+
+The *allpix* Executable
 -----------------------
 
 The `allpix` executable functions as the interface between the user and
@@ -485,9 +497,13 @@ The executable handles the following arguments:
 -   `-v <level>`: Sets the global log verbosity level, overwriting the
     value specified in the configuration file described in
     Section [Framework parameters](getting_started.md#framework-parameters). Possible values are `FATAL`,
-    `STATUS`, `ERROR`, `WARNING`, `INFO` and `DEBUG`, where all options
+    `STATUS`, `ERROR`, `WARNING`, `INFO`, `DEBUG`, `TRACE` and `PRNG` where all options
     are case-insensitive. The module specific logging level introduced
     in Section [Logging and Verbosity Levels](getting_started.md#logging-and-verbosity-levels) is not overwritten.
+
+-   `-j <workers>`: Enables multithreaded event processing with the given number of worker threads.
+    This is equivalent to passing the framework parameters `-o multithreading=true -o workers=<workers>`
+    to the executable.
 
 -   `--version`: Prints the version and build time of the executable and
     terminates the program.
@@ -505,17 +521,17 @@ The executable handles the following arguments:
         in exactly the same way as they would be in the main
         configuration file (a section does not need to be specified). An
         example to overwrite the standard output directory would be
-        `allpix -c <file> -o output_directory=run123456`.
+        `allpix -c <file> -o output_directory="run123456"`.
 
     -   Keys for **module configurations**. These are specified by
         adding a dot (`.`) between the module and the actual key as it
         would be given in the configuration file (thus *module*.*key*).
         An example to overwrite the deposited particle to a positron
         would be
-        `allpix -c <file> -o DepositionGeant4.particle_type=e+`.
+        `allpix -c <file> -o DepositionGeant4.particle_type="e+"`.
 
-    -   Keys to specify values for a particular **module
-        instantiation**. The identifier of the instantiation and the
+    -   Keys to specify values for a particular **module instantiation**.
+        The identifier of the instantiation and the
         name of the actual key are split by a dot (`.`), in the same way
         as for keys for module configurations (thus *identifier*.*key*).
         The unique identifier for a module can contains one or more
@@ -566,7 +582,7 @@ the following signals:
     of all generated data. This signal should only be used when graceful
     termination is for any reason not possible.
 
-Setting up the Simulation Chain 
+Setting up the Simulation Chain
 -------------------------------
 
 In the following, the framework parameters are used to set up a fully
@@ -578,9 +594,9 @@ components:
 
 -   The **geometry builder**, responsible for creating the external
     Geant4 geometry from the internal geometry. In this document,
-    `internal geometry` refers to the detector parameters used by
+    *internal geometry* refers to the detector parameters used by
     Allpix² for coordinate transformations and conversions throughout
-    the simulation, while `external geometry` refers to the constructed
+    the simulation, while *external geometry* refers to the constructed
     Geant4 geometry used for charge carrier deposition (and possibly
     visualization).
 
@@ -612,6 +628,8 @@ entry and exit positions of the simulated particles (Monte Carlo truth),
 will be stored in a ROOT file using the Allpix² format. An example
 configuration file implementing this would look like:
 
+FIXME input configuration file etc/manual.conf
+
 This configuration is available in the repository at `etc/manual.conf`.
 The detector configuration file from Section [Detector configuration](getting_started.md#detector-configuration) can
 be found at `etc/manualdetector.conf`.
@@ -619,7 +637,9 @@ be found at `etc/manualdetector.conf`.
 The simulation is started by passing the path of the main configuration
 file to the `allpix` executable as follows:
 
-    $ allpix -c etc/manual.conf
+```shell
+$ allpix -c etc/manual.conf
+```
 
 The detector histograms such as the hit map are stored in the ROOT file
 `output/modules.root` in the TDirectory *DetectorHistogrammer/*.
@@ -650,7 +670,7 @@ To add the visualization, the `VisualizationGeant4` section should be
 added at the end of the configuration file. An example configuration
 with some useful parameters is given below:
 
-``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+```toml
 [VisualizationGeant4]
 # Use the Qt gui
 mode = "gui"
@@ -678,13 +698,13 @@ steps are necessary in order to use a VRML viewer:
 -   Subsequently, two environmental parameters have to be exported to
     the shell environment to inform Geant4 about the configuration:
     `G4VRMLFILE_VIEWER` should point to the location of the
-    viewer executable and `G4VRMLFILEMAXFILENUM` should typically be set
+    viewer executable and `G4VRMLFILE_MAX_FILE_NUM` should typically be set
     to 1 to prevent too many files from being created.
 
 -   Finally, the configuration section of the visualization module
     should be altered as follows:
 
-``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+```toml
 [VisualizationGeant4]
 # Do not start the Qt gui
 mode = "none"
@@ -695,7 +715,7 @@ driver = "VRML2FILE"
 More information about all possible configuration parameters can be
 found in the module documentation in Chapter [Modules](modules.md).
 
-##### Electric Fields 
+##### Electric Fields
 
 By default, detectors do not have an electric field associated with
 them, and no bias voltage is applied. A field can be added to each
@@ -708,7 +728,7 @@ side; the direction of the electric field depends on the sign of the
 bias voltage as described in the module description in
 Chapter [Modules](modules.md).
 
-``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+```toml
 # Add an electric field
 [ElectricFieldReader]
 # Set the field type to `linear`
@@ -727,14 +747,14 @@ transformed into a regular grid with configurable feature size before
 use. Allpix² comes with a converter tool which reads TCAD DF-ISE files
 from the sensor simulation, interpolates the field, and writes this out
 in an appropriate format. A more detailed description of the tool can be
-found in Section [Octree](../tools/mesh_converter.md#octree). An example
+found in Section [MeshConverter](../tools/mesh_converter.md). An example
 electric field (with the file name used in the example below) can be
 found in the *etc* directory of the Allpix² repository.
 
 Electric fields can be attached to a specific detector using the
 standard syntax for detector binding. A possible configuration would be:
 
-``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+```toml
 [ElectricFieldReader]
 # Bind the electric field to the detector named `dut`
 name = "dut"
@@ -744,7 +764,7 @@ model = "mesh"
 file_name = "example_electric_field.init"
 ```
 
-##### Magnetic Fields 
+##### Magnetic Fields
 
 For simulating the detector response in the presence of a magnetic field
 with Allpix², a constant, global magnetic field can be defined. By
@@ -752,7 +772,7 @@ default, it is turned off. A field can be added to the whole setup using
 the unique module `MagneticFieldReader`, passing the field vector as
 parameter:
 
-``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+```toml
 # Add a magnetic field
 [MagneticFieldReader]
 # Constant magnetic field (currently this is the default value)
@@ -770,7 +790,7 @@ the available propagation modules.
 
 Currently, only constant magnetic fields can be applied.
 
-Logging and Verbosity Levels 
+Logging and Verbosity Levels
 ----------------------------
 
 Allpix² is designed to identify mistakes and implementation errors as
@@ -778,8 +798,8 @@ early as possible and to provide the user with clear indications about
 the problem. The amount of feedback can be controlled using different
 log levels which are inclusive, i.e. lower levels also include messages
 from all higher levels. The global log level can be set using the global
-parameter `loglevel`. The log level can be overridden for a specific
-module by adding the `loglevel` parameter to the respective
+parameter `log_level`. The log level can be overridden for a specific
+module by adding the `log_level` parameter to the respective
 configuration section. The following log levels are supported:
 
 -   **FATAL**: Indicates a fatal error that will lead to direct
@@ -823,12 +843,16 @@ configuration section. The following log levels are supported:
     running. Mostly used for software debugging or determining
     performance bottlenecks in the simulations.
 
+-   **PRNG**: This level enables printing of every single pseudo-random number requested from any
+    generator used in the framework. This can be useful in order to investigate random number
+    distribution among threads and events.
+
 !!! warning
-    It is not recommended to set the `loglevel` higher than **WARNING** in a typical simulation as important messages may be missed. Setting too low logging levels should also be avoided since printing many log messages will significantly slow down the simulation.
+    It is not recommended to set the `log_level` higher than **WARNING** in a typical simulation as important messages may be missed. Setting too low logging levels should also be avoided since printing many log messages will significantly slow down the simulation.
 
 The logging system supports several formats for displaying the log
 messages. The following formats are supported via the global parameter
-`logformat` or the individual module parameter with the same name:
+`log_format` or the individual module parameter with the same name:
 
 -   **SHORT**: Displays the data in a short form. Includes only the
     first character of the log level followed by the configuration
@@ -845,7 +869,7 @@ More details about the logging system and the procedure for reporting
 errors in the code can be found in Sections [Logging system](framework-redirect-module-inputs-outputs.md#logging-system)
 and [Error Reporting and Exceptions](framework-error-reporting-exceptions.md).
 
-Storing Output Data 
+Storing Output Data
 -------------------
 
 Storing the simulation output to persistent storage is of primary
@@ -868,14 +892,14 @@ access an object which is not in memory. Refer to
 Section [Object History](objects.md#object-history) for more information about object history.
 
 In order to save all objects of the simulation, a `ROOTObjectWriter`
-module has to be added with a `filename` parameter to specify the file
+module has to be added with a `file_name` parameter to specify the file
 location of the created ROOT file in the global output directory. The
 file extension `.root` will be appended if not present. The default file
 name is `data`, i.e. the file **data.root** is created in the output
 directory. To replicate the default behaviour the following
 configuration can be used:
 
-``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+```toml
 # The object writer listens to all output data
 [ROOTObjectWriter]
 # specify the output file (default file name is used if omitted)
@@ -894,7 +918,7 @@ using a `ROOTObjectReader` module, which automatically dispatches all
 objects to the correct module instances. An example configuration for
 using this module is:
 
-``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+```toml
 # The object reader dispatches all objects in the tree
 [ROOTObjectReader]
 # path to the output data file, absolute or relative to the configuration file
