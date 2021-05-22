@@ -10,16 +10,19 @@ various options to customize the installation of Allpix². This chapter
 contains details on the standard installation process and information
 about custom build configurations.
 
-Supported Operating Systems 
+Supported Operating Systems
 ---------------------------
 
-Allpix² is designed to run without issues on either a recent Linux
-distribution or Mac OS X. Furthermore, the continuous integration of the
-project ensures correct building and functioning of the software
-framework on CentOS 7 (with GCC and LLVM), SLC 6 (with GCC only) and Mac
-OS Mojave (OS X 10.14, with AppleClang).
+Allpix² is designed to run without issues on either a recent Linux distribution or Apple macOS.
+Furthermore, the continuous integration of the project ensures correct building and functioning of the software framework on CentOS7 (with GCC and LLVM), CentOS8 (with GCC only), Ubuntu 20.04 LTS (Docker, GCC) and Apple macOS Catalina 10.15 and Big Sur 11.0 (AppleClang 12.0).
 
-Prerequisites 
+Supported Compilers
+--------------------
+
+Allpix² relies on functionality from the `C++17` standard and therefore requires a `C++17`-compliant compiler. This comprises for example GCC 8+, LLVM/Clang 4.0+ and AppleClang 10.0+. A detailed list of supported compilers can be found online[^3].
+
+
+Prerequisites
 -------------
 
 If the framework is to be compiled and executed on CERN’s LXPLUS
@@ -28,11 +31,20 @@ CVMFS file system as described in
 Section [Initializing the dependencies](installation.md#initializing-the-dependencies).
 
 The core framework is compiled separately from the individual modules
-and Allpix² has therefore only one required dependency: ROOT 6 (versions
-below 6 are not supported)[^2]. Please refer to ROOT installation[^9] for
-instructions on how to install ROOT. ROOT has several components of
-which the GenVector package is required to run Allpix². This package is
-included in the default build.
+and Allpix² has therefore only two required external dependency:
+
+-   **ROOT 6** (versions below 6 are not supported)[^2]. Please refer to ROOT installation[^9] for
+    instructions on how to install ROOT. ROOT has several components of
+    which the GenVector package is required to run Allpix². This package is
+    included in the default build.
+-   **Boost.Random 1.64.0** or later[^4]:
+    Random number generator and distribution library of the Boost project, used in order to get
+    cross-platform portable, STL-compatible random number distributions. While STL random number
+    generators are portable and guarantee to deliver the same random number sequence given the same
+    seed, random distributions are not, and their implementation is platform-dependent leading to
+    different simulation results with the same seed.
+    Since the implementation of some random distributions (most notably of `boost::normal_distribution`)
+    has changed in the past, a recent version is required.
 
 For some modules, additional dependencies exist. For details about the
 dependencies and their installation see the module documentation in
@@ -79,8 +91,10 @@ For developers, it is recommended to always use the latest available
 version from the git `master` branch. The software repository can be
 cloned as follows:
 
-    $ git clone https://gitlab.cern.ch/allpix-squared/allpix-squared
-    $ cd allpix-squared
+```shell
+$ git clone https://gitlab.cern.ch/allpix-squared/allpix-squared
+$ cd allpix-squared
+```
 
 Initializing the dependencies
 -----------------------------
@@ -89,18 +103,22 @@ Before continuing with the build, the necessary setup scripts for ROOT
 and Geant4 (unless a build without Geant4 modules is attempted) should
 be executed. In a Bash terminal on a private Linux machine this means
 executing the following two commands from their respective installation
-directories (replacing *\<root\_install\_dir\>* with the local ROOT
-installation directory and likewise for Geant):
+directories (replacing `<root_install_dir>` with the local ROOT
+installation directory and likewise for Geant4):
 
-    $ source <root_install_dir>/bin/thisroot.sh
-    $ source <geant4_install_dir>/bin/geant4.sh
+```shell
+$ source <root_install_dir>/bin/thisroot.sh
+$ source <geant4_install_dir>/bin/geant4.sh
+```
 
 On the CERN LXPLUS service, a standard initialization script is
 available to load all dependencies from the CVMFS infrastructure. This
 script should be executed as follows (from the main repository
 directory):
 
-    $ source etc/scripts/setup_lxplus.sh
+```shell
+$ source etc/scripts/setup_lxplus.sh
+```
 
 Configuration via CMake
 -----------------------
@@ -156,20 +174,24 @@ supported:
 An example of a custom debug build, without the `GeometryBuilderGeant4`
 module and with installation to a custom directory is shown below:
 
-    $ mkdir build
-    $ cd build
-    $ cmake -DCMAKE_INSTALL_PREFIX=../install/ \
-            -DCMAKE_BUILD_TYPE=DEBUG \
-            -DBUILD_GeometryBuilderGeant4=OFF ..
+```shell
+$ mkdir build
+$ cd build
+$ cmake -DCMAKE_INSTALL_PREFIX=../install/ \
+        -DCMAKE_BUILD_TYPE=DEBUG \
+        -DBUILD_GeometryBuilderGeant4=OFF ..
+```
 
 Compilation and installation
 ----------------------------
 
 Compiling the framework is now a single command in the build folder
-created earlier (replacing *\<number\_of\_cores\> \>* with the number of
+created earlier (replacing `<number_of_cores>` with the number of
 cores to use for compilation):
 
-    $ make -j<number_of_cores>
+```shell
+$ make -j<number_of_cores>
+```
 
 The compiled (non-installed) version of the executable can be found at
 *src/exec/allpix* in the `build` folder. Running Allpix² directly
@@ -181,7 +203,9 @@ To install the library to the selected installation location (defaulting
 to the source directory of the repository) requires the following
 command:
 
-    $ make install
+```shell
+$ make install
+```
 
 The binary is now available as *bin/allpix* in the installation
 directory. The example configuration files are not installed as they
@@ -191,7 +215,7 @@ the allpix binary with the example configuration using
 `bin/allpix -c examples/example.conf` should pass the test without
 problems if a standard installation is used.
 
-Docker images 
+Docker images
 -------------
 
 Docker images are provided for the framework to allow anyone to run
@@ -208,22 +232,26 @@ in the project registry and start an interactive shell session with the
 `allpix` executable already in the `$PATH`. Here, the current host
 system path is mounted to the `/data` directory of the container.
 
-    $ docker run --interactive --tty                                   \
-                 --volume "$(pwd)":/data                               \
-                 --name=allpix-squared                                 \
-                 gitlab-registry.cern.ch/allpix-squared/allpix-squared \
-                 bash
+```shell
+$ docker run --interactive --tty                                   \
+             --volume "$(pwd)":/data                               \
+             --name=allpix-squared                                 \
+             gitlab-registry.cern.ch/allpix-squared/allpix-squared \
+             bash
+```
 
 Alternatively it is also possible to directly start the simulation
 instead of an interactive shell, e.g. using the following command:
 
-    $ docker run --tty --rm                                            \
-                 --volume "$(pwd)":/data                               \
-                 --name=allpix-squared                                 \
-                 gitlab-registry.cern.ch/allpix-squared/allpix-squared \
-                 "allpix -c my_simulation.conf"
+```shell
+$ docker run --tty --rm                                            \
+             --volume "$(pwd)":/data                               \
+             --name=allpix-squared                                 \
+             gitlab-registry.cern.ch/allpix-squared/allpix-squared \
+             "allpix -c my_simulation.conf"
+```
 
-where a simulation described in the configuration `mysimulation.conf` is
+where a simulation described in the configuration `my_simulation.conf` is
 directly executed and the container terminated and deleted after
 completing the simulation. This closely resembles the behavior of
 running Allpix² natively on the host system. Of course, any additional
@@ -239,6 +267,8 @@ Section [Building Docker images](testing.md#building-docker-images).
 
 [^1]:S. Agostinelli et al. “Geant4 - a simulation toolkit”. In: Nucl. Instr. Meth. A 506.3 (2003), pp. 250–303. issn: 0168-9002. doi: 10.1016/S0168-9002(03)01368-8.
 [^2]:Rene Brun and Fons Rademakers. “ROOT - An Object Oriented Data Analysis Framework”. In: AIHENP’96 Workshop, Lausanne. Vol. 389. Sept. 1996, pp. 81–86.
+[^3]: C++ Reference. "Compiler support for C++17". 2021. url: [https://en.cppreference.com/w/cpp/compiler_support/17](https://en.cppreference.com/w/cpp/compiler_support/17).
+[^4]:J. Maurer and S. Watanabe. "The Boost Random Number Library". 2000. url: [https://www.boost.org/doc/libs/1_75_0/doc/html/boost_random/reference.html](https://www.boost.org/doc/libs/1_75_0/doc/html/boost_random/reference.html).
 [^8]:Gaël Guennebaud, Benoît Jacob, et al. Eigen v3. 2010. url: [http://eigen.tuxfamily.org](http://eigen.tuxfamily.org).
 [^9]:Rene Brun and Fons Rademakers. Building ROOT. url: [https://root.cern.ch/building-root](https://root.cern.ch/building-root).
 [^10]:Geant4 Collaboration. Geant4 Installation Guide. Building and Installing Geant4 for Users and Developers. 2016. url: [http://geant4.web.cern.ch/geant4/UserDocumentation/UsersGuides/InstallationGuide/html/](http://geant4.web.cern.ch/geant4/UserDocumentation/UsersGuides/InstallationGuide/html/).
