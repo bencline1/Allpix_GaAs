@@ -11,7 +11,7 @@ following four main components that together form Allpix²:
 1.  **Core**: The core contains the internal logic to initialize the
     modules, provide the geometry, facilitate module communication and
     run the event sequence. The core keeps its dependencies to a minimum
-    (it only relies on ROOT) and remains independent from the other
+    (it only relies on ROOT and Boost Random) and remains independent from the other
     components as far as possible. It is the main component discussed in
     this section.
 
@@ -95,7 +95,7 @@ general utilities. The systems provided are:
     in Section [Passing Objects using Messages](framework-passing-objects-using-messages.md).
 
 5.  **Utilities**: The framework provides a set of utilities for
-    logging, file and directory access, and unit conversion. An
+    logging and unit conversion. An
     explanation on how to use of these utilities can be found in
     Section [Logging and other Utilities](framework-logging-other-utilities.md). A set of C++ exceptions is also
     provided in the utilities, which are inherited and extended by the
@@ -153,11 +153,11 @@ follows:
     character. This string indicates the ’key’. After an optional number
     of ignored whitespace, the key should be followed by an equality
     sign (`=`). Any text between the `=` and the first `#` character not
-    enclosed within a pair of single or double quotes (`’` or `"`) is
+    enclosed within a pair of single or double quotes (`'` or `"`) is
     known as the non-stripped string. Any character after the `#` is
     handled as specified in point 3. If the line does not contain any
     non-enclosed `#` character, the value ends at the end of the line
-    instead. The ’value’ of the key-value pair is the non-stripped
+    instead. The 'value' of the key-value pair is the non-stripped
     string with all whitespace in front and at the end stripped. The
     value may not be empty. Any line that does not comply to these
     specifications should lead to an immediate parse error.
@@ -177,7 +177,7 @@ follows:
     are named elements. For a single value the element is on the zeroth
     dimension, for arrays on the first dimension and for matrices on the
     second dimension. Elements can be forced by using quotation marks,
-    either single or double quotes (`’` or `"`). The number of both
+    either single or double quotes (`'` or `"`). The number of both
     types of quotation marks should be properly balanced, otherwise an
     error is raised. The conversion to the elements to the actual type
     is performed when accessing the value.
@@ -192,7 +192,7 @@ example, the key is a string called `key`, the object is named `config`
 and the type `TYPE` is a valid C++ type the value should represent. The
 values can be accessed via the following methods:
 
-``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+```cpp
 // Returns true if the key exists and false otherwise
 config.has("key")
 // Returns the number of keys found from the provided initializer list:
@@ -219,8 +219,8 @@ config.setDefaultArray<TYPE>("key", vector_of_default_values)
 config.setAlias("new_key", "old_key")
 ```
 
-Conversions to the requested type are using the `fromstring` and
-`tostring` methods provided by the string utility library described in
+Conversions to the requested type are using the `from_string` and
+`to_string` methods provided by the string utility library described in
 Section [Internal utilities](framework-redirect-module-inputs-outputs.md#internal-utilities). These conversions largely follow
 standard C++ parsing, with one important exception. If (and only if) the
 value is retrieved as a C/C++ string and the string is fully enclosed by a

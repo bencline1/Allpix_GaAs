@@ -4,14 +4,14 @@ title: "Logging and other Utilities"
 ---
 
 The Allpix² framework provides a set of utilities which improve the
-usability of the framework and extend the functionality provided by the C++ 
+usability of the framework and extend the functionality provided by the C++
 Standard Template Library (STL). The former includes a flexible and
-easy-to-use logging system, introduced in Section [Logging system](framework-redirect-module-inputs-outputs.md#logging-system) and an
+lightweight logging system, introduced in Section [Logging system](framework-redirect-module-inputs-outputs.md#logging-system) and an
 easy-to-use framework for units that supports converting arbitrary
 combinations of units to common base units which can be used
 transparently throughout the framework, and which will be discussed in
 more detail in Section [Unit system](framework-redirect-module-inputs-outputs.md#unit-system). The latter comprise tools
-which provide functionality the C++14 standard does not contain. These
+which provide functionality the `C++17` standard does not contain. These
 utilities are used internally in the framework and are only shortly
 discussed in Section [Internal utilities](framework-redirect-module-inputs-outputs.md#internal-utilities) (file system support) and
 Section [Internal utilities](framework-redirect-module-inputs-outputs.md#internal-utilities) (string utilities).
@@ -24,12 +24,10 @@ easy to read. The system is globally configured, thus only one logger
 instance exists. The following commands are available for sending
 messages to the logging system at a level of `LEVEL`:
 
-LOG(LEVEL)
-:   Send a message with severity level `LEVEL` to the logging system.
+*   `LOG(LEVEL)`: Send a message with severity level `LEVEL` to the logging system.
 
-    ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```cpp
         LOG(LEVEL) << "this is an example message with an integer and a double " << 1 << 2.0;
-        
     ```
 
     A new line and carriage return is added at the end of every log
@@ -38,13 +36,11 @@ LOG(LEVEL)
     every new line under the previous message and will leave the header
     space empty on new lines.
 
-LOG_ONCE(LEVEL)
-:   Same as `LOG`, but will only log this message once over the full
+*   `LOG_ONCE(LEVEL)`: Same as `LOG`, but will only log this message once over the full
     run, even if the logging function is called multiple times.
 
-    ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```cpp
         LOG_ONCE(INFO) << "This message will appear once only, even if present in every event...";
-        
     ```
 
     This can be used to log warnings or messages e.g. from the `run()`
@@ -52,31 +48,25 @@ LOG_ONCE(LEVEL)
     message for every event. The message is preceded by the information
     that further messages will be suppressed.
 
-LOG_N(LEVEL, NUMBER)
-:   Same as `LOGONCE` but allows to specify the number of times the
+*   `LOG_N(LEVEL, NUMBER)`: Same as `LOG_ONCE` but allows to specify the number of times the
     message will be logged via the additional parameter `NUMBER`.
 
-    ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```cpp
         LOG_N(INFO, 10) << "This message will appear maximally 10 times throughout the run.";
-        
     ```
 
-    The last message is preceded by the information that further
-    messages will be suppressed.
+    The last message is preceded by the information that further messages will be suppressed.
 
-LOG_PROGRESS(LEVEL, IDENTIFIER)
-:   This function allows to update the message to be updated on the same
-    line for simple progressbar-like functionality.
+*   `LOG_PROGRESS(LEVEL, IDENTIFIER)`: This function allows to update the message to be updated on the
+    same line for simple progressbar-like functionality.
 
-    ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```cpp
         LOG_PROGRESS(STATUS, "EVENT_LOOP") << "Running event " << n << " of " << number_of_events;
-        
     ```
 
-    Here, the `IDENTIFIER` is a unique string identifying this output
-    stream in order not to mix different progress reports.
+    Here, the `IDENTIFIER` is a unique string identifying this output stream in order not to mix different progress reports.
 
-If the output is a terminal screen the logging output will be coloured
+If the output is a terminal screen the logging output will be colored
 to make it easier to identify warnings and error messages. This is
 disabled automatically for all non-terminal outputs.
 
@@ -96,7 +86,7 @@ The unit system allows adding, retrieving, converting and displaying
 units. It is a global system transparently used throughout the
 framework. Examples of using the unit system are given below:
 
-``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+```cpp
 // Define the standard length unit and an auxiliary unit
 Units::add("mm", 1);
 Units::add("m", 1e3);
@@ -111,18 +101,12 @@ Units::convert(1, "m/ns");
 Units::display(2e3, {"mm/ns", "m/ns"});
 ```
 
-A description of the use of units in config files within Allpix² was
+A description of the use of units in configuration files within Allpix² was
 presented in Section [Parsing types and units](getting_started.md#parsing-types-and-units).
 
 ### Internal utilities
 
-The **filesystem** utilities provide functions to convert relative to
-absolute canonical paths, to iterate through all files in a directory
-and to create new directories. These functions should be replaced by the
-C++17 file system API[^23] as soon as the framework minimum
-standard is updated to C++17.
-
-[Internal utilities](framework-redirect-module-inputs-outputs.md#internal-utilities) STL only provides string conversions for
+STL only provides string conversions for
 standard types using `std::stringstream` and `std::to_string`, which do
 not allow parsing strings encapsulated in pairs of double quote (`"`)
 characters nor integrating different units. Furthermore it does not
@@ -140,4 +124,4 @@ Furthermore, the Allpix² tool system contains extensions to allow
 automatic conversions for ROOT and Geant4 types as explained in
 Section [ROOT and Geant4 utilities](additional.md#root-and-geant4-utilities).
 
-[^23]:Beman Dawes. Adopt the File System TS for C++17. Feb. 2016. url: [http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0218r0.html](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0218r0.html). 
+[^23]:Beman Dawes. Adopt the File System TS for C++17. Feb. 2016. url: [http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0218r0.html](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0218r0.html).

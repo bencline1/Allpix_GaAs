@@ -48,14 +48,14 @@ to indicate errors that modules cannot handle themselves:
     like the set of logging levels, or for paths that do not exist. An
     example is shown below:
 
-    ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-    void run(unsigned int event_id) 
+    ```cpp
+    void run(unsigned int event_id)
 	{
         // Fetch a key from the configuration
         std::string value = config.get("key");
 
         // Check if it is a 'valid' value
-        if(value != 'A' && value != "B") 
+        if(value != 'A' && value != "B")
 		{
             // Raise an error if it the value is not valid
             //   provide the configuration object, key and an explanation
@@ -71,15 +71,15 @@ to indicate errors that modules cannot handle themselves:
     only one is specified at the time. The exceptions accepts the list
     of keys as initializer list. An example is shown below:
 
-    ``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-    void run(unsigned int event_id) 
+    ```cpp
+    void run(unsigned int event_id)
 	{
         // Check if we have mutually exclusive options defined:
-        if(config.count({"exclusive_opt_a", "exclusive_opt_b"}) > 1) 
+        if(config.count({"exclusive_opt_a", "exclusive_opt_b"}) > 1)
 		{
             // Raise an error if the combination of keys is not valid
             //   provide the configuration object, keys and an explanation
-            throw InvalidCombinationError(config, 
+            throw InvalidCombinationError(config,
 			{"exclusive_opt_a", "exclusive_opt_b"}, "Options A and B are mutually exclusive, specify only one.");
         }
     }

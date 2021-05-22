@@ -22,9 +22,9 @@ to set the `input` parameter to the special value `*` to indicate that
 the module should listen to all messages irrespective of their name.
 
 An example of a configuration with two different settings for the
-digitisation module is shown below:
+digitization module is shown below:
 
-``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+```toml
 # Digitize the propagated charges with low noise levels
 [DefaultDigitizer]
 # Specify an output identifier

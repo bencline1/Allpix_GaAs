@@ -39,7 +39,7 @@ configured via CMake. The module search order is as follows:
 1.  Modules already loaded before from an earlier section header
 
 2.  All directories in the global configuration parameter
-    `librarydirectories` in the provided order, if this parameter
+    `library_directories` in the provided order, if this parameter
     exists.
 
 3.  The internal library paths of the executable, that should
@@ -84,38 +84,13 @@ exception is raised.
 
 ### Parallel execution of modules
 
-The framework has experimental support for running several modules in
-parallel. This feature is disabled for new modules by default, and has
-to be both supported by the module and enabled by the user as described
-in Section [Framework parameters](getting_started.md#framework-parameters). A significant speed improvement
-can be achieved if the simulation contains multiple detectors or
-simulates the same module using different parameters.
+The framework supports running several events in parallel.
+This feature is disabled for new modules by default, and has to be both supported by all modules in the simulation and enabled by the user as described in Section [Configuration and Parameters](framework.md#configuration-and-parameters).
+When enabled this feature can provide a significant speed improvement, depending on the simulation chain.
 
-The framework allows to parallelize the execution of the same type of
-module, if these would otherwise be executed directly after each other
-in a linear order. Thus, as long as the name of the module remains the
-same, while going through the execution order of all `run()` methods,
-all instances are added to a work queue. The instances are then
-distributed to a set of worker threads as specified in the configuration
-or determined from system parameters, which will execute the individual
-modules. The module manager will wait for all jobs to finish before
-continuing to process the next type of module.
+The framework allows to parallelize the execution of the same module for multiple events, if these would otherwise be executed directly after each other in a linear order.
+Thus, events are added to a work queue and then distributed to a set of worker threads as specified in the configuration or determined from system parameters.
 
-To enable parallelization for a module, the following line of code has
-to be added to the constructor of a module:
-
-``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-// Enable parallelization of this module if multithreading is enabled
-enable_parallelization();
-```
-
-By adding this, the module promises that it will work correctly if the
-run-method is executed multiple times in parallel, in separate
-instantiations. This means in particular that the module will safely
-handle access to shared (for example static) variables and it will
-properly bind ROOT histograms to their directory before the
-`run()`-method. Access to constant operations in the GeometryManager,
-Detector and DetectorModel is always valid between various threads. In
-addition, sending and receiving messages is thread-safe.
+Detailed description of how the framework implements the multithreading feature can be found in Section [Multihreading Approach](multithreading_approach.md) and an overview of important considerations when writing a new module capable of multithreading os provided in Section [Module Multihreading](module_multithreading.md).
 
 [^21]:Michael Kerrisk. Linux Programmer’s Manual. ld.so, ld-linux.so - dynamic linker/loader. url: [http://man7.org/linux/man-pages/man8/ld.so.8.html](http://man7.org/linux/man-pages/man8/ld.so.8.html).

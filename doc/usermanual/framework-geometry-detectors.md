@@ -14,12 +14,12 @@ Each detector has a set of properties attached to it:
 -   The `position` in the world frame. This is the position of the
     geometric center of the sensitive device (sensor) given in world
     coordinates as X, Y and Z as defined in
-    Section [Coordinate systems](framework-geometry-detectors.md#coordinate-systems).   
-	
-	!!! note   
+    Section [Coordinate systems](framework-geometry-detectors.md#coordinate-systems).
+
+	!!! note
         Any additional components like the chip and possible support layers are ignored when determining the geometric center.
 
--   An `orientationmode` that determines the way that the orientation is
+-   An `orientation_mode` that determines the way that the orientation is
     applied. This can be either `xyz`, `zyx` or `zxz`, where **`xyz` is
     used as default if the parameter is not specified**. Three angles
     are expected as input, which should always be provided in the order
@@ -49,29 +49,29 @@ Each detector has a set of properties attached to it:
 -   The `orientation` to specify the Euler angles in logical order (e.g.
     first $X$, then $Y$, then $Z$ for the `xyz` method), interpreted
     using the method above (or with the `xyz` method if the
-    `orientationmode` is not specified). An example for three Euler
+    `orientation_mode` is not specified). An example for three Euler
     angles would be
 
-    ``` {.ini frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+    ```toml
     orientation_mode = "zyx"
     orientation = 45deg 10deg 12deg
     ```
 
     which describes the rotation of 45º around the $Z$ axis, followed by a 10º rotation around the initial $Y$ axis, and finally a rotation of 12º around the initial $X$ axis.
 
-    !!! note
-        All supported rotations are extrinsic active rotations, i.e. the vector itself is rotated, not the coordinate system. All angles in     configuration files should be specified in the order they will be applied.
+    !!! warning
+        All supported rotations are extrinsic active rotations, i.e. the vector itself is rotated, not the coordinate system. All angles in configuration files should be specified in the order they will be applied.
 
 -   A `type` parameter describing the detector model, for example
     `timepix` or `mimosa26`. These models define the geometry and
     parameters of the detector. Multiple detectors can share the same
     model, several of which are shipped ready-to-use with the framework.
 
--   An optional parameter `alignmentprecisionposition` to specify the
+-   An optional parameter `alignment_precision_position` to specify the
     alignment precision along the three global axes as described in
     Section [Detector configuration](getting_started.md#detector-configuration).
 
--   An optional parameter `alignmentprecisionorientation` for the
+-   An optional parameter `alignment_precision_orientation` for the
     alignment precision in the three rotation angles as described in
     Section [Detector configuration](getting_started.md#detector-configuration).
 
@@ -98,13 +98,12 @@ calculations in the local coordinate system as all positions can either
 be stated in absolute numbers or in fractions of the pixel pitch.
 
 A sketch of the actual coordinate transformations performed, including
-the order of transformations, is provided in
-Figure Transformations. The global coordinate system used for
-tracking of particles through detetector setup is shown on the left
+the order of transformations, is provided in the figure below. The global coordinate system used for
+tracking of particles through detector setup is shown on the left
 side, while the local coordinate system used to describe the individual
-sensors is located at the right.  
+sensors is located at the right.
 
-![Transformations](../assets/images/transformations.png)  
+![Transformations](../assets/images/transformations.png)
 *Coordinate transformations from global to local and revers. The first row shows the detector positions in the respective coordinate systems in top view, the second row in side view.*
 
 The global reference for time measurements is the beginning of the event, i.e. the start of the particle tracking through the setup.
@@ -140,8 +139,8 @@ module is a detector-specific module its related Detector can be
 accessed through the `getDetector` method of the module base class
 instead (returns a null pointer for unique modules) as follows:
 
-``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
-void run(unsigned int event_id) 
+```cpp
+void run(unsigned int event_id)
 {
     // Returns the linked detector
     std::shared_ptr<Detector> detector = this->getDetector();
@@ -191,42 +190,42 @@ of any sub-sections.
     the moment either `monolithic` or `hybrid`. This value determines
     the supported parameters as discussed later.
 
--   `numberofpixels`: The number of pixels in the 2D pixel matrix.
-    Determines the base size of the sensor together with the `pixelsize`
+-   `number_of_pixels`: The number of pixels in the 2D pixel matrix.
+    Determines the base size of the sensor together with the `pixel_size`
     parameter below.
 
--   `pixelsize`: The pitch of a single pixel in the pixel matrix.
+-   `pixel_size`: The pitch of a single pixel in the pixel matrix.
     Provided as 2D parameter in the x-y-plane. This parameter is
     required for all models.
 
--   `implantsize`: The size of the collection diode implant in each
+-   `implant_size`: The size of the collection diode implant in each
     pixel of the matrix. Provided as 2D parameter in the x-y-plane. This
     parameter is optional, the implant size defaults to the pixel pitch
     if not specified otherwise.
 
--   `sensorthickness`: Thickness of the active area of the detector
+-   `sensor_thickness`: Thickness of the active area of the detector
     model containing the individual pixels. This parameter is required
     for all models.
 
--   `sensor_excess_direction`: With direction either `top`, `bottom`,
+-   `sensor_excess_`*direction*: With direction either `top`, `bottom`,
     `right` or `left`, where the top, bottom, right and left direction
     are the positive y-axis, the negative y-axis, the positive x-axis
     and the negative x-axis, respectively. Specifies the extra material
     added to the sensor outside the active pixel matrix in the given
     direction.
 
--   `sensorexcess`: Fallback for the excess width of the sensor in all
+-   `sensor_excess`: Fallback for the excess width of the sensor in all
     four directions (top, bottom, right and left). Used if the
     specialized parameters described below are not given. Defaults to
     zero, thus having a sensor size equal to the number of pixels times
     the pixel pitch.
 
--   `chipthickness`: Thickness of the readout chip, placed next to the
+-   `chip_thickness`: Thickness of the readout chip, placed next to the
     sensor.
 
 The base parameters described above are the only set of parameters
 supported by the **monolithic** model. For this model, the
-`chipthickness` parameter represents the first few micrometers of
+`chip_thickness` parameter represents the first few micrometers of
 silicon which contain the chip circuitry and are shielded from the bias
 voltage and thus do not contribute to the signal formation.
 
@@ -237,26 +236,26 @@ dimensions independently from the sensor size, as the readout chip is
 treated as a separate entity. The additional parameters for the
 **hybrid** model are as follows:
 
--   `chip_excess_direction`: With direction either `top`, `bottom`,
+-   `chip_excess_`*direction*: With direction either `top`, `bottom`,
     `right` or `left`. The chip excess in the specific direction,
-    similar to the `sensor_excess_direction` parameter described above.
+    similar to the `sensor_excess_`*direction* parameter described above.
 
--   `chipexcess`: Fallback for the excess width of the chip, defaults to
+-   `chip_excess`: Fallback for the excess width of the chip, defaults to
     zero and thus to a chip size equal to the dimensions of the pixel
-    matrix. See the `sensorexcess` parameter above.
+    matrix. See the `sensor_excess` parameter above.
 
--   `bumpheight`: Height of the bump bonds (the separation distance
+-   `bump_height`: Height of the bump bonds (the separation distance
     between the chip and the sensor)
 
--   `bumpsphereradius`: The individual bump bonds are simulated as union
+-   `bump_sphere_radius`: The individual bump bonds are simulated as union
     solids of a sphere and a cylinder. This parameter sets the radius of
     the sphere to use.
 
--   `bumpcylinderradius`: The radius of the cylinder part of the bump.
-    The height of the cylinder is determined by the `bumpheight`
+-   `bump_cylinder_radius`: The radius of the cylinder part of the bump.
+    The height of the cylinder is determined by the `bump_height`
     parameter.
 
--   `bumpoffset`: A 2D offset of the grid of bumps. The individual bumps
+-   `bump_offset`: A 2D offset of the grid of bumps. The individual bumps
     are by default positioned at the center of each single pixel in the
     grid.
 
@@ -297,15 +296,15 @@ layers allow for the following parameters.
     taken to ensure that these support layers and the rest of the model
     do not overlap.
 
--   `holesize`: Adds an optional cut-out hole to the support with the 2D
+-   `hole_size`: Adds an optional cut-out hole to the support with the 2D
     size provided. The hole always cuts through the full support
     thickness. No hole will be added if this parameter is not present.
 
--   `holetype`: Type of hole to be punched into the support layer.
+-   `hole_type`: Type of hole to be punched into the support layer.
     Currently supported are *rectangle* and *cylinder*. Defaults to
     *rectangle*.
 
--   `holeoffset`: If present, the hole is by default placed at the
+-   `hole_offset`: If present, the hole is by default placed at the
     center of the support layer. A 2D offset with respect to its default
     position can be specified using this parameter.
 
@@ -322,11 +321,11 @@ the model should be downcast: the downcast returns a null pointer if the
 class is not of the appropriate type. An example for fetching a
 `HybridPixelDetectorModel` would thus be:
 
-``` {.c++ frame="single" framesep="3pt" breaklines="true" tabsize="2" linenos=""}
+```cpp
 // "detector" is a pointer to a Detector object
 auto model = detector->getModel();
 auto hybrid_model = std::dynamic_pointer_cast<HybridPixelDetectorModel>(model);
-if(hybrid_model != nullptr) 
+if(hybrid_model != nullptr)
 {
     // The model of this Detector is a HybridPixelDetectorModel
 }
@@ -351,7 +350,7 @@ To support different detector models and storage locations, the
 framework searches different paths for model files in the following
 order:
 
-1.  If defined, the paths provided in the global `modelpaths` parameter
+1.  If defined, the paths provided in the global `model_paths` parameter
     are searched first. Files are read and parsed directly. If the path
     is a directory, all files in the directory are added (without
     recursing into subdirectories).
@@ -361,9 +360,9 @@ order:
     Section [Conﬁguration via CMake](installation.md#configuration-via-cmake)).
 
 3.  The standard data paths on the system as given by the environmental
-    variable ` XDG_DATA_DIRS}` with `\project/models` appended.
-    The `{XDGDATADIRS ``` variable defaults to */usr/local/share/*
-    (thus effectively */usr/local/share//models*) followed by
-    */usr/share/* (effectively */usr/share//models*).
+    variable `$XDG_DATA_DIRS}` with `Allpix/models` appended.
+    The `$XDGDATADIRS` variable defaults to `/usr/local/share/`
+    (thus effectively `/usr/local/share/Allpix/models` followed by
+    `/usr/share/` (effectively `/usr/share/Allpix/models`).
 
 [^22]:Eric W. Weisstein. Euler Angles. From MathWorld – A Wolfram Web Resource. url: [http://mathworld.wolfram.com/EulerAngles.html](http://mathworld.wolfram.com/EulerAngles.html).
