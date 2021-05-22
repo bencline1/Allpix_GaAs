@@ -3,7 +3,7 @@ template: overrides/main.html
 title: "Objects"
 ---
 
-Object Types 
+Object Types
 ------------
 
 Allpix² provides a set of objects which can be used to transfer data
@@ -16,13 +16,13 @@ The list of currently supported objects comprises:
 
 ##### MCTrack
 
-The MCTrack objects reflects the state of a particle’s trajectory when
+The `MCTrack` objects reflects the state of a particle’s trajectory when
 it was created and when it terminates. Moreover, it allows to retrieve
 the hierarchy of secondary tracks. This can be done via the parent-child
-relations the MCTrack objects store, allowing retrieval of the primary
-track for a given track. Combining this information with MCParticles
+relations the `MCTrack` objects store, allowing retrieval of the primary
+track for a given track. Combining this information with `MCParticles`
 allows the Monte-Carlo trajectory to be fully reconstructed. In addition
-to these relational information, the MCTrack stores information on the
+to these relational information, the `MCTrack` stores information on the
 initial and final point of the trajectory (in coordinates), the energies
 (total as well as kinetic only) at those points, the creation process
 type, name, and the volume it took place in. Furthermore, the particle’s
@@ -37,19 +37,23 @@ end points correspond to the entry and exit points. The exact handling
 of non-linear particle trajectories due to multiple scattering is up to
 module. In addition, it provides a member function to retrieve the
 reference point at the sensor center plane in local coordinates for
-convenience. The MCParticle also stores an identifier of the particle
+convenience. The `MCParticle` also stores an identifier of the particle
 type, using the PDG particle codes[^24], as well as the time it has
-first been observed in the respective sensor. The MCParticle
-additionally stores a parent MCParticle object, if available. The lack
-of a parent doesn’t guarantee that this MCParticle originates from a
+first been observed in the respective sensor. The `MCParticle`
+additionally stores a parent `MCParticle` object, if available. The lack
+of a parent doesn't guarantee that this `MCParticle` originates from a
 primary particle, but only means that no parent on the given detector
-exists. Also, the MCParticle stores a reference to the MCTrack it is
+exists. Also, the `MCParticle` stores a reference to the `MCTrack` it is
 associated with.
+
+`MCParticles` provide local and global coordinates in space for both the entry and the exit of the particle in the sensor volume, as well as local and global time information.
+The global spatial coordinates are calculated with respect to the global reference frame defined in Section [Coordinate System](coordinate-system.md), the global time is counted from the beginning of the event.
+Local spatial coordinates are determined by the respective detector, the local time measurement references the entry point of the *first* `MCParticle` of the event into the detector.
 
 ##### DepositedCharge
 
 The set of charge carriers deposited by an ionizing particle crossing
-the active material of the sensor. The object stores the position in the
+the active material of the sensor. The object stores the **local** position in the
 sensor together with the total number of deposited charges in elementary
 charge units. In addition, the time (in *ns* as the internal framework
 unit) of the deposition after the start of the event and the type of
@@ -58,7 +62,7 @@ carrier (electron or hole) is stored.
 ##### PropagatedCharge
 
 The set of charge carriers propagated through the silicon sensor due to
-drift and/or diffusion processes. The object should store the final
+drift and/or diffusion processes. The object should store the final **local**
 position of the propagated charges. This is either on the pixel implant
 (if the set of charge carriers are ready to be collected) or on any
 other position in the sensor if the set of charge carriers got trapped
@@ -69,14 +73,14 @@ be stored.
 ##### PixelCharge
 
 The set of charge carriers collected at a single pixel. The pixel
-indices are stored in both the $x$ and $y$ direction, starting from zero
+indices are stored in both the `x` and `y` direction, starting from zero
 for the first pixel. Only the total number of charges at the pixel is
 currently stored, the timing information of the individual charges can
 be retrieved from the related `PropagatedCharge` objects.
 
 ##### PixelHit
 
-The digitised pixel hits after processing in the detector’s front-end
+The digitized pixel hits after processing in the detector front-end
 electronics. The object allows the storage of both the time and signal
 value. The time can be stored in an arbitrary unit used to timestamp the
 hits. The signal can hold different kinds of information depending on
@@ -84,7 +88,7 @@ the type of the digitizer used. Examples of the signal information is
 the ’true’ information of a binary readout chip, the number of ADC
 counts or the ToT (time-over-threshold).
 
-Object History 
+Object History
 --------------
 
 Objects may carry information about the objects which were used to
@@ -92,13 +96,13 @@ create them. For example, a `PropagatedCharge` could hold a link to the
 `DepositedCharge` object at which the propagation started. All objects
 created during a single simulation event are accessible until the end of
 the event; more information on object persistency within the framework
-can be found in Chapter [Allpix SquaredPassing Objects using Messages](framework-passing-objects-using-messages.md#persistency).
+can be found in Chapter [Passing Objects using Messages](framework-passing-objects-using-messages.md#persistency).
 
-Object history is implemented using the ROOT TRef class[^17], which
+Object history is implemented using the ROOT `TRef` class[^17], which
 acts as a special reference. On construction, every object gets a unique
 identifier assigned, that can be stored in other linked objects. This
 identifier can be used to retrieve the history, even after the objects
-are written out to ROOT TTrees[^16]. TRef objects are however not
+are written out to ROOT TTrees[^16]. `TRef` objects are however not
 automatically fetched and can only be retrieved if their linked objects
 are available in memory, which has to be ensured explicitly. Outside the
 framework this means that the relevant tree containing the linked
@@ -107,13 +111,13 @@ that request the history. Whenever the related object is not in memory
 (either because it is not available or not fetched) a
 `MissingReferenceException` will be thrown.
 
-A MCTrack which originated from another MCTrack is linked via a
+A `MCTrack` which originated from another `MCTrack` is linked via a
 reference to this track, this way the track hierarchy can be obtained.
-Every MCParticle is linked to the MCTrack it is associated with. A
-MCParticle can furthermore be linked to another MCParticle on the same
-detector. This will be the case if there are MCParticles from a primary
+Every `MCParticle` is linked to the `MCTrack` it is associated with. A
+`MCParticle` can furthermore be linked to another `MCParticle` on the same
+detector. This will be the case if there are `MCParticles` from a primary
 (parent) and secondary (child) track on one detector. The corresponding
-child MCParticles will then carry a reference to the parent MCParticle.
+child `MCParticles` will then carry a reference to the parent `MCParticle`.
 
 [^16]:Rene Brun and Fons Rademakers. ROOT User’s Guide. Trees. url: [https://root.cern.ch/root/htmldoc/guides/users-guide/Trees.html](https://root.cern.ch/root/htmldoc/guides/users-guide/Trees.html).
 [^17]:Rene Brun and Fons Rademakers. ROOT User’s Guide. Input/Output. url: [https://root.cern.ch/root/htmldoc/guides/users-guide/InputOutput.html](https://root.cern.ch/root/htmldoc/guides/users-guide/InputOutput.html).
