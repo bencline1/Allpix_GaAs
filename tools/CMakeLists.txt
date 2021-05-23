@@ -14,7 +14,6 @@ IF(BUILD_TOOLS)
     # Add APF filed format helper tools
     ADD_SUBDIRECTORY(weightingpotential_generator)
 
-
     #########################
     # Framework tools tests #
     #########################
@@ -23,10 +22,10 @@ IF(BUILD_TOOLS)
 
     IF(TEST_TOOLS)
         INCLUDE(ExternalData)
+        # cmake-lint: disable=C0103
         # Define resources fo external data used in these tests, copy from EOS directly if available
-        SET(ExternalData_URL_TEMPLATES
-            "file:///eos/project-a/allpix-squared/www/data/%(algo)/%(hash)"
-            "https://project-allpix-squared.web.cern.ch/data/%(algo)/%(hash)")
+        SET(ExternalData_URL_TEMPLATES "file:///eos/project-a/allpix-squared/www/data/%(algo)/%(hash)"
+                                       "https://project-allpix-squared.web.cern.ch/data/%(algo)/%(hash)")
 
         # Convert field from DF-ISE to APF
         ADD_TOOL_TEST(
@@ -37,7 +36,7 @@ IF(BUILD_TOOLS)
             OUTPUT
             "sample_field_ElectricField.apf"
             PASS_REGULAR_EXPRESSION
-            "7.63058e-06 5.59378e-06 0.000286977 -5.68113e-08 -4.15989e-08 0.000560116 3.90412e-07 2.77559e-07 0.000565475 6.58658e-07"
+            "7.63058e-06 5.59378e-06 0.000286977 -5.68113e-08 -4.15989e-08 0.000560116 3.90412e-07 2.77559e-07"
             ARGUMENTS
             -c
             ${CMAKE_SOURCE_DIR}/conf/tcad_teststructure/planar_sensor/convert.conf
