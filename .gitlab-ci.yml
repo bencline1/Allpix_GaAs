@@ -242,16 +242,13 @@ examples:
 
 tools:
     extends: .test
-    dependencies:
-        - cmp:cc7-gcc
+    needs:
+        - job: cmp:cc7-gcc
+          artifacts: true
     image: gitlab-registry.cern.ch/sft/docker/centos7:latest
-    before_script:
-        - source .ci/init_x86_64.sh
     script:
         - cd build/
-        - cmake ..
-        - make fetch_test_data_tools
-        - ctest -R tools --output-on-failure -j4
+        - ninja test_tools
 
 # LXPLUS
 mod:lxplus-gcc:
