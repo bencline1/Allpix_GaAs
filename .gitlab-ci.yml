@@ -250,6 +250,7 @@ tools:
         - source .gitlab/ci/load_deps.sh
     script:
         - cd build/
+        - make fetch_test_data_tools
         - ctest -R tools --output-on-failure -j4
 
 # LXPLUS
