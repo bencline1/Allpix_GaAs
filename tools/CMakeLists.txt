@@ -22,25 +22,46 @@ IF(BUILD_TOOLS)
     OPTION(TEST_TOOLS "Perform unit tests to ensure tool functionality?" ON)
 
     IF(TEST_TOOLS)
+        INCLUDE(ExternalData)
+        # Define resources fo external data used in these tests, copy from EOS directly if available
+        SET(ExternalData_URL_TEMPLATES
+            "file:///eos/project-a/allpix-squared/www/data/%(algo)/%(hash)"
+            "https://project-allpix-squared.web.cern.ch/data/%(algo)/%(hash)")
 
         # Convert field from DF-ISE to APF
         ADD_TOOL_TEST(
-            NAME mesh_converter_dfise
-            EXECUTABLE mesh_converter
-            OUTPUT "test_structure_0V_ElectricField.apf"
-            PASS_REGULAR_EXPRESSION "-7.52928e-06"
-            ARGUMENTS -c ${CMAKE_SOURCE_DIR}/conf/tcad_teststructure/convert.conf -f ${CMAKE_SOURCE_DIR}/conf/tcad_teststructure/test_structure_0V
-        )
+            NAME
+            mesh_converter_dfise
+            EXECUTABLE
+            mesh_converter
+            OUTPUT
+            "sample_field_ElectricField.apf"
+            PASS_REGULAR_EXPRESSION
+            "7.63058e-06 5.59378e-06 0.000286977 -5.68113e-08 -4.15989e-08 0.000560116 3.90412e-07 2.77559e-07 0.000565475 6.58658e-07"
+            ARGUMENTS
+            -c
+            ${CMAKE_SOURCE_DIR}/conf/tcad_teststructure/planar_sensor/convert.conf
+            -f
+            sample_field
+            DATA
+            data/sample_field.dat
+            data/sample_field.grd)
 
         # Generate weighting potential:
         ADD_TOOL_TEST(
-            NAME generate_weighting_potential
-            EXECUTABLE generate_potential
-            OUTPUT model_weightingpotential.apf
-            PASS_REGULAR_EXPRESSION "0.000500717"
-            ARGUMENTS --model ${CMAKE_SOURCE_DIR}/models/timepix.conf
-        )
+            NAME
+            generate_weighting_potential
+            EXECUTABLE
+            generate_potential
+            OUTPUT
+            model_weightingpotential.apf
+            PASS_REGULAR_EXPRESSION
+            "0.000500717"
+            ARGUMENTS
+            --model
+            ${CMAKE_SOURCE_DIR}/models/timepix.conf)
 
+        EXTERNALDATA_ADD_TARGET(fetch_test_data_tools)
         MESSAGE(STATUS "Unit tests: 4 tools functionality tests")
     ELSE()
         MESSAGE(STATUS "Unit tests: tools functionality tests deactivated.")

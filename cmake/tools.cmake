@@ -78,20 +78,25 @@ ENDFUNCTION()
 # Add a test to the tools test suite
 FUNCTION(add_tool_test)
     SET(oneValueArgs NAME EXECUTABLE OUTPUT PASS_REGULAR_EXPRESSION)
-    SET(multiValueArgs ARGUMENTS)
+    SET(multiValueArgs ARGUMENTS DATA)
     CMAKE_PARSE_ARGUMENTS(ADD_TOOL_TEST "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    # Register the data for retrieval
+    FOREACH(file ${ADD_TOOL_TEST_DATA})
+        EXTERNALDATA_EXPAND_ARGUMENTS(fetch_test_data_tools _data_file DATA{${file}})
+    ENDFOREACH()
 
     # Run the tool
     ADD_TEST(
         NAME tools/${ADD_TOOL_TEST_NAME}
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tools
         COMMAND ${CMAKE_INSTALL_PREFIX}/bin/${ADD_TOOL_TEST_EXECUTABLE} ${ADD_TOOL_TEST_ARGUMENTS})
 
     # Check the tool output field
     ADD_TEST(
         NAME tools/check_${ADD_TOOL_TEST_NAME}
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMAND ${CMAKE_INSTALL_PREFIX}/bin/apf_dump --values 10 ${CMAKE_BINARY_DIR}/${ADD_TOOL_TEST_OUTPUT})
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tools
+        COMMAND ${CMAKE_INSTALL_PREFIX}/bin/apf_dump --values 10 ${ADD_TOOL_TEST_OUTPUT})
     SET_TESTS_PROPERTIES(tools/check_${ADD_TOOL_TEST_NAME} PROPERTIES DEPENDS "${ADD_TOOL_TEST_NAME}")
     SET_TESTS_PROPERTIES(tools/check_${ADD_TOOL_TEST_NAME} PROPERTIES PASS_REGULAR_EXPRESSION
                                                                       "${ADD_TOOL_TEST_PASS_REGULAR_EXPRESSION}")
