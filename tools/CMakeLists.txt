@@ -36,7 +36,7 @@ IF(BUILD_TOOLS)
             OUTPUT
             "sample_field_ElectricField.apf"
             PASS_REGULAR_EXPRESSION
-            "7.63058e-06 5.59378e-06 0.000286977 -5.68113e-08 -4.15989e-08 0.000560116 3.90412e-07 2.77559e-07"
+            "8.90408e-06 6.66146e-06 0.000370734 2.88255e-07 2.08785e-07 0.00056371 5.35032e-07 4.05597e-07"
             ARGUMENTS
             -c
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/convert.conf
