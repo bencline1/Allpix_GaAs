@@ -221,12 +221,12 @@ fmt:coverity:
 .testmod:
     extends: .test
     script:
-        - ctest -R modules/ --no-compress-output --test-action Test
+        - ninja test_modules
 
 .testcore:
     extends: .test
     script:
-        - ctest -R core/ --no-compress-output --test-action Test
+        - ninja test_core
 
 
 # Test if examples still execute fine:
@@ -238,7 +238,7 @@ examples:
         - job: cmp:cc7-gcc
           artifacts: true
     script:
-        - ctest -R examples/ --no-compress-output --test-action Test
+        - ninja test_examples
 
 tools:
     extends: .test
@@ -367,7 +367,7 @@ core:macos-clang:
     tags:
         - benchmark
     script:
-        - ctest -R performance/ --output-on-failure
+        - ninja test_performance
     allow_failure: true
     retry: 1
 

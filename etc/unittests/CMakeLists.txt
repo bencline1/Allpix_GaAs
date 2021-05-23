@@ -13,6 +13,12 @@ IF(TEST_PERFORMANCE)
         GET_FILENAME_COMPONENT(title ${test} NAME_WE)
         ADD_ALLPIX_TEST(${test} "performance/${title}")
     ENDFOREACH()
+
+    # Set up separate target for performance tests
+    ADD_CUSTOM_TARGET(
+        test_performance
+        COMMAND ${CMAKE_CTEST_COMMAND} "-R" "performance" "--output-on-failure" "--no-compress-output" "--test-action" "Test"
+    COMMENT "Target for performance tests")
 ENDIF()
 
 ######################################
@@ -30,4 +36,10 @@ IF(TEST_CORE)
         GET_FILENAME_COMPONENT(title ${test} NAME_WE)
         ADD_ALLPIX_TEST(${test} "core/${title}")
     ENDFOREACH()
+
+    # Set up separate target for core tests
+    ADD_CUSTOM_TARGET(
+        test_core
+        COMMAND ${CMAKE_CTEST_COMMAND} "-R" "core/" "--output-on-failure" "--no-compress-output" "--test-action" "Test" "-j4"
+    COMMENT "Target for framework core tests")
 ENDIF()

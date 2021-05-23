@@ -45,6 +45,12 @@ IF(TEST_EXAMPLES)
             ADD_DEFAULT_FAIL_CONDITIONS(${TEST_NAME})
         ENDIF()
     ENDFOREACH()
+
+    # Set up separate target for example tests
+    ADD_CUSTOM_TARGET(
+        test_examples
+        COMMAND ${CMAKE_CTEST_COMMAND} "-R" "examples" "--output-on-failure" "--no-compress-output" "--test-action" "Test" "-j4"
+    COMMENT "Target for example tests")
 ELSE()
     MESSAGE(STATUS "Unit tests: example validity tests deactivated.")
 ENDIF()

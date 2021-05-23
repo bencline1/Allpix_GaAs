@@ -379,6 +379,12 @@ ELSE()
 ENDIF()
 
 IF(TEST_MODULES)
+    # Set up separate target for module tests
+    ADD_CUSTOM_TARGET(
+        test_modules
+        COMMAND ${CMAKE_CTEST_COMMAND} "-R" "modules" "--output-on-failure" "--no-compress-output" "--test-action" "Test" "-j4"
+    COMMENT "Target for framework module tests")
+
     GET_PROPERTY(CNT GLOBAL PROPERTY COUNT_TESTS_MODULES)
     MESSAGE(STATUS "Unit tests: ${CNT} module functionality tests")
 
