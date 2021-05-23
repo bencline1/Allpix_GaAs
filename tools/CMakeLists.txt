@@ -41,7 +41,7 @@ IF(BUILD_TOOLS)
             -c
             ${CMAKE_SOURCE_DIR}/conf/tcad_teststructure/planar_sensor/convert.conf
             -f
-            sample_field
+            data/sample_field
             DATA
             data/sample_field.dat
             data/sample_field.grd)
