@@ -246,8 +246,7 @@ tools:
         - cmp:cc7-gcc
     image: gitlab-registry.cern.ch/sft/docker/centos7:latest
     before_script:
-        - source .gitlab/ci/init_x86_64.sh
-        - source .gitlab/ci/load_deps.sh
+        - source .ci/init_x86_64.sh
     script:
         - cd build/
         - make fetch_test_data_tools

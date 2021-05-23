@@ -23,7 +23,7 @@ IF(BUILD_TOOLS)
     IF(TEST_TOOLS)
         INCLUDE(ExternalData)
         # cmake-lint: disable=C0103
-        # Define resources fo external data used in these tests, copy from EOS directly if available
+        # Define resources for external data used in these tests, copy from EOS directly if available
         SET(ExternalData_URL_TEMPLATES "file:///eos/project-a/allpix-squared/www/data/%(algo)/%(hash)"
                                        "https://project-allpix-squared.web.cern.ch/data/%(algo)/%(hash)")
 
