@@ -62,6 +62,8 @@ IF(BUILD_TOOLS)
             ${CMAKE_SOURCE_DIR}/models/timepix.conf)
 
         EXTERNALDATA_ADD_TARGET(fetch_test_data_tools)
+        SET_TARGET_PROPERTIES(fetch_test_data_tools PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
         MESSAGE(STATUS "Unit tests: 4 tools functionality tests")
     ELSE()
         MESSAGE(STATUS "Unit tests: tools functionality tests deactivated.")
