@@ -39,12 +39,12 @@ IF(BUILD_TOOLS)
             "7.63058e-06 5.59378e-06 0.000286977 -5.68113e-08 -4.15989e-08 0.000560116 3.90412e-07 2.77559e-07"
             ARGUMENTS
             -c
-            ${CMAKE_SOURCE_DIR}/conf/tcad_teststructure/planar_sensor/convert.conf
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/convert.conf
             -f
-            data/sample_field
+            tests/sample_field
             DATA
-            data/sample_field.dat
-            data/sample_field.grd)
+            tests/sample_field.dat
+            tests/sample_field.grd)
 
         # Generate weighting potential:
         ADD_TOOL_TEST(
