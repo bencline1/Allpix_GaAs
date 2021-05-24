@@ -18,7 +18,7 @@ IF(TEST_PERFORMANCE)
     ADD_CUSTOM_TARGET(
         test_performance
         COMMAND ${CMAKE_CTEST_COMMAND} "-R" "performance" "--output-on-failure" "--no-compress-output" "--test-action" "Test"
-    COMMENT "Target for performance tests")
+        COMMENT "Target for performance tests")
 ENDIF()
 
 ######################################
@@ -41,5 +41,5 @@ IF(TEST_CORE)
     ADD_CUSTOM_TARGET(
         test_core
         COMMAND ${CMAKE_CTEST_COMMAND} "-R" "core/" "--output-on-failure" "--no-compress-output" "--test-action" "Test" "-j4"
-    COMMENT "Target for framework core tests")
+        COMMENT "Target for framework core tests")
 ENDIF()

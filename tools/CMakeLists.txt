@@ -66,7 +66,8 @@ IF(BUILD_TOOLS)
         # Set up separate target for tool tests, depending on the data management target:
         ADD_CUSTOM_TARGET(
             test_tools
-            COMMAND ${CMAKE_CTEST_COMMAND} "-R" "tools" "--output-on-failure" "--no-compress-output" "--test-action" "Test" "-j4"
+            COMMAND ${CMAKE_CTEST_COMMAND} "-R" "tools" "--output-on-failure" "--no-compress-output" "--test-action" "Test"
+                    "-j4"
             COMMENT "Target for framework tools tests")
         ADD_DEPENDENCIES(test_tools fetch_test_data_tools)
 
