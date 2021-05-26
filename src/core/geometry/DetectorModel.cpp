@@ -60,7 +60,7 @@ DetectorModel::DetectorModel(std::string type, ConfigReader reader) : type_(std:
         throw InvalidValueError(config, "implant_offset", "implant exceeds pixel cell. Reduce implant size or offset");
     }
     setImplantOffset(implant_offset);
-    
+
     // Chip thickness
     setChipThickness(config.get<double>("chip_thickness", 0));
 
