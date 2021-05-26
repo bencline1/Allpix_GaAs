@@ -162,14 +162,14 @@ void DetectorConstructionG4::build(const std::shared_ptr<G4LogicalVolume>& world
             // Place physical instance of implant extrusion in model (conductor):
             auto implant_log = make_shared_no_delete<G4LogicalVolume>(
                 implant_union.get(), materials.get(model->getImplantMaterial()), "implants_" + name + "_log");
-            detector->setExternalObject("implants_log", implant_log);
+            geo_manager_->setExternalObject(name, "implants_log", implant_log);
 
             // Place the implants box
             auto implant_pos = toG4Vector(model->getSensorCenter() - model->getGeometricalCenter());
             LOG(DEBUG) << "  - Implants\t\t:\t" << Units::display(implant_pos, {"mm", "um"});
             auto implant_phys = make_shared_no_delete<G4PVPlacement>(
                 nullptr, implant_pos, implant_log.get(), "implants_" + name + "_phys", wrapper_log.get(), false, 0, true);
-            detector->setExternalObject("implants_phys", implant_phys);
+            geo_manager_->setExternalObject(name, "implants_phys", implant_phys);
 
             G4Transform3D transform(G4RotationMatrix(), G4ThreeVector(0, 0, 0));
             auto subtraction_solid = std::make_shared<G4SubtractionSolid>(
