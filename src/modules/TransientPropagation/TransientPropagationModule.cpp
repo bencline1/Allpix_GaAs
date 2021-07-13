@@ -22,6 +22,7 @@
 #include "objects/PropagatedCharge.hpp"
 #include "tools/runge_kutta.h"
 
+
 using namespace allpix;
 using namespace ROOT::Math;
 
