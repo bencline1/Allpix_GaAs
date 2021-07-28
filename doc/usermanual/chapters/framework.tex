@@ -321,6 +321,8 @@ This parameter is required for all models.
 \item \parameter{implant_size}: The size of the collection diode implant in each pixel of the matrix.
 This parameter can be provided either as 2D value in the x-y-plane or as 3D value with additional implant depth from the sensor surface.
 In the latter case, no charge carrier propagation will be performed in the implant, but it is removed from the active sensor volume and replaced with the conductive material defined via \parameter{implant_material}.
+\item \parameter{implant_offset}: 2D values in the x-y plane, defining the offset of the implant from the center of the pixel cell.
+The implant cannot overlap with neighboring pixel cells and the maximum values for the offset is therefore restricted to half the pixel pitch minus half the implant size in the respective coordinate.
 This parameter is optional, the implant size defaults to the pixel pitch and zero thickness if not specified otherwise.
 \item \parameter{implant_material}: The material of the sensor implants defined via \parameter{implant_size}. Only used if a non-negligible implant thickness is specified. Defaults to aluminum.
 It should be noted that \apsq does not provide a set of materials to choose from; it is up to the modules using this parameter to implement the materials such that they can use it.
