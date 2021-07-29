@@ -760,7 +760,7 @@ GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
     size_t next_idx = 0;
     bool is_alive = true;
     while(detector_->getModel()->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(position)) &&
-          (initial_time + runge_kutta.getTime()) < integration_time_ && 
+          (initial_time + runge_kutta.getTime()) < integration_time_ &&
           !detector_->getModel()->isWithinImplant(static_cast<ROOT::Math::XYZPoint>(position)) && is_alive) {
         // Update output plots if necessary (depending on the plot step)
         if(output_linegraphs_) {
