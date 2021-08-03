@@ -18,8 +18,8 @@
 #include <utility>
 
 #include "core/config/exceptions.h"
-#include "core/geometry/HybridPixelDetectorModel.hpp"
 #include "core/geometry/HexagonalPixelDetectorModel.hpp"
+#include "core/geometry/HybridPixelDetectorModel.hpp"
 #include "core/utils/log.h"
 #include "core/utils/unit.h"
 #include "tools/ROOT.h"

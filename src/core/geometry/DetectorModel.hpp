@@ -50,7 +50,7 @@ namespace allpix {
             friend class DetectorModel;
             // FIXME Friending this class is broken
             friend class HybridPixelDetectorModel;
-	    friend class HexagonalPixelDetectorModel;
+
         public:
             /**
              * @brief Get the center of the support layer
