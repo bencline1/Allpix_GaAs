@@ -16,7 +16,7 @@
 
 using namespace allpix;
 
-static Pixel gen_pixel(Event* event, std::shared_ptr<const Detector> detector) {
+static Pixel gen_pixel(Event* event, const std::shared_ptr<const Detector>& detector) {
     auto model = detector->getModel();
     std::uniform_int_distribution<unsigned int> x(0, model->getNPixels().x());
     std::uniform_int_distribution<unsigned int> y(0, model->getNPixels().y());
@@ -24,7 +24,7 @@ static Pixel gen_pixel(Event* event, std::shared_ptr<const Detector> detector) {
 }
 
 template <>
-MCParticle InjectMessageModule::generate_object<MCParticle>(Event* event, std::shared_ptr<const Detector> detector) {
+MCParticle InjectMessageModule::generateObject<MCParticle>(Event* event, const std::shared_ptr<const Detector>& detector) {
     std::uniform_int_distribution<> type(0, 1);
     std::poisson_distribution<unsigned int> signal(8000);
     auto model = detector->getModel();
@@ -43,8 +43,8 @@ MCParticle InjectMessageModule::generate_object<MCParticle>(Event* event, std::s
 }
 
 template <>
-DepositedCharge InjectMessageModule::generate_object<DepositedCharge>(Event* event,
-                                                                      std::shared_ptr<const Detector> detector) {
+DepositedCharge InjectMessageModule::generateObject<DepositedCharge>(Event* event,
+                                                                     const std::shared_ptr<const Detector>& detector) {
     std::uniform_int_distribution<> type(0, 1);
     std::poisson_distribution<unsigned int> signal(8000);
     auto model = detector->getModel();
@@ -62,8 +62,8 @@ DepositedCharge InjectMessageModule::generate_object<DepositedCharge>(Event* eve
 }
 
 template <>
-PropagatedCharge InjectMessageModule::generate_object<PropagatedCharge>(Event* event,
-                                                                        std::shared_ptr<const Detector> detector) {
+PropagatedCharge InjectMessageModule::generateObject<PropagatedCharge>(Event* event,
+                                                                       const std::shared_ptr<const Detector>& detector) {
     std::uniform_int_distribution<> type(0, 1);
     std::poisson_distribution<unsigned int> signal(8000);
     auto model = detector->getModel();
@@ -81,19 +81,20 @@ PropagatedCharge InjectMessageModule::generate_object<PropagatedCharge>(Event* e
 }
 
 template <>
-PixelCharge InjectMessageModule::generate_object<PixelCharge>(Event* event, std::shared_ptr<const Detector> detector) {
+PixelCharge InjectMessageModule::generateObject<PixelCharge>(Event* event, const std::shared_ptr<const Detector>& detector) {
     std::poisson_distribution<unsigned int> signal(8000);
     return PixelCharge(gen_pixel(event, detector), signal(event->getRandomEngine()));
 }
 
-template <> PixelHit InjectMessageModule::generate_object<PixelHit>(Event* event, std::shared_ptr<const Detector> detector) {
+template <>
+PixelHit InjectMessageModule::generateObject<PixelHit>(Event* event, const std::shared_ptr<const Detector>& detector) {
     std::poisson_distribution<> signal(8000);
     return PixelHit(gen_pixel(event, detector), 0, 0, signal(event->getRandomEngine()));
 }
 
 InjectMessageModule::InjectMessageModule(Configuration& config, Messenger* messenger, std::shared_ptr<Detector> detector)
     : Module(config, detector), messenger_(messenger), detector_(std::move(detector)) {
-    enable_parallelization();
+    allow_multithreading();
 }
 
 /**
@@ -110,7 +111,7 @@ template <typename T> static void add_creator(InjectMessageModule::MessageCreato
         data.reserve(num_objects);
 
         for(size_t i = 0; i < num_objects; i++) {
-            data.push_back(std::move(InjectMessageModule::generate_object<T>(event, detector)));
+            data.push_back(std::move(InjectMessageModule::generateObject<T>(event, detector)));
             LOG(TRACE) << "Generated " << std::endl << data.back();
         }
 

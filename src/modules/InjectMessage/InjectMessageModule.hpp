@@ -58,7 +58,7 @@ namespace allpix {
          * @param  detector Shared pointer to the detector to generate objects for
          * @return          Object of the requested type
          */
-        template <class T> static T generate_object(Event* event, std::shared_ptr<const Detector> detector);
+        template <class T> static T generateObject(Event* event, const std::shared_ptr<const Detector>& detector);
 
     private:
         Messenger* messenger_;
@@ -69,6 +69,6 @@ namespace allpix {
         MessageCreatorMap message_creator_map_;
     };
 
-    template <class T> T InjectMessageModule::generate_object(Event*, std::shared_ptr<const Detector>) { return T(); }
+    template <class T> T InjectMessageModule::generateObject(Event*, const std::shared_ptr<const Detector>&) { return T(); }
 
 } // namespace allpix
