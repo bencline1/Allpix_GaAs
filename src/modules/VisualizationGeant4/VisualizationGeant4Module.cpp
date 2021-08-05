@@ -51,11 +51,7 @@ VisualizationGeant4Module::VisualizationGeant4Module(Configuration& config, Mess
     config_.setDefault("accumulate", true);
     config_.setDefault("simple_view", true);
 
-    // Check mode
-    auto mode = config_.get<std::string>("mode");
-    if(mode != "gui" && mode != "terminal" && mode != "none") {
-        throw InvalidValueError(config_, "mode", "viewing mode should be 'gui', 'terminal' or 'none'");
-    }
+    mode_ = config_.get<ViewingMode>("mode");
 }
 /**
  * Without applying this workaround the visualization (sometimes without content) is also shown when an exception occurred in
@@ -94,16 +90,11 @@ void VisualizationGeant4Module::initialize() {
     }
 
     // Create the gui if required
-    if(config_.get<std::string>("mode") == "gui") {
+    if(mode_ == ViewingMode::GUI) {
         // Need to provide parameters, simulate this behaviour
         session_param_ = ALLPIX_PROJECT_NAME;
-#if __cplusplus > 201402L
-        // in C++17 a non-const version of the data() function is available
         session_param_ptr_ = session_param_.data();
-#else
-        // pre C++17 the data has to be const-cast manually
-        session_param_ptr_ = const_cast<char*>(session_param_.data()); // NOLINT
-#endif
+
 #ifdef G4UI_USE_QT
         gui_session_ = std::make_unique<G4UIQt>(1, &session_param_ptr_);
 #else
@@ -212,13 +203,13 @@ void VisualizationGeant4Module::set_visualization_settings() {
         }
 
         // color trajectories by charge or particle id
-        auto traj_color = config_.get<std::string>("trajectories_color_mode", "charge");
-        if(traj_color == "generic") {
+        auto traj_color = config_.get<ColorMode>("trajectories_color_mode", ColorMode::CHARGE);
+        if(traj_color == ColorMode::GENERIC) {
             UI->ApplyCommand("/vis/modeling/trajectories/create/generic allpixModule");
 
             UI->ApplyCommand("/vis/modeling/trajectories/allpixModule/default/setLineColor " +
                              config_.get<std::string>("trajectories_color", "blue"));
-        } else if(traj_color == "charge") {
+        } else if(traj_color == ColorMode::CHARGE) {
             // Create draw by charge
             UI->ApplyCommand("/vis/modeling/trajectories/create/drawByCharge allpixModule");
 
@@ -238,7 +229,7 @@ void VisualizationGeant4Module::set_visualization_settings() {
             if(ret_code != 0) {
                 throw InvalidValueError(config_, "trajectories_color_negative", "charge color not defined");
             }
-        } else if(traj_color == "particle") {
+        } else if(traj_color == ColorMode::PARTICLE) {
             UI->ApplyCommand("/vis/modeling/trajectories/create/drawByParticleID allpixModule");
 
             auto particle_colors = config_.getArray<std::string>("trajectories_particle_colors");
@@ -249,9 +240,6 @@ void VisualizationGeant4Module::set_visualization_settings() {
                         config_, "trajectories_particle_colors", "combination particle type and color not valid");
                 }
             }
-        } else {
-            throw InvalidValueError(
-                config_, "trajectories_color_mode", "only 'generic', 'charge' or 'particle' are supported");
         }
 
         // Set default settings for steps
@@ -461,10 +449,10 @@ void VisualizationGeant4Module::finalize() {
     prev_handler = std::signal(SIGINT, interrupt_handler);
 
     // Open GUI / terminal or start viewer depending on mode
-    if(config_.get<std::string>("mode") == "gui") {
+    if(mode_ == ViewingMode::GUI) {
         LOG(INFO) << "Starting visualization session";
         gui_session_->SessionStart();
-    } else if(config_.get<std::string>("mode") == "terminal") {
+    } else if(mode_ == ViewingMode::TERMINAL) {
         LOG(INFO) << "Starting terminal session";
         Log::finish();
         std::unique_ptr<G4UIsession> session = std::make_unique<G4UIterminal>(new G4UItcsh);

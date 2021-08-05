@@ -13,6 +13,7 @@
 #include <utility>
 
 #include "core/messenger/Messenger.hpp"
+#include "core/utils/distributions.h"
 #include "core/utils/log.h"
 #include "objects/DepositedCharge.hpp"
 #include "objects/PropagatedCharge.hpp"
@@ -22,9 +23,10 @@ using namespace allpix;
 ProjectionPropagationModule::ProjectionPropagationModule(Configuration& config,
                                                          Messenger* messenger,
                                                          std::shared_ptr<Detector> detector)
-    : Module(config, detector), messenger_(messenger), detector_(std::move(detector)) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    : Module(config, detector), messenger_(messenger), detector_(std::move(detector)),
+      top_z_(detector_->getModel()->getSensorSize().z() / 2) {
+    // Enable multithreading of this module if multithreading is enabled
+    allow_multithreading();
 
     // Save detector model
     model_ = detector_->getModel();
@@ -37,12 +39,12 @@ ProjectionPropagationModule::ProjectionPropagationModule(Configuration& config,
     config_.setDefault<double>("integration_time", Units::get(25, "ns"));
     config_.setDefault<bool>("output_plots", false);
     config_.setDefault<bool>("diffuse_deposit", false);
-    config_.setDefault<double>("auger_coefficient", Units::get(2e-30, "cm*cm*cm*cm*cm*cm*/s"));
+    config_.setDefault<std::string>("recombination_model", "none");
 
     integration_time_ = config_.get<double>("integration_time");
     output_plots_ = config_.get<bool>("output_plots");
     diffuse_deposit_ = config_.get<bool>("diffuse_deposit");
-    auger_coeff_ = config_.get<double>("auger_coefficient");
+    charge_per_step_ = config_.get<unsigned int>("charge_per_step");
 
     // Set default for charge carrier propagation:
     config_.setDefault<bool>("propagate_holes", false);
@@ -53,26 +55,15 @@ ProjectionPropagationModule::ProjectionPropagationModule(Configuration& config,
         propagate_type_ = CarrierType::ELECTRON;
     }
 
-    // Parameterization variables from https://doi.org/10.1016/0038-1101(77)90054-5 (section 5.2)
     auto temperature = config_.get<double>("temperature");
-    electron_Vm_ = Units::get(1.53e9 * std::pow(temperature, -0.87), "cm/s");
-    electron_Ec_ = Units::get(1.01 * std::pow(temperature, 1.55), "V/cm");
-    electron_Beta_ = 2.57e-2 * std::pow(temperature, 0.66);
-
-    hole_Vm_ = Units::get(1.62e8 * std::pow(temperature, -0.52), "cm/s");
-    hole_Ec_ = Units::get(1.24 * std::pow(temperature, 1.68), "V/cm");
-    hole_Beta_ = 0.46 * std::pow(temperature, 0.17);
-
     boltzmann_kT_ = Units::get(8.6173e-5, "eV/K") * temperature;
 
-    // Reference lifetime and doping concentrations, taken from:
-    // https://doi.org/10.1016/0038-1101(82)90203-9
-    // https://doi.org/10.1016/0038-1101(76)90022-8
-    electron_lifetime_reference_ = Units::get(1e-5, "s");
-    hole_lifetime_reference_ = Units::get(4.0e-4, "s");
-    electron_doping_reference_ = Units::get(1e16, "/cm/cm/cm");
-    hole_doping_reference_ = Units::get(7.1e15, "/cm/cm/cm");
-    has_doping_profile_ = detector_->hasDopingProfile();
+    // Mobility fixed to Jacoboni:
+    mobility_ = Mobility("jacoboni", temperature);
+    // We need direct access to the critical field values of the model since we have a discrete integration of the formula
+    // for the total drift time. Taken from https://doi.org/10.1016/0038-1101(77)90054-5 (section 5.2)
+    electron_Ec_ = Units::get(1.01 * std::pow(temperature, 1.55), "V/cm");
+    hole_Ec_ = Units::get(1.24 * std::pow(temperature, 1.68), "V/cm");
 
     config_.setDefault<bool>("ignore_magnetic_field", false);
 }
@@ -82,8 +73,15 @@ void ProjectionPropagationModule::initialize() {
         throw ModuleError("This module should only be used with linear electric fields.");
     }
 
-    if(has_doping_profile_ && detector_->getDopingProfileType() != FieldType::CONSTANT) {
+    if(detector_->hasDopingProfile() && detector_->getDopingProfileType() != FieldType::CONSTANT) {
         throw ModuleError("This module should only be used with constant doping concentration.");
+    }
+
+    // Prepare recombination model
+    try {
+        recombination_ = Recombination(config_.get<std::string>("recombination_model"), detector_->hasDopingProfile());
+    } catch(ModelError& e) {
+        throw InvalidValueError(config_, "recombination_model", e.what());
     }
 
     if(detector_->hasMagneticField() && !config_.get<bool>("ignore_magnetic_field")) {
@@ -94,7 +92,6 @@ void ProjectionPropagationModule::initialize() {
     }
 
     // Find correct top side
-    top_z_ = model_->getSensorSize().z() / 2;
     if(detector_->getElectricField({0, 0, top_z_}).z() > detector_->getElectricField({0, 0, -top_z_}).z()) {
         top_z_ *= -1;
     }
@@ -127,6 +124,14 @@ void ProjectionPropagationModule::initialize() {
                                   100,
                                   static_cast<double>(Units::convert(-top_z_, "um")),
                                   static_cast<double>(Units::convert(top_z_, "um")));
+
+        recombine_histo_ =
+            CreateHistogram<TH1D>("recombination_histo",
+                                  "Fraction of recombined charge carriers;recombination [N / N_{total}] ;number of events",
+                                  100,
+                                  0,
+                                  1);
+
         if(diffuse_deposit_) {
             diffusion_time_histo_ =
                 CreateHistogram<TH1D>("diffusion_time_histo",
@@ -144,9 +149,10 @@ void ProjectionPropagationModule::run(Event* event) {
     // Create vector of propagated charges to output
     std::vector<PropagatedCharge> propagated_charges;
 
-    double charge_lost = 0;
-    double total_charge = 0;
-    double total_projected_charge = 0;
+    unsigned int charge_lost = 0;
+    unsigned int total_charge = 0;
+    unsigned int total_projected_charge = 0;
+    unsigned int recombined_charges_count = 0;
 
     // Loop over all deposits for propagation
     for(const auto& deposit : deposits_message->getData()) {
@@ -162,12 +168,12 @@ void ProjectionPropagationModule::run(Event* event) {
         LOG(DEBUG) << "Set of " << deposit.getCharge() << " charge carriers (" << type << ") on "
                    << Units::display(initial_position, {"mm", "um"});
 
-        double projected_charge = 0;
+        unsigned int projected_charge = 0;
 
         unsigned int charges_remaining = deposit.getCharge();
         total_charge += charges_remaining;
 
-        auto charge_per_step = config_.get<unsigned int>("charge_per_step");
+        auto charge_per_step = charge_per_step_;
         while(charges_remaining > 0) {
             if(charge_per_step > charges_remaining) {
                 charge_per_step = charges_remaining;
@@ -181,19 +187,7 @@ void ProjectionPropagationModule::run(Event* event) {
             double efield_mag = std::sqrt(efield.Mag2());
             auto efield_top = detector_->getElectricField(ROOT::Math::XYZPoint(0., 0., top_z_));
             double efield_mag_top = std::sqrt(efield_top.Mag2());
-
-            // Define a lambda function to compute the carrier mobility
-            auto carrier_mobility = [&](double efield_magn) {
-                // Compute carrier mobility from constants and electric field magnitude
-                if(type == CarrierType::ELECTRON) {
-                    return electron_Vm_ / electron_Ec_ /
-                           std::pow(1. + std::pow(efield_magn / electron_Ec_, electron_Beta_), 1.0 / electron_Beta_);
-                } else {
-                    return hole_Vm_ / hole_Ec_ /
-                           std::pow(1. + std::pow(efield_magn / hole_Ec_, hole_Beta_), 1.0 / hole_Beta_);
-                }
-            };
-
+            double doping = detector_->getDopingConcentration(position);
             double diffusion_time = 0;
 
             // Only project if within the depleted region (i.e. efield not zero)
@@ -202,11 +196,11 @@ void ProjectionPropagationModule::run(Event* event) {
                 if(!diffuse_deposit_) {
                     continue;
                 }
-                double diffusion_constant = boltzmann_kT_ * carrier_mobility(efield_mag);
+                double diffusion_constant = boltzmann_kT_ * mobility_(type, efield_mag, doping);
                 double diffusion_std_dev = std::sqrt(2. * diffusion_constant * integration_time_);
                 LOG(TRACE) << "Diffusion width of this charge carrier is " << Units::display(diffusion_std_dev, "um");
 
-                std::normal_distribution<double> gauss_distribution(0, diffusion_std_dev);
+                allpix::normal_distribution<double> gauss_distribution(0, diffusion_std_dev);
                 double diffusion_x = gauss_distribution(event->getRandomEngine());
                 double diffusion_y = gauss_distribution(event->getRandomEngine());
                 double diffusion_z = gauss_distribution(event->getRandomEngine());
@@ -217,7 +211,8 @@ void ProjectionPropagationModule::run(Event* event) {
                 auto efield_diffusion = detector_->getElectricField(local_position_diffusion);
                 double efield_mag_diffusion = std::sqrt(efield_diffusion.Mag2());
 
-                if(efield_mag_diffusion < std::numeric_limits<double>::epsilon() && (detector_->isWithinSensor(position))) {
+                if(efield_mag_diffusion < std::numeric_limits<double>::epsilon() &&
+                   (detector_->getModel()->isWithinSensor(position))) {
                     LOG(TRACE) << "Charge carrier remains within undepleted volume";
                     continue;
                 }
@@ -244,7 +239,7 @@ void ProjectionPropagationModule::run(Event* event) {
                 diffusion_time = integration_time_ * std::sqrt((position - initial_position).Mag2() /
                                                                (local_position_diffusion - initial_position).Mag2());
 
-                if(!detector_->isWithinSensor(position)) {
+                if(!detector_->getModel()->isWithinSensor(position)) {
                     LOG(TRACE) << "Charge carrier diffused outside the sensor volume";
                     continue;
                 }
@@ -252,30 +247,6 @@ void ProjectionPropagationModule::run(Event* event) {
                 LOG(TRACE) << " ... with an electric field of " << Units::display(efield_mag, "V/cm");
                 LOG(TRACE) << " ... and a diffusion time prior to the drift of " << Units::display(diffusion_time, "ns");
             }
-
-            auto carrier_alive = [&](double doping_concentration, double time) -> bool {
-                // Survival probability of this charge carrier package, evaluated once
-                std::uniform_real_distribution<double> survival(0, 1);
-                auto survival_probability = survival(event->getRandomEngine());
-
-                auto lifetime_srh =
-                    (type == CarrierType::ELECTRON ? electron_lifetime_reference_ : hole_lifetime_reference_) /
-                    (1 + std::fabs(doping_concentration) /
-                             (type == CarrierType::ELECTRON ? electron_doping_reference_ : hole_doping_reference_));
-
-                // auger lifetime model
-                auto lifetime_auger = 1.0 / (auger_coeff_ * doping_concentration * doping_concentration);
-
-                auto minorityType = (doping_concentration > 0 ? CarrierType::HOLE : CarrierType::ELECTRON);
-
-                // combine the two
-                auto lifetime = lifetime_srh;
-                if(minorityType == type) {
-                    lifetime = (lifetime_srh * lifetime_auger) / (lifetime_srh + lifetime_auger);
-                }
-
-                return survival_probability > (1 - std::exp(-1 * time / lifetime));
-            };
 
             LOG(TRACE) << "Electric field at carrier position / top of the sensor: "
                        << Units::display(efield_mag_top, "V/cm") << " , " << Units::display(efield_mag, "V/cm");
@@ -289,16 +260,15 @@ void ProjectionPropagationModule::run(Event* event) {
                 }
 
                 double Ec = (type == CarrierType::ELECTRON ? electron_Ec_ : hole_Ec_);
-                double zero_mobility = (type == CarrierType::ELECTRON ? electron_Vm_ / electron_Ec_ : hole_Vm_ / hole_Ec_);
 
                 return ((log(efield_mag_top) - log(efield_mag)) / slope_efield + std::abs(top_z_ - position.z()) / Ec) /
-                       zero_mobility;
+                       mobility_(type, 0, doping);
             };
             LOG(TRACE) << "Electric field is " << Units::display(efield_mag, "V/cm");
 
             // Assume linear electric field over the depleted part of the sensor
             double diffusion_constant =
-                boltzmann_kT_ * (carrier_mobility(efield_mag) + carrier_mobility(efield_mag_top)) / 2.;
+                boltzmann_kT_ * (mobility_(type, efield_mag, doping) + mobility_(type, efield_mag_top, doping)) / 2.;
 
             double drift_time = calc_drift_time();
             double propagation_time = deposit.getLocalTime() + drift_time + diffusion_time;
@@ -315,14 +285,17 @@ void ProjectionPropagationModule::run(Event* event) {
             double diffusion_std_dev = std::sqrt(2. * diffusion_constant * drift_time);
             LOG(TRACE) << "Diffusion width is " << Units::display(diffusion_std_dev, "um");
 
-            // Check if charge carrier is still alive:
-            if(has_doping_profile_ && !carrier_alive(detector_->getDopingConcentration(position), drift_time)) {
+            // Check if charge carrier is still alive via its survival probability, evaluated once
+            std::uniform_real_distribution<double> survival(0, 1);
+            if(recombination_(
+                   type, detector_->getDopingConcentration(position), survival(event->getRandomEngine()), drift_time)) {
                 LOG(DEBUG) << "Recombined " << charge_per_step << " charge carriers (" << type << ") at "
                            << Units::display(position, {"mm", "um"});
+                recombined_charges_count += charge_per_step;
                 continue;
             }
 
-            std::normal_distribution<double> gauss_distribution(0, diffusion_std_dev);
+            allpix::normal_distribution<double> gauss_distribution(0, diffusion_std_dev);
             double diffusion_x = gauss_distribution(event->getRandomEngine());
             double diffusion_y = gauss_distribution(event->getRandomEngine());
 
@@ -341,7 +314,7 @@ void ProjectionPropagationModule::run(Event* event) {
             }
 
             // Only add if within sensor volume:
-            if(!detector_->isWithinSensor(local_position)) {
+            if(!detector_->getModel()->isWithinSensor(local_position)) {
                 LOG(DEBUG) << "Charge carriers outside sensor volume at " << Units::display(local_position, {"mm", "um"});
                 // FIXME: drop charges if it ends up outside the sensor, could be optimized to estimate position on border
                 continue;
@@ -372,6 +345,10 @@ void ProjectionPropagationModule::run(Event* event) {
               << "%)";
     LOG(DEBUG) << "Total count of propagated charge carriers: " << propagated_charges.size();
 
+    if(output_plots_) {
+        recombine_histo_->Fill(static_cast<double>(recombined_charges_count) / total_charge);
+    }
+
     // Create a new message with propagated charges
     auto propagated_charge_message = std::make_shared<PropagatedChargeMessage>(std::move(propagated_charges), detector_);
 
@@ -385,6 +362,7 @@ void ProjectionPropagationModule::finalize() {
         drift_time_histo_->Write();
         propagation_time_histo_->Write();
         initial_position_histo_->Write();
+        recombine_histo_->Write();
         if(diffuse_deposit_) {
             diffusion_time_histo_->Write();
         }

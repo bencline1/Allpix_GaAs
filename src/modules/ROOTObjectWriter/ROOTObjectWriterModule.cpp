@@ -18,7 +18,6 @@
 #include <TProcessID.h>
 
 #include "core/config/ConfigReader.hpp"
-#include "core/utils/file.h"
 #include "core/utils/log.h"
 #include "core/utils/type.h"
 
@@ -31,8 +30,8 @@ using namespace allpix;
 
 ROOTObjectWriterModule::ROOTObjectWriterModule(Configuration& config, Messenger* messenger, GeometryManager* geo_mgr)
     : SequentialModule(config), messenger_(messenger), geo_mgr_(geo_mgr) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    // Enable multithreading of this module if multithreading is enabled
+    allow_multithreading();
 
     // Bind to all messages with filter
     messenger_->registerFilter(this, &ROOTObjectWriterModule::filter);
@@ -49,8 +48,7 @@ ROOTObjectWriterModule::~ROOTObjectWriterModule() {
 
 void ROOTObjectWriterModule::initialize() {
     // Create output file
-    output_file_name_ =
-        createOutputFile(allpix::add_file_extension(config_.get<std::string>("file_name", "data"), "root"), true);
+    output_file_name_ = createOutputFile(config_.get<std::string>("file_name", "data"), "root", true);
     output_file_ = std::make_unique<TFile>(output_file_name_.c_str(), "RECREATE");
     output_file_->cd();
 

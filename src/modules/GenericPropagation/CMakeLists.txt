@@ -2,9 +2,10 @@
 ALLPIX_DETECTOR_MODULE(MODULE_NAME)
 
 # Add source files to library
-ALLPIX_MODULE_SOURCES(${MODULE_NAME}
-    GenericPropagationModule.cpp
-)
+ALLPIX_MODULE_SOURCES(${MODULE_NAME} GenericPropagationModule.cpp)
+
+# Register module tests
+ALLPIX_MODULE_TESTS(${MODULE_NAME} "tests")
 
 # Eigen is required for Runge-Kutta propagation
 FIND_PACKAGE(Eigen3 REQUIRED NO_MODULE)

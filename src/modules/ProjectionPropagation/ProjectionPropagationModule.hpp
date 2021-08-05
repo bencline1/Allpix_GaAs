@@ -22,6 +22,9 @@
 #include "objects/DepositedCharge.hpp"
 #include "objects/PropagatedCharge.hpp"
 
+#include "physics/Mobility.hpp"
+#include "physics/Recombination.hpp"
+
 #include "tools/ROOT.h"
 
 namespace allpix {
@@ -63,41 +66,33 @@ namespace allpix {
         std::shared_ptr<const Detector> detector_;
         std::shared_ptr<DetectorModel> model_;
 
-        // Config parameters: Check whether plots should be generated
+        // Config parameters
         bool output_plots_;
         double integration_time_{};
         bool diffuse_deposit_;
+        unsigned int charge_per_step_{};
 
         // Carrier type to be propagated
         CarrierType propagate_type_;
         // Side to propagate too
         double top_z_;
 
-        // Precalculated values for electron and hole mobility
-        double hole_Vm_;
+        // Precalculated values for electron and hole critical fields
         double hole_Ec_;
-        double hole_Beta_;
-        double electron_Vm_;
         double electron_Ec_;
-        double electron_Beta_;
 
-        // Doping profile available?
-        bool has_doping_profile_;
+        // Models for electron and hole mobility and lifetime
+        Mobility mobility_;
+        Recombination recombination_;
 
         // Precalculated value for Boltzmann constant:
         double boltzmann_kT_;
-
-        // Predefined values for reference charge carrier lifetime and doping concentration
-        double electron_lifetime_reference_;
-        double hole_lifetime_reference_;
-        double electron_doping_reference_;
-        double hole_doping_reference_;
-        double auger_coeff_;
 
         // Output plot for drift time
         Histogram<TH1D> drift_time_histo_;
         Histogram<TH1D> diffusion_time_histo_;
         Histogram<TH1D> propagation_time_histo_;
         Histogram<TH1D> initial_position_histo_;
+        Histogram<TH1D> recombine_histo_;
     };
 } // namespace allpix

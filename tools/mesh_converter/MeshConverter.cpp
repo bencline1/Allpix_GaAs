@@ -179,6 +179,8 @@ int main(int argc, char** argv) {
         const auto radius_step = config.get<double>("radius_step", 0.5);
         const auto max_radius = config.get<double>("max_radius", 50);
         const auto volume_cut = config.get<double>("volume_cut", 10e-9);
+        const auto units = config.get<std::string>("observable_units", "V/cm");
+        const auto vector_field = config.get<bool>("vector_field", (observable == "ElectricField"));
 
         XYZVectorInt divisions;
         const auto dimension = config.get<size_t>("dimension", 3);
@@ -200,11 +202,9 @@ int main(int argc, char** argv) {
         auto start = std::chrono::system_clock::now();
 
         std::string grid_file = file_prefix + ".grd";
-        LOG(STATUS) << "Reading mesh grid from file \"" << grid_file << "\"";
         std::vector<Point> points = parser->getMesh(grid_file, regions);
 
         std::string data_file = file_prefix + ".dat";
-        LOG(STATUS) << "Reading field from file \"" << data_file << "\"";
         std::vector<Point> field = parser->getField(data_file, observable, regions);
 
         if(points.size() != field.size()) {
@@ -290,9 +290,13 @@ int main(int argc, char** argv) {
             LOG(STATUS) << "TCAD mesh (x,y,z) coords. transformation into: (" << rot.at(0) << "," << rot.at(1) << ","
                         << rot.at(2) << ")";
         }
+
+        const auto mesh_points_total = divisions.x() * divisions.y() * divisions.z();
         LOG(STATUS) << "Mesh dimensions: " << maxx - minx << " x " << maxy - miny << " x " << maxz - minz << std::endl
-                    << "New mesh element dimension: " << xstep << " x " << ystep << " x " << zstep
-                    << " ==>  Volume = " << cell_volume;
+                    << "New mesh element dimension: " << xstep << " x " << ystep << " x " << zstep << std::endl
+                    << "Volume: " << cell_volume << std::endl
+                    << "New mesh grid points: " << static_cast<ROOT::Math::XYZVector>(divisions) << " (" << mesh_points_total
+                    << " total)";
 
         if(rot.at(0).find('-') != std::string::npos) {
             LOG(WARNING) << "Inverting coordinate X. This might change the right-handness of the coordinate system!";
@@ -328,6 +332,7 @@ int main(int argc, char** argv) {
         unibn::Octree<Point> octree;
         octree.initialize(points);
 
+        int mesh_points_done = 0;
         auto mesh_section = [&](double x, double y) {
             allpix::Log::setReportingLevel(log_level);
 
@@ -398,6 +403,10 @@ int main(int argc, char** argv) {
                 z += zstep;
             }
 
+            mesh_points_done += divisions.z();
+            LOG_PROGRESS(INFO, "m") << "Interpolating new mesh: " << mesh_points_done << " of " << mesh_points_total << ", "
+                                    << (100 * mesh_points_done / mesh_points_total) << "%";
+
             return new_mesh;
         };
 
@@ -430,13 +439,9 @@ int main(int argc, char** argv) {
         }
 
         // Merge the result vectors:
-        unsigned int mesh_slices_done = 0;
         for(auto& mesh_future : mesh_futures) {
             auto mesh_slice = mesh_future.get();
             e_field_new_mesh.insert(e_field_new_mesh.end(), mesh_slice.begin(), mesh_slice.end());
-            LOG_PROGRESS(INFO, "m") << "Interpolating new mesh: " << mesh_slices_done << " of " << mesh_futures.size()
-                                    << ", " << (100 * mesh_slices_done / mesh_futures.size()) << "%";
-            mesh_slices_done++;
         }
         pool.destroy();
 
@@ -453,10 +458,7 @@ int main(int argc, char** argv) {
         std::array<size_t, 3> gridsize{
             {static_cast<size_t>(divisions.x()), static_cast<size_t>(divisions.y()), static_cast<size_t>(divisions.z())}};
 
-        // FIXME this should be done in a more elegant way
-        FieldQuantity quantity = (observable == "ElectricField" ? FieldQuantity::VECTOR : FieldQuantity::SCALAR);
-        std::string units = (observable == "ElectricField" ? "V/cm" : "");
-
+        FieldQuantity quantity = (vector_field ? FieldQuantity::VECTOR : FieldQuantity::SCALAR);
         // Prepare data:
         LOG(INFO) << "Preparing data for storage...";
         auto data = std::make_shared<std::vector<double>>();

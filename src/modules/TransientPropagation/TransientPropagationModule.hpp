@@ -21,6 +21,10 @@
 
 #include "objects/DepositedCharge.hpp"
 #include "objects/Pulse.hpp"
+
+#include "physics/Mobility.hpp"
+#include "physics/Recombination.hpp"
+
 #include "tools/ROOT.h"
 
 namespace allpix {
@@ -74,52 +78,41 @@ namespace allpix {
          * @param charge    Total charge of the observed charge carrier set
          * @param pixel_map Map of surrounding pixels and their induced pulses. Provided as reference to store simulation
          *                  result in
-         * @return          Pair of the point where the deposit ended after propagation and the time the propagation took
+         * @return          Tuple of the point where the deposit ended after propagation, the time the propagation took and a
+         * flag whether it is still alive or has recombined
          */
-        std::pair<ROOT::Math::XYZPoint, double> propagate(Event* event,
-                                                          const ROOT::Math::XYZPoint& pos,
-                                                          const CarrierType& type,
-                                                          const unsigned int charge,
-                                                          const double initial_time,
-                                                          std::map<Pixel::Index, Pulse>& pixel_map);
+        std::tuple<ROOT::Math::XYZPoint, double, bool> propagate(Event* event,
+                                                                 const ROOT::Math::XYZPoint& pos,
+                                                                 const CarrierType& type,
+                                                                 const unsigned int charge,
+                                                                 const double initial_time,
+                                                                 std::map<Pixel::Index, Pulse>& pixel_map);
 
         // Local copies of configuration parameters to avoid costly lookup:
         double temperature_{}, timestep_{}, integration_time_{};
         bool output_plots_{};
         ROOT::Math::DisplacementVector2D<ROOT::Math::Cartesian2D<int>> matrix_;
+        unsigned int charge_per_step_{};
 
-        // Precalculated values for electron and hole mobility
-        double electron_Vm_;
-        double electron_Ec_;
-        double electron_Beta_;
-        double hole_Vm_;
-        double hole_Ec_;
-        double hole_Beta_;
+        // Models for electron and hole mobility and lifetime
+        Mobility mobility_;
+        Recombination recombination_;
 
         // Precalculated value for Boltzmann constant:
         double boltzmann_kT_;
-
-        // Predefined values for reference charge carrier lifetime and doping concentration
-        double electron_lifetime_reference_;
-        double hole_lifetime_reference_;
-        double electron_doping_reference_;
-        double hole_doping_reference_;
-        double auger_coeff_;
 
         // Predefined values for electron/hole velocity calculation in magnetic fields
         double electron_Hall_;
         double hole_Hall_;
 
-        // Doping profile available?
-        bool has_doping_profile_;
-
         // Magnetic field
-        bool has_magnetic_field_;
+        bool has_magnetic_field_{};
         ROOT::Math::XYZVector magnetic_field_;
 
         // Output plots
         Histogram<TH1D> potential_difference_, induced_charge_histo_, induced_charge_e_histo_, induced_charge_h_histo_;
         Histogram<TH1D> step_length_histo_;
         Histogram<TH1D> drift_time_histo_;
+        Histogram<TH1D> recombine_histo_;
     };
 } // namespace allpix

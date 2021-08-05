@@ -11,12 +11,12 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
 
 #include "core/config/exceptions.h"
-#include "core/utils/file.h"
 #include "core/utils/log.h"
 
 using namespace allpix;
@@ -101,7 +101,7 @@ void ConfigReader::add(std::istream& stream, std::string file_name) {
 
     // Convert file name to absolute path (if given)
     if(!file_name.empty()) {
-        file_name = allpix::get_canonical_path(file_name);
+        file_name = std::filesystem::canonical(file_name);
     }
 
     // Build first empty configuration
@@ -154,10 +154,10 @@ void ConfigReader::add(std::istream& stream, std::string file_name) {
             // Line should be a key / value pair with an equal sign
             try {
                 // Parse the key value pair
-                auto key_value = parseKeyValue(line);
+                auto [key, value] = parseKeyValue(line);
 
                 // Add the config key
-                conf.setText(key_value.first, key_value.second);
+                conf.setText(key, value);
             } catch(KeyValueParseError& e) {
                 // Rethrow key / value parse error as a configuration parse error
                 throw ConfigParseError(file_name, line_num);

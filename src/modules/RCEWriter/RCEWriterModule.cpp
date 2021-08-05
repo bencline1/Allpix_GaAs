@@ -10,6 +10,7 @@
 #include "RCEWriterModule.hpp"
 
 #include <cassert>
+#include <filesystem>
 #include <fstream>
 #include <stdexcept>
 
@@ -20,7 +21,6 @@
 #include <TMatrixD.h>
 
 #include "core/geometry/HybridPixelDetectorModel.hpp"
-#include "core/utils/file.h"
 #include "core/utils/log.h"
 #include "core/utils/type.h"
 #include "core/utils/unit.h"
@@ -284,7 +284,7 @@ static void write_proteus_config(const std::string& device_path,
 
     // device config
     // TODO use path relative to the device file
-    device_file << "geometry = \"" << get_canonical_path(geometry_path) << "\"\n";
+    device_file << "geometry = \"" << std::filesystem::canonical(geometry_path) << "\"\n";
     device_file << '\n';
     print_device(device_file, names, geo_mgr, cfg_mgr);
 
@@ -294,8 +294,8 @@ static void write_proteus_config(const std::string& device_path,
 
 RCEWriterModule::RCEWriterModule(Configuration& config, Messenger* messenger, GeometryManager* geo_mgr)
     : SequentialModule(config), messenger_(messenger), geo_mgr_(geo_mgr) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    // Enable multithreading of this module if multithreading is enabled
+    allow_multithreading();
 
     assert(messenger && "messenger must be non-null");
     assert(geo_mgr && "geo_mgr must be non-null");
@@ -318,7 +318,7 @@ void RCEWriterModule::initialize() {
     std::sort(detector_names.begin(), detector_names.end());
 
     // Open output data file
-    std::string path_data = createOutputFile(add_file_extension(config_.get<std::string>("file_name"), "root"));
+    std::string path_data = createOutputFile(config_.get<std::string>("file_name"), "root");
     output_file_ = std::make_unique<TFile>(path_data.c_str(), "RECREATE");
     output_file_->cd();
 
@@ -356,8 +356,8 @@ void RCEWriterModule::initialize() {
     }
 
     // Write proteus config files
-    auto device_path = createOutputFile(add_file_extension(config_.get<std::string>("device_file"), "toml"));
-    auto geometry_path = createOutputFile(add_file_extension(config_.get<std::string>("geometry_file"), "toml"));
+    auto device_path = createOutputFile(config_.get<std::string>("device_file"), "toml");
+    auto geometry_path = createOutputFile(config_.get<std::string>("geometry_file"), "toml");
     write_proteus_config(device_path, geometry_path, detector_names, *geo_mgr_, *getConfigManager());
 }
 

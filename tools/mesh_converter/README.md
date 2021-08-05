@@ -79,6 +79,8 @@ It should be noted that the Mesh Converter depends on the core utilities of the 
 * `divisions`: Number of divisions of the new regular mesh for each dimension, 2D or 3D vector depending on the `dimension` setting. Defaults to 100 bins in each dimension.
 * `xyz`: Array to replace the system coordinates of the mesh. A detailed description of how to use this parameter is given below.
 * `workers`: Number of worker threads to be used for the interpolation. Defaults to the available number of cores on the machine (hardware concurrency).
+* `observable_units`: Units in which the observable is stored in the input file (Defaults to `V/cm` matching the default observable `ElectricField`).
+* `vector_field`: Select if the observable is a vector field or scalar field (Defaults to `true` matching the default observable `ElectricField`).
 
 ### Usage
 To run the program, the following command should be executed from the installation folder:
@@ -120,11 +122,15 @@ The following command-line options are supported:
 -l                     plot with logarithmic scale if set
 -o <output_file_name>  name of the file to output (default is efield.png)
 -p <plane>             plane to be plotted. xy, yz or zx (default is yz)
+-u <units>             units to interpret the field data in
+-s                     parsed observable is a scalar field
 ```
 
 The list with options and defaults is displayed with the `-h` option.
 In a 3D mesh, the plane to be plotted must be identified by using the option `-p` with argument *xy*, *yz* or *zx*, defaulting to *yz*.
-The data to be plotted can be selected with the `-d` option, the arguments are *ex*, *ey*, *ez* for the vector components or the default value *n* for the norm of the electric field.
+By default, the data is interpreted as a vector field, where graphs for all three components are created.
+Using the option `-s` enables the interpretation of a scalar field.
+The units for the field to interpreted in can be defined via the option `-u`.
 The number of mesh divisions in each dimension is automatically read from the `init`/`apf` file, by default the cut in the third dimension is done in the center but can be shifted using the `-c` option described above.
 
 # Octree

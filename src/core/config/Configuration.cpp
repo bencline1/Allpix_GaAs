@@ -10,15 +10,34 @@
 #include "Configuration.hpp"
 
 #include <cassert>
+#include <filesystem>
 #include <ostream>
 #include <stdexcept>
 #include <string>
 
 #include "core/config/exceptions.h"
-#include "core/utils/file.h"
 #include "core/utils/log.h"
 
 using namespace allpix;
+
+Configuration::AccessMarker::AccessMarker(const Configuration::AccessMarker& rhs) {
+    for(const auto& [key, value] : rhs.markers_) {
+        registerMarker(key);
+        markers_.at(key).store(value.load());
+    }
+}
+
+Configuration::AccessMarker& Configuration::AccessMarker::operator=(const Configuration::AccessMarker& rhs) {
+    for(const auto& [key, value] : rhs.markers_) {
+        registerMarker(key);
+        markers_.at(key).store(value.load());
+    }
+    return *this;
+}
+
+void Configuration::AccessMarker::registerMarker(const std::string& key) {
+    markers_.emplace(std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
+}
 
 Configuration::Configuration(std::string name, std::string path) : name_(std::move(name)), path_(std::move(path)) {}
 
@@ -50,6 +69,7 @@ std::string Configuration::getFilePath() const {
 std::string Configuration::getText(const std::string& key) const {
     try {
         // NOTE: returning literally including ""
+        used_keys_.markUsed(key);
         return config_.at(key);
     } catch(std::out_of_range& e) {
         throw MissingKeyError(key, getName());
@@ -83,7 +103,7 @@ std::string Configuration::getPath(const std::string& key, bool check_exists) co
 std::string
 Configuration::getPathWithExtension(const std::string& key, const std::string& extension, bool check_exists) const {
     try {
-        return path_to_absolute(allpix::add_file_extension(get<std::string>(key), extension), check_exists);
+        return path_to_absolute(std::filesystem::path(get<std::string>(key)).replace_extension(extension), check_exists);
     } catch(std::invalid_argument& e) {
         throw InvalidValueError(*this, key, e.what());
     }
@@ -123,17 +143,22 @@ std::string Configuration::path_to_absolute(std::string path, bool canonicalize_
     // Normalize path only if we have to check if it exists
     // NOTE: This throws an error if the path does not exist
     if(canonicalize_path) {
-        path = allpix::get_canonical_path(path);
+        try {
+            path = std::filesystem::canonical(path);
+        } catch(std::filesystem::filesystem_error&) {
+            throw std::invalid_argument("path " + path + " not found");
+        }
     }
     return path;
 }
 
 void Configuration::setText(const std::string& key, const std::string& val) {
     config_[key] = val;
+    used_keys_.registerMarker(key);
 }
 
 /**
- *  The alias is only used if new key does not exist but old key does
+ *  The alias is only used if new key does not exist but old key does. The old key is automatically marked as used.
  */
 void Configuration::setAlias(const std::string& new_key, const std::string& old_key, bool warn) {
     if(!has(old_key) || has(new_key)) {
@@ -141,6 +166,8 @@ void Configuration::setAlias(const std::string& new_key, const std::string& old_
     }
     try {
         config_[new_key] = config_.at(old_key);
+        used_keys_.registerMarker(new_key);
+        used_keys_.markUsed(old_key);
     } catch(std::out_of_range& e) {
         throw MissingKeyError(old_key, getName());
     }
@@ -158,10 +185,10 @@ unsigned int Configuration::countSettings() const {
  * All keys that are already defined earlier in this configuration are not changed.
  */
 void Configuration::merge(const Configuration& other) {
-    for(const auto& config_pair : other.config_) {
+    for(const auto& [key, value] : other.config_) {
         // Only merge values that do not yet exist
-        if(!has(config_pair.first)) {
-            setText(config_pair.first, config_pair.second);
+        if(!has(key)) {
+            setText(key, value);
         }
     }
 }
@@ -177,6 +204,20 @@ std::vector<std::pair<std::string, std::string>> Configuration::getAll() const {
         }
 
         result.emplace_back(key_value);
+    }
+
+    return result;
+}
+
+std::vector<std::string> Configuration::getUnusedKeys() const {
+    std::vector<std::string> result;
+
+    // Loop over all configuration keys, excluding internal ones
+    for(const auto& key_value : getAll()) {
+        // Add those to result that have not been accessed:
+        if(!used_keys_.isUsed(key_value.first)) {
+            result.emplace_back(key_value.first);
+        }
     }
 
     return result;

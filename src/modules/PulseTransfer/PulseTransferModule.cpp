@@ -38,11 +38,13 @@ PulseTransferModule::PulseTransferModule(Configuration& config,
     output_plots_ = config_.get<bool>("output_plots");
     output_pulsegraphs_ = config_.get<bool>("output_pulsegraphs");
     timestep_ = config_.get<double>("timestep");
+    max_depth_distance_ = config_.get<double>("max_depth_distance");
+    collect_from_implant_ = config_.get<bool>("collect_from_implant");
 
-    // Enable parallelization of this module if multithreading is enabled and no per-event output plots are requested:
+    // Enable multithreading of this module if multithreading is enabled and no per-event output plots are requested:
     // FIXME: Review if this is really the case or we can still use multithreading
     if(!output_pulsegraphs_) {
-        enable_parallelization();
+        allow_multithreading();
     } else {
         LOG(WARNING) << "Per-event pulse graphs requested, disabling parallel event processing";
     }
@@ -106,7 +108,7 @@ void PulseTransferModule::run(Event* event) {
 
             // Ignore if outside depth range of implant
             if(std::fabs(position.z() - (model->getSensorCenter().z() + model->getSensorSize().z() / 2.0)) >
-               config_.get<double>("max_depth_distance")) {
+               max_depth_distance_) {
                 LOG(TRACE) << "Skipping set of " << propagated_charge.getCharge() << " propagated charges at "
                            << Units::display(propagated_charge.getLocalPosition(), {"mm", "um"})
                            << " because their local position is not in implant range";
@@ -114,11 +116,10 @@ void PulseTransferModule::run(Event* event) {
             }
 
             // Find the nearest pixel
-            auto xpixel = static_cast<int>(std::round(position.x() / model->getPixelSize().x()));
-            auto ypixel = static_cast<int>(std::round(position.y() / model->getPixelSize().y()));
+            auto [xpixel, ypixel] = model->getPixelIndex(position);
 
             // Ignore if out of pixel grid
-            if(!detector_->isWithinPixelGrid(xpixel, ypixel)) {
+            if(!detector_->getModel()->isWithinPixelGrid(xpixel, ypixel)) {
                 LOG(TRACE) << "Skipping set of " << propagated_charge.getCharge() << " propagated charges at "
                            << Units::display(propagated_charge.getLocalPosition(), {"mm", "um"})
                            << " because their nearest pixel (" << xpixel << "," << ypixel << ") is outside the grid";
@@ -126,13 +127,13 @@ void PulseTransferModule::run(Event* event) {
             }
 
             // Ignore if outside the implant region:
-            if(config_.get<bool>("collect_from_implant")) {
+            if(collect_from_implant_) {
                 if(detector_->getElectricFieldType() == FieldType::LINEAR) {
                     throw ModuleError(
                         "Charge collection from implant region should not be used with linear electric fields.");
                 }
 
-                if(!detector_->isWithinImplant(position)) {
+                if(!detector_->getModel()->isWithinImplant(position)) {
                     LOG(TRACE) << "Skipping set of " << propagated_charge.getCharge() << " propagated charges at "
                                << Units::display(propagated_charge.getLocalPosition(), {"mm", "um"})
                                << " because it is outside the pixel implant.";
@@ -157,11 +158,9 @@ void PulseTransferModule::run(Event* event) {
             LOG_ONCE(INFO) << "Pulses available - settings \"timestep\", \"max_depth_distance\" and "
                               "\"collect_from_implant\" have no effect";
 
-            for(auto& pulse : pulses) {
-                auto pixel_index = pulse.first;
-
+            for(auto& [pixel_index, pulse] : pulses) {
                 // Accumulate all pulses from input message data:
-                pixel_pulse_map[pixel_index] += pulse.second;
+                pixel_pulse_map[pixel_index] += pulse;
 
                 auto px = pixel_charge_map[pixel_index];
                 // For each pulse, store the corresponding propagated charges to preserve history:
@@ -175,10 +174,7 @@ void PulseTransferModule::run(Event* event) {
     // Create vector of pixel pulses to return for this detector
     std::vector<PixelCharge> pixel_charges;
     Pulse total_pulse;
-    for(auto& pixel_index_pulse : pixel_pulse_map) {
-        auto index = pixel_index_pulse.first;
-        auto pulse = pixel_index_pulse.second;
-
+    for(auto& [index, pulse] : pixel_pulse_map) {
         // Sum all pulses for informational output:
         total_pulse += pulse;
 
@@ -225,9 +221,7 @@ void PulseTransferModule::run(Event* event) {
                                     -0.5,
                                     static_cast<int>(size.y()) - 0.5);
 
-        for(auto& pixel_index_pulse : pixel_pulse_map) {
-            auto index = pixel_index_pulse.first;
-            auto pulse = pixel_index_pulse.second;
+        for(auto& [index, pulse] : pixel_pulse_map) {
             charge_map->Fill(index.x(), index.y(), pulse.getCharge());
         }
         getROOTDirectory()->WriteTObject(charge_map, name.c_str());

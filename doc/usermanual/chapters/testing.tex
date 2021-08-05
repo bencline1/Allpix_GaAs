@@ -96,13 +96,13 @@ It is configured via the \file{.gitlab-ci.yml} file in the repository's root dir
 \begin{figure}[btp]
   \centering
   \includegraphics[width=\textwidth]{ci.png}
-  \caption{Typical \apsq continuous integration pipeline with 32 jobs distributed over seven distinct stages. In this example, all jobs passed.}
+  \caption{Typical \apsq continuous integration pipeline with 34 jobs distributed over seven distinct stages. In this example, all jobs passed.}
   \label{fig:ci}
 \end{figure}
 
 The \textbf{compilation} stage builds the framework from the source on different platforms.
-Currently, builds are performed on Scientific Linux 6, CentOS7, and Mac OS X.
-On Linux type platforms, the framework is compiled with recent versions of GCC and Clang, while the latest AppleClang is used on Mac OS X.
+Currently, builds are performed on CentOS\,7, CentOS\,8, and macOS.
+On Linux type platforms, the framework is compiled with recent versions of GCC and Clang, while the latest AppleClang is used on macOS.
 The build is always performed with the default compiler flags enabled for the project:
 \begin{verbatim}
     -pedantic -Wall -Wextra -Wcast-align -Wcast-qual -Wconversion
@@ -126,6 +126,7 @@ In addition, the \command{clang-tidy} tool is used for ``linting'' of the source
 This means, the source code undergoes a static code analysis in order to identify possible sources of bugs by flagging suspicious and non-portable constructs used.
 Tests are marked as failed if either of the CMake targets \command{make check-format} or \command{make check-lint} fail.
 No code that fails to satisfy the coding conventions and formatting tests will be merged into the repository.
+Furthermore, also basic sanity checks are carried out on the CMake build framework code using \command{cmake-lint}.
 
 The \textbf{performance} stage runs a longer simulation with several thousand events and measures the execution time.
 This facilitates monitoring of the simulation performance, a failing job would indicate a degradation in speed.
@@ -160,7 +161,7 @@ New versions are published to the folder \dir{/cvmfs/clicdp.cern.ch/software/all
 
 The deployed version currently comprises all modules as well as the detector models shipped with the framework.
 An additional \file{setup.sh} is placed in the root folder of the respective release, which allows to set up all runtime dependencies necessary for executing this version.
-Versions both for SLC\,6 and CentOS\,7 are provided.
+Versions both for CentOS\,7 and CentOS\,8 are provided.
 
 The deployment CI job runs on a dedicated computer with a GitLab SSH runner.
 Job artifacts from the packaging stage of the CI are downloaded via their ID using the script found in \dir{.gitlab/ci/download_artifacts.py}, and are made available to the \emph{cvclicdp} user which has access to the CVMFS interface.
@@ -194,24 +195,10 @@ New \apsq Docker images are automatically created and deployed by the CI for eve
 New versions are published to project Docker container registry~\cite{ap2-container-registry}.
 Tagged versions can be found via their respective tag name, while updates via the nightly build are always stored with the \parameter{latest} tag attached.
 
-The final Docker image is formed from three consecutive images with different layers of software added.
-The `base` image contains all build dependencies such as compilers, CMake, and git.
-It derives from a CentOS7 Docker image and can be build using the \file{etc/docker/Dockerfile.base} file via the following commands:
+The final Docker image is formed from two consecutive images with different layers of software added.
+The \parameter{deps} image contains all build dependencies such as compilers, CMake, and git as well as the two main dependencies of the framework are ROOT6 and Geant4.
+It derives from the latest Ubuntu LTS Docker image and can be build using the \file{etc/docker/Dockerfile.deps} file via the following commands:
 
-\begin{verbatim}
-# Log into the CERN GitLab Docker registry:
-$ docker login gitlab-registry.cern.ch
-# Compile the new image version:
-$ docker build --file etc/docker/Dockerfile.base            \
-               --tag gitlab-registry.cern.ch/allpix-squared/\
-                     allpix-squared/allpix-squared-base     \
-               .
-# Upload the image to the registry:
-$ docker push gitlab-registry.cern.ch/allpix-squared/\
-              allpix-squared/allpix-squared-base
-\end{verbatim}
-
-The two main dependencies of the framework are ROOT6 and Geant4, which are added to the base image via the \parameter{deps} Docker image created from the file \file{etc/docker/Dockerfile.deps} via:
 \begin{verbatim}
 $ docker build --file etc/docker/Dockerfile.deps            \
                --tag gitlab-registry.cern.ch/allpix-squared/\
@@ -220,10 +207,10 @@ $ docker build --file etc/docker/Dockerfile.deps            \
 $ docker push gitlab-registry.cern.ch/allpix-squared/\
               allpix-squared/allpix-squared-deps
 \end{verbatim}
-These images are created manually and only updated when necessary, i.e.\ if major new version of the underlying dependencies are available.
+This image is created manually and only updated when necessary, i.e.\ if major new version of the underlying dependencies are available.
 
 \begin{warning}
-  The dependencies Docker images should not be flattened with commands like
+  The dependencies Docker image should not be flattened with commands like
 
   \command{docker export <container id> | docker import - <tag name>}
 
@@ -268,18 +255,46 @@ These expressions are simply placed in the configuration file of the correspondi
 Each test can only contain one passing and one failing expression.
 If different functionality and thus outputs need to be tested, a second test should be added to cover the corresponding expression.
 
-Different tags are provided for Mac OS X since the \CPP standard does not define the exact implementation of random number distributions such as \texttt{std::normal\_distribution}.
-Thus, the distributions produce different results on different platforms even when used with the same random number as input.
-
 \begin{description}
-  \item[Passing a test] The expression marked with the tag \parameter{#PASS}/\parameter{#PASSOSX} has to be found in the output in order for the test to pass. If the expression is not found, the test fails.
-  \item[Failing a test] If the expression tagged with \parameter{#FAIL}/\parameter{#FAILOSX} is found in the output, the test fails. If the expression is not found, the test passes.
+  \item[Passing a test] The expression marked with the tag \parameter{#PASS} has to be found in the output in order for the test to pass. If the expression is not found, the test fails.
+  \item[Failing a test] If the expression tagged with \parameter{#FAIL} is found in the output, the test fails. If the expression is not found, the test passes.
   \item[Depending on another test] The tag \parameter{#DEPENDS} can be used to indicate dependencies between tests. For example, the module test 09 described below implements such a dependency as it uses the output of module test 08-1 to read data from a previously produced \apsq data file.
   \item[Defining a timeout] For performance tests the runtime of the application is monitored, and the test fails if it exceeds the number of seconds defined using the \parameter{#TIMEOUT} tag.
   \item[Adding additional CLI options] Additional module command line options can be specified for the \parameter{allpix} executable using the \parameter{#OPTION} tag, following the format found in Section~\ref{sec:allpix_executable}. The \parameter{-o} flag will be added automatically. Multiple options can be supplied by repeating the \parameter{#OPTION} tag in the configuration file, only one option per tag is allowed. In exactly the same way options for the detectors can be set as well using the \parameter{#DETOPION} tag, where \parameter{-g} will be added automatically.
   For all other command line options to be passed to the executable, the \parameter{#CLIOPTION} can be used. Here, the complete flag and possible value needs to be passed, e.g.\ \parameter{-j9}.
   \item[Defining a test case label] Tests can be grouped and executed based on labels, e.g.\ for code coverage reports. Labels can be assigned to individual tests using the \parameter{#LABEL} tag.
 \end{description}
+
+Multiple pass or fail conditions can be separated by a semicolon or by adding multiple \parameter{#PASS} or \parameter{#FAIL} expressions.
+It should however be noted that test passes or fails \emph{if any of these conditions is met}, i.e.\ the conditions are combined with a logical \parameter{OR}.
+Pass and fail condition are not interpreted as regular expressions but relevant characters are automatically escaped.
+This allows to directly copy corresponding lines form the log into the respective condition without manually creating a matching regular expression.
+A noteworthy exception to this are line breaks.
+To ease matching of multi-line expressions, the newline escape sequence \parameter{\n} of any test expression is automatically expanded to \parameter{[\r\n\t ]*} to match any new line, carriage return, tab and whitespace characters following the line break.
+
+If no explicit fail conditions are specified, the test will fail if any \parameter{WARNING}, \parameter{ERROR} or \parameter{FATAL} appears in the output log unless it is already part of the pass condition.
+For example, if a test is supposed to pass in case of an error provoked
+
+\begin{minted}[frame=single,framesep=3pt,breaklines=true,tabsize=2,linenos]{bash}
+(FATAL) [I:GeometryBuilderGeant4] Error during execution of run:
+                                  Could not find a detector model of type 'missing_model'
+                                  Please check your configuration and modules. Cannot continue.
+\end{minted}
+
+The full error message including the \parameter{FATAL} has to be provided as pass condition:
+
+\begin{minted}[frame=single,framesep=3pt,breaklines=true,tabsize=2,linenos]{ini}
+#PASS (FATAL) [I:GeometryBuilderGeant4] Error during execution of run:\nCould not find a detector model of type 'missing_model'
+\end{minted}
+
+If a test is expected to create multiple error or warning messages which cannot be matched with a single pass condition, the \parameter{#FAIL} parameter should be set explicitly to avoid matching the respective flags:
+
+\begin{minted}[frame=single,framesep=3pt,breaklines=true,tabsize=2,linenos]{ini}
+# This test created multiple WARNING messages, we exclude WARNING from the
+# fail expression by explicitly defining it as FATAL only:
+#PASS (ERROR) Multithreading disabled since the current module configuration does not support it
+#FAIL FATAL
+\end{minted}
 
 \paragraph{Framework Functionality Tests}
 
@@ -313,14 +328,22 @@ Currently implemented tests comprise:
     \item[\file{test_04-3_configuration_imbalanced_brackets.conf}] tests whether imbalanced brackets in configuration values are properly detected.
     \item[\file{test_04-4_detector_config_cli_change.conf}] tests whether detector options can be overwritten from the command line.
     \item[\file{test_04-5_module_config_cli_detectors.conf}] tests whether framework parameters are properly parsed from the command line.
+    \item[\file{test_04-6_module_config_double_unique.conf}] tests whether a double definition of a unique module is detected.
+    \item[\file{test_04-7_module_config_empty_filter.conf}] tests the framework behavior with an empty filter.
+    \item[\file{test_04-8_configuration_unused_key.conf}] tests the detection of unused configuration keys in the global configuration section.
+    \item[\file{test_04-9_configuration_unused_key_module.conf}] tests the detection of unused configuration keys in a module configuration section.
     \item[\file{test_05-1_overwrite_same_denied.conf}] tests whether two modules writing to the same file is disallowed if overwriting is denied.
-    \item[\file{test_05-overwrite_module_allowed.conf}] tests whether two modules writing to the same file is allowed if the last one reenables overwriting locally.
+    \item[\file{test_05-overwrite_module_allowed.conf}] tests whether two modules writing to the same file is allowed if the last one re-enables overwriting locally.
     \item[\file{test_06-1_multithreading.conf}] checks if multithreading can be enabled.
     \item[\file{test_06-2_multithreading_cli.conf}] checks if multithreading can be enabled from the command line.
     \item[\file{test_06-3_multithreading_concurrency.conf}] tests if the number of workers can be configured.
     \item[\file{test_06-4_multithreading_zeroworkers.conf}] tests the framework response in case too few workers are enabled.
     \item[\file{test_06-5_multithreading_buffers.conf}] tests if the module buffer depth can be configured properly.
     \item[\file{test_06-6_multithreading_impossible.conf}] tests the framework response in case a module without multithreading capabilities has been enabled.
+    \item[\file{test_06-7_multithreading_disabled.conf}] tests the framework response to explicitly disabling multithreading.
+    \item[\file{test_06-8_multithreading_buffered.conf}] tests the reproducibility in case of a sequential module.
+    \item[\file{test_06-9_multithreading_physics.conf}] tests the reproducibility in case of multithreading enabled.
+    \item[\file{test_06-10_multithreading_physics_singlethr.conf}] tests the reproducibility in case of multithreading disabled.
     \item[\file{test_07-1_catch_exception.conf}] checks the correct propagation of exceptions with multithreading enabled.
     \item[\file{test_07-2_catch_exception_nomt.conf}] checks the correct propagation of exceptions with multithreading disabled.
 \end{description}
@@ -334,62 +357,8 @@ Using a fixed seed (using the \parameter{random_seed} configuration keyword) tog
 One event is produced per test and the \parameter{DEBUG}-level logging output of the respective module is checked against pre-defined expectation output using regular expressions.
 Once modules are altered, their respective expectation output has to be adapted after careful verification of the simulation result.
 
-Currently implemented tests comprise:
+Module tests are located within the individual module source folders and are only enabled if the respective module will be built.
 
-\begin{description}
-    \item[\file{test_01_geobuilder.conf}] takes the provided detector setup and builds the Geant4 geometry from the internal detector description. The monitored output comprises the calculated wrapper dimensions of the detector model.
-    \item[\file{test_1-2_geobuilder_addpoint.conf}] ensures the module adds corner points of the passive material in a correct way.
-    \item[\file{test_1-3_geobuilder_addpoint_rot.conf}] ensures proper rotation of the position of the corner points of the passive material.
-    \item[\file{test_1-4_geobuilder_mothervolume.conf}] ensures placing a detector inside a passive material will not cause overlapping materials.
-    \item[\file{test_1-5_geobuilder_worldvolume.conf}] ensures the added corner points of the passive material increase the world volume accordingly.
-    \item[\file{test_1-6_geobuilder_same_materials.conf}] tests if a warning will be thrown if the material of the passive material is the same as the material of the world volume.
-    \item[\file{test_02-1_electricfield_linear.conf}] creates a linear electric field in the constructed detector by specifying the bias and depletion voltages. The monitored output comprises the calculated effective thickness of the depleted detector volume.
-    \item[\file{test_02-2_electricfield_init.conf}] loads an INIT file containing a TCAD-simulated electric field (cf.\ Section~\ref{sec:module_electric_field}) and applies the field to the detector model. The monitored output comprises the number of field cells for each pixel as read and parsed from the input file.
-    \item[\file{test_02-3_electricfield_linear_depth.conf}] creates a linear electric field in the constructed detector by specifying the applied bias voltage and a depletion depth. The monitored output comprises the calculated effective thickness of the depleted detector volume.
-    \item[\file{test_02-4_magneticfield_constant.conf}] creates a constant magnetic field for the full volume and applies it to the geometryManager. The monitored output comprises the message for successful application of the magnetic field.
-    \item[\file{test_02-5_magneticfield_local.conf}] checks that the local magnetic field including the detector rotation is correct.
-    \item[\file{test_02-6_electricfield_linear_depletion_side.conf}] checks that depleting from the sensor backside is possible.
-    \item[\file{test_03-1_deposition.conf}] executes the charge carrier deposition module. This will invoke Geant4 to deposit energy in the sensitive volume. The monitored output comprises the exact number of charge carriers deposited in the detector.
-    \item[\file{test_03-2_deposition_mc.conf}] executes the charge carrier deposition module as the previous tests, but monitors the type, entry and exit point of the Monte Carlo particle associated to the deposited charge carriers.
-    \item[\file{test_03-3_deposition_track.conf}] executes the charge carrier deposition module as the previous tests, but monitors the start and end point of one of the Monte Carlo tracks in the event.
-    \item[\file{test_03-4_deposition_source_point.conf}] tests the point source in the charge carrier deposition module by monitoring the deposited charges.
-    \item[\file{test_03-5_deposition_source_square.conf}] tests the square source in the charge carrier deposition module by monitoring the deposited charges.
-    \item[\file{test_03-6_deposition_source_sphere.conf}] tests the sphere source in the charge carrier deposition module by monitoring the deposited charges.
-    \item[\file{test_03-7_deposition_source_macro.conf}] tests the G4 macro source in the charge carrier deposition module using the macro file \file{source_macro_test.txt}, monitoring the deposited charges.
-    \item[\file{test_03-8_deposition_point.conf}] tests the deposition of a point charge at a specified position, checks the position of the deposited charge carrier in global coordinates.
-    \item[\file{test_03-9_deposition_scan.conf}] tests the scan of a pixel volume by depositing charges for a given number of events, check for the calculated voxel size.
-    \item[\file{test_03-10_deposition_scan_cube.conf}] tests the calculation of the scanning points by monitoring the warning of the number of events is not a perfect cube.
-    \item[\file{test_03-11_deposition_mip.conf}] tests the deposition of charges along a line by monitoring the calculated step size and number of charge carriers deposited per step.
-    \item[\file{test_03-12_deposition_mip_position.conf}] tests the generation of the Monte Carlo particle when depositing charges along a line by monitoring the start and end positions of the particle.
-    \item[\file{test_03-13_deposition_fano.conf}] tests the simulation of fluctuations in charge carrier generation by monitoring the total number of generated carrier pairs when altering the Fano factor.
-    \item[\file{test_03-14_deposition_spot.conf}] tests the deposition of charge carriers around a fixed position with a Gaussian distribution.
-    \item[\file{test_04-1_propagation_project.conf}] projects deposited charges to the implant side of the sensor. The monitored output comprises the total number of charge carriers propagated to the sensor implants.
-    \item[\file{test_04-2_propagation_generic.conf}] uses the Runge-Kutta-Fehlberg integration of the equations of motion implemented in the drift-diffusion model to propagate the charge carriers to the implants. The monitored output comprises the total number of charges moved, the number of integration steps taken and the simulated propagation time.
-    \item[\file{test_04-3_propagation_generic-magnetic.conf}] uses the Runge-Kutta-Fehlberg integration of the equations of motion implemented in the drift-diffusion model to propagate the charge carriers to the implants under the influence of a constant magnetic field. The monitored output comprises the total number of charges moved, the number of integration steps taken and the simulated propagation time.
-    \item[\file{test_04-4_propagation_project_integration.conf}] projects deposited charges to the implant side of the sensor with a reduced integration time to ignore some charge carriers. The monitored output comprises the total number of charge carriers propagated to the sensor implants.
-    \item[\file{test_05-1_transfer_simple.conf}] tests the transfer of charges from sensor implants to readout chip. The monitored output comprises the total number of charges transferred and the coordinates of the pixels the charges have been assigned to.
-    \item[\file{test_05-2_transfer_simple_implant.conf}] tests the transfer of charges from sensor implants to readout chip in case sensor implants have been defined in the detector model.
-    \item[\file{test_05-3_transfer_pseudopulse.conf}] tests the calculation of induced signals based on the arrival time of charge carriers at the sensor surface.
-    \item[\file{test_06-1_digitization_charge.conf}] digitizes the transferred charges to simulate the front-end electronics. The monitored output of this test comprises the total charge for one pixel including noise contributions and the smeared threshold it is compared to.
-    \item[\file{test_06-2_digitization_qdc.conf}] digitizes the transferred charges and tests the conversion into QDC units. The monitored output comprises the converted charge value in units of QDC counts.
-    \item[\file{test_06-3_digitization_gain.conf}] digitizes the transferred charges and tests the amplification process by monitoring the total charge after signal amplification and smearing.
-    \item[\file{test_06-4_digitization_toa.conf}] digitizes the signal and calculates the time-of-arrival of the particle by checking when the threshold was crossed.
-    \item[\file{test_06-5_digitization_tdc.conf}] digitizes the signal and test the conversion of time-of-arrival to TDC units.
-    \item[\file{test_06-6_digitization_csa_pseudopulse.conf}] checks the outcome of a digitization by the CSA of a pseudo-pulse generated from arrival times.
-    \item[\file{test_06-7_digitization_csa_tot_pseudopulse.conf}] checks the outcome of a digitization by the CSA of a pseudo-pulse generated from arrival times and conversion to time-over-threshold units.
-    \item[\file{test_07_histogramming.conf}] tests the detector histogramming module and its clustering algorithm. The monitored output comprises the total number of clusters and their mean position.
-    \item[\file{test_08-1_writer_root.conf}] ensures proper functionality of the ROOT file writer module. It monitors the total number of objects and branches written to the output ROOT trees.
-    \item[\file{test_08-2_writer_rce.conf}] ensures proper functionality of the RCE file writer module. The correct conversion of the PixelHit position and value is monitored by the test's regular expressions.
-    \item[\file{test_08-3_writer_lcio.conf}] ensures proper functionality of the LCIO file writer module. Similar to the above test, the correct conversion of PixelHits (coordinates and charge) is monitored.
-    \item[\file{test_08-4_writer_corryvreckan.conf}] ensures proper functionality of the Corryvreckan file writer module. The monitored output comprises the coordinates of the pixel produced in the simulation.
-    \item[\file{test_08-5_writer_corryvreckan_mc.conf}] ensures the correct storage of Monte Carlo truth particle information in the Corryvreckan file writer module by monitoring the local coordinates of the MC particle associated to the pixel hit.
-    \item[\file{test_08-6_writer_text.conf}] ensures proper functionality of the ASCII text writer module by monitoring the total number of objects and messages written to the text file..
-    \item[\file{test_08-7_writer_lcio_detector_assignment.conf}] exercises the assignment of detector IDs to \apsq detectors in the LCIO output file. A fixed ID and collection name is assigned to the simulated detector.
-    \item[\file{test_08-8_writer_lcio_no_mc_truth.conf}] ensures that simulation results are properly converted to LCIO and stored even without the Monte Carlo truth information available.
-    \item[\file{test_09-1_reader_root.conf}] tests the capability of the framework to read data back in and to dispatch messages for all objects found in the input tree. The monitored output comprises the total number of objects read from all branches.
-    \item[\file{test_09-2_reader_root_seed.conf}] tests the capability of the framework to detect different random seeds for misalignment set in a data file to be read back in. The monitored output comprises the error message including the two different random seed values.
-    \item[\file{test_09-3_reader_root_ignoreseed.conf}] tests if core random seeds are properly ignored by the ROOTObjectReader module if requested by the configuration. The monitored output comprises the warning message emitted if a difference in seed values is discovered.
-\end{description}
 
 \paragraph{Performance Tests}
 
@@ -409,6 +378,6 @@ Current performance tests comprise:
     \item[\file{test_01_deposition.conf}] tests the performance of charge carrier deposition in the sensitive sensor volume using Geant4~\cite{geant4}. A stepping length of \SI{1.0}{\um} is chosen, and \num{10000} events are simulated. The addition of an electric field and the subsequent projection of the charges are necessary since \apsq would otherwise detect that there are no recipients for the deposited charge carriers and skip the deposition entirely.
     \item[\file{test_02-1_propagation_generic.conf}] tests the very critical performance of the drift-diffusion propagation of charge carriers, as this is the most computing-intense module of the framework. Charge carriers are deposited and a propagation with 10 charge carriers per step and a fine spatial and temporal resolution is performed. The simulation comprises \num{500} events.
     \item[\file{test_02-2_propagation_project.conf}] tests the projection of charge carriers onto the implants, taking into account the diffusion only. Since this module is less computing-intense, a total of \num{5000} events are simulated, and charge carriers are propagated one-by-one.
-    \item[\file{test_02-3_propagation_generic_multithread.conf}] tests the performance of multi-threaded simulation. It utilizes the very same configuration as performance test 02-1 but in addition enables multi-threading with four worker threads.
-    \item[\file{test_03_multithreading.conf}] tests the performance of the framework when using multi-threading with 4 workers to simulate \num{500} events. It uses a similar configuration as the example configuration.
+    \item[\file{test_02-3_propagation_generic_multithread.conf}] tests the performance of multithreaded simulation. It utilizes the very same configuration as performance test 02-1 but in addition enables multithreading with four worker threads.
+    \item[\file{test_03_multithreading.conf}] tests the performance of the framework when using multithreading with 4 workers to simulate \num{500} events. It uses a similar configuration as the example configuration.
 \end{description}

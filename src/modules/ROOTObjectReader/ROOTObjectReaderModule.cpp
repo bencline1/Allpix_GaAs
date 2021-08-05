@@ -20,7 +20,6 @@
 #include <TTree.h>
 
 #include "core/messenger/Messenger.hpp"
-#include "core/utils/file.h"
 #include "core/utils/log.h"
 #include "core/utils/text.h"
 #include "core/utils/type.h"
@@ -34,8 +33,8 @@ using namespace allpix;
 
 ROOTObjectReaderModule::ROOTObjectReaderModule(Configuration& config, Messenger* messenger, GeometryManager* geo_mgr)
     : Module(config), messenger_(messenger), geo_mgr_(geo_mgr) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    // Enable multithreading of this module if multithreading is enabled
+    allow_multithreading();
 }
 
 /**

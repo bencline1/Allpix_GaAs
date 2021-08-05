@@ -13,14 +13,15 @@
 #include <string>
 #include <utility>
 
+#include "core/utils/distributions.h"
 #include "core/utils/log.h"
 
 using namespace allpix;
 
 DepositionReaderModule::DepositionReaderModule(Configuration& config, Messenger* messenger, GeometryManager* geo_manager)
     : SequentialModule(config), geo_manager_(geo_manager), messenger_(messenger) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    // Enable multithreading of this module if multithreading is enabled
+    allow_multithreading();
 
     config_.setDefault<double>("charge_creation_energy", Units::get(3.64, "eV"));
     config_.setDefault<double>("fano_factor", 0.115);
@@ -47,6 +48,8 @@ DepositionReaderModule::DepositionReaderModule(Configuration& config, Messenger*
     config_.setDefault<bool>("output_plots", false);
     config_.setDefault<int>("output_plots_scale", Units::get(100, "ke"));
 
+    file_model_ = config_.get<FileModel>("model");
+
     // Get the creation energy for charge (default is silicon electron hole pair energy)
     charge_creation_energy_ = config_.get<double>("charge_creation_energy");
     fano_factor_ = config_.get<double>("fano_factor");
@@ -59,6 +62,8 @@ DepositionReaderModule::DepositionReaderModule(Configuration& config, Messenger*
     require_sequential_events_ = config_.get<bool>("require_sequential_events");
     time_available_ = config_.get<bool>("assign_timestamps");
     create_mcparticles_ = config.get<bool>("create_mcparticles");
+
+    output_plots_ = config_.get<bool>("output_plots");
 }
 
 void DepositionReaderModule::initialize() {
@@ -71,16 +76,14 @@ void DepositionReaderModule::initialize() {
     }
 
     // Check which file type we want to read:
-    file_model_ = config_.get<std::string>("model");
-    std::transform(file_model_.begin(), file_model_.end(), file_model_.begin(), ::tolower);
-    if(file_model_ == "csv") {
+    if(file_model_ == FileModel::CSV) {
         // Open the file with the objects
         auto file_path = config_.getPathWithExtension("file_name", "csv", true);
         input_file_ = std::make_unique<std::ifstream>(file_path);
         if(!input_file_->is_open()) {
             throw InvalidValueError(config_, "file_name", "could not open input file");
         }
-    } else if(file_model_ == "root") {
+    } else if(file_model_ == FileModel::ROOT) {
         auto file_path = config_.getPathWithExtension("file_name", "root", true);
         input_file_root_ = std::make_unique<TFile>(file_path.c_str(), "READ");
         if(!input_file_root_->IsOpen()) {
@@ -164,13 +167,10 @@ void DepositionReaderModule::initialize() {
             check_tree_reader(track_id_);
             check_tree_reader(parent_id_);
         }
-
-    } else {
-        throw InvalidValueError(config_, "model", "only models 'root' and 'csv' are currently supported");
     }
 
     // If requested, prepare output plots
-    if(config_.get<bool>("output_plots")) {
+    if(output_plots_) {
         LOG(TRACE) << "Creating output plots";
         for(auto& detector : geo_manager_->getDetectors()) {
 
@@ -228,9 +228,9 @@ void DepositionReaderModule::run(Event* event) {
         int pdg_code = 0, track_id = 0, parent_id = 0;
 
         try {
-            if(file_model_ == "csv") {
+            if(file_model_ == FileModel::CSV) {
                 read_status = read_csv(event_num, volume, global_position, time, energy, pdg_code, track_id, parent_id);
-            } else if(file_model_ == "root") {
+            } else if(file_model_ == FileModel::ROOT) {
                 read_status = read_root(
                     event_num, curr_event_id, volume, global_position, time, energy, pdg_code, track_id, parent_id);
             }
@@ -256,7 +256,7 @@ void DepositionReaderModule::run(Event* event) {
         LOG(DEBUG) << "Found detector \"" << detector->getName() << "\"";
 
         auto local_position = detector->getLocalPosition(global_position);
-        if(!detector->isWithinSensor(local_position)) {
+        if(!detector->getModel()->isWithinSensor(local_position)) {
             LOG(WARNING) << "Found deposition outside sensor at " << Units::display(local_position, {"mm", "um"})
                          << ", global " << Units::display(global_position, {"mm", "um"}) << ". Skipping.";
             continue;
@@ -265,7 +265,7 @@ void DepositionReaderModule::run(Event* event) {
         // Calculate number of electron hole pairs produced, taking into account fluctuations between ionization and lattice
         // excitations via the Fano factor. We assume Gaussian statistics here.
         auto mean_charge = energy / charge_creation_energy_;
-        std::normal_distribution<double> charge_fluctuation(mean_charge, std::sqrt(mean_charge * fano_factor_));
+        allpix::normal_distribution<double> charge_fluctuation(mean_charge, std::sqrt(mean_charge * fano_factor_));
         auto charge = static_cast<unsigned int>(charge_fluctuation(event->getRandomEngine()));
 
         LOG(DEBUG) << "Found deposition of " << charge << " e/h pairs inside sensor at "
@@ -314,8 +314,11 @@ void DepositionReaderModule::run(Event* event) {
                        << Units::display(time_reference, {"ns", "ps"}) << " global";
         }
 
+        auto mc_particle_size = mc_particle_start[detector].size();
         std::vector<MCParticle> mc_particles;
-        for(size_t i = 0; i < mc_particle_start[detector].size(); i++) {
+        mc_particles.reserve(mc_particle_size);
+
+        for(size_t i = 0; i < mc_particle_size; i++) {
             auto start_global = mc_particle_start[detector].at(i);
             auto start_local = detector->getLocalPosition(start_global);
             auto end_global = mc_particle_end[detector].at(i);
@@ -323,18 +326,22 @@ void DepositionReaderModule::run(Event* event) {
 
             auto pdg_code = mc_particle_code[detector].at(i);
             auto time = mc_particle_time[detector].at(i);
-            auto parent_id = mc_particle_parent[detector].at(i);
 
             mc_particles.emplace_back(
                 start_local, start_global, end_local, end_global, pdg_code, time - time_reference, time);
+        }
 
+        for(size_t i = 0; i < mc_particle_size; i++) {
             // Check if we know the parent - and set it:
+            auto parent_id = mc_particle_parent[detector].at(i);
             auto parent = track_id_to_mcparticle[detector].find(parent_id);
-            if(parent != track_id_to_mcparticle[detector].end()) {
-                LOG(DEBUG) << "Adding parent relation to MCParticle with track id " << parent_id;
-                mc_particles.back().setParent(&mc_particles.at(parent->second));
+            if(parent == track_id_to_mcparticle[detector].end()) {
+                LOG(DEBUG) << "Parent MCParticle is unknown, parent track id " << parent_id;
+            } else if(i == parent->second) {
+                LOG(DEBUG) << "Parent MCParticle is same as current particle, not adding relation";
             } else {
-                LOG(DEBUG) << "Parent MCParticle is unknown, parent id " << parent_id;
+                LOG(DEBUG) << "Adding parent relation to MCParticle with track id " << parent_id;
+                mc_particles.at(i).setParent(&mc_particles.at(parent->second));
             }
         }
 
@@ -382,7 +389,7 @@ void DepositionReaderModule::run(Event* event) {
             messenger_->dispatchMessage(this, deposit_message, event);
 
             // Fill output plots if requested:
-            if(config_.get<bool>("output_plots")) {
+            if(output_plots_) {
                 double charge = static_cast<double>(Units::convert(total_deposits, "ke"));
                 charge_per_event_[detector->getName()]->Fill(charge);
             }
@@ -396,7 +403,7 @@ void DepositionReaderModule::run(Event* event) {
 }
 
 void DepositionReaderModule::finalize() {
-    if(config_.get<bool>("output_plots")) {
+    if(output_plots_) {
         // Write histograms
         LOG(TRACE) << "Writing output plots to file";
         for(auto& plot : charge_per_event_) {

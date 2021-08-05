@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <limits>
 #include <random>
@@ -32,7 +33,6 @@
 #include "core/config/exceptions.h"
 #include "core/geometry/GeometryManager.hpp"
 #include "core/messenger/Messenger.hpp"
-#include "core/utils/file.h"
 #include "core/utils/log.h"
 
 // Common prefix for all modules
@@ -58,7 +58,7 @@ void ModuleManager::load(Messenger* messenger, ConfigManager* conf_manager, Geom
     Configuration& global_config = conf_manager_->getGlobalConfiguration();
 
     // Set alias for backward compatibility with the previous keyword for multithreading
-    global_config.setDefault("multithreading", false);
+    global_config.setDefault("multithreading", true);
     multithreading_flag_ = global_config.get<bool>("multithreading");
 
     // Set default for performance plot creation:
@@ -69,14 +69,14 @@ void ModuleManager::load(Messenger* messenger, ConfigManager* conf_manager, Geom
 
     // (Re)create the main ROOT file
     auto path = std::string(gSystem->pwd()) + "/" + global_config.get<std::string>("root_file", "modules");
-    path = allpix::add_file_extension(path, "root");
+    path = std::filesystem::path(path).replace_extension("root");
 
-    if(allpix::path_is_file(path)) {
+    if(std::filesystem::is_regular_file(path)) {
         if(global_config.get<bool>("deny_overwrite", false)) {
             throw RuntimeError("Overwriting of existing main ROOT file " + path + " denied");
         }
         LOG(WARNING) << "Main ROOT file " << path << " exists and will be overwritten.";
-        allpix::remove_file(path);
+        std::filesystem::remove(path);
     }
     modules_file_ = std::make_unique<TFile>(path.c_str(), "RECREATE");
     if(modules_file_->IsZombie()) {
@@ -96,11 +96,13 @@ void ModuleManager::load(Messenger* messenger, ConfigManager* conf_manager, Geom
         if(loaded_libraries_.count(lib_name) == 0) {
             // If library is not loaded then try to load it first from the config directories
             if(global_config.has("library_directories")) {
+                LOG(TRACE) << "Attempting to load library from configured paths";
                 std::vector<std::string> lib_paths = global_config.getPathArray("library_directories", true);
                 for(auto& lib_path : lib_paths) {
                     std::string full_lib_path = lib_path;
                     full_lib_path += "/";
                     full_lib_path += lib_name;
+                    LOG(TRACE) << "Searching in path \"" << full_lib_path << "\"";
 
                     // Check if the absolute file exists and try to load if it exists
                     std::ifstream check_file(full_lib_path);
@@ -239,7 +241,7 @@ void ModuleManager::load(Messenger* messenger, ConfigManager* conf_manager, Geom
             mod->set_identifier(identifier);
 
             // Check if module can't run in parallel
-            can_parallelize_ = mod->canParallelize() && can_parallelize_;
+            can_parallelize_ = mod->multithreadingEnabled() && can_parallelize_;
 
             // Add the new module to the run list
             modules_.emplace_back(std::move(mod));
@@ -247,10 +249,10 @@ void ModuleManager::load(Messenger* messenger, ConfigManager* conf_manager, Geom
         }
     }
 
-    // Force MT off for all modules in case MT was not requested or some modules didn't enable parallelization
+    // Force MT off for all modules in case MT was not requested or some modules didn't enable multithreading
     if(!(multithreading_flag_ && can_parallelize_)) {
         for(auto& module : modules_) {
-            module->set_parallelize(false);
+            module->set_multithreading(false);
         }
     }
     LOG_PROGRESS(STATUS, "LOAD_LOOP") << "Loaded " << configs.size() << " modules";
@@ -539,7 +541,7 @@ void ModuleManager::initialize() {
     if(multithreading_flag_ && can_parallelize_) {
         // Try to fetch a suitable number of workers if multithreading is enabled
         auto available_hardware_concurrency = std::thread::hardware_concurrency();
-        if(available_hardware_concurrency > 1u) {
+        if(available_hardware_concurrency > 2u) {
             // Try to be graceful and leave one core out if the number of workers was not specified
             available_hardware_concurrency -= 1u;
         }
@@ -633,7 +635,7 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
         LOG(STATUS) << "Multithreading enabled, processing events in parallel on " << threads_num << " worker threads";
 
         // Adjust the modules buffer size according to the number of threads used
-        max_buffer_size = global_config.get<size_t>("buffer_per_worker", 1024) * threads_num;
+        max_buffer_size = global_config.get<size_t>("buffer_per_worker", 512) * threads_num;
         if(max_buffer_size < threads_num) {
             throw InvalidValueError(global_config, "buffer_per_worker", "buffer per worker should be larger than one");
         }
@@ -725,6 +727,7 @@ void ModuleManager::run(RandomNumberGenerator& seeder) {
         thread_pool->markComplete(n);
     }
 
+    LOG(STATUS) << "Starting event loop";
     for(uint64_t i = 1 + skip_events; i <= number_of_events + skip_events; i++) {
         // Check if run was aborted and stop pushing extra events to the threadpool
         if(terminate_) {
@@ -952,6 +955,34 @@ void ModuleManager::finalize() {
     LOG_PROGRESS(STATUS, "FINALIZE_LOOP") << "Finalization completed";
     auto end_time = std::chrono::steady_clock::now();
     total_time_ += static_cast<std::chrono::duration<long double>>(end_time - start_time).count();
+
+    // Check for unused configuration keys:
+    auto unused_keys = global_config.getUnusedKeys();
+    if(!unused_keys.empty()) {
+        std::stringstream st;
+        st << "Unused configuration keys in global section:";
+        for(auto& key : unused_keys) {
+            st << std::endl << key;
+        }
+        LOG(WARNING) << st.str();
+    }
+    for(auto& config : conf_manager_->getInstanceConfigurations()) {
+        auto unique_name = config.getName();
+        auto identifier = config.get<std::string>("identifier");
+        if(!identifier.empty()) {
+            unique_name += ":";
+            unique_name += identifier;
+        }
+        auto cfg_unused_keys = config.getUnusedKeys();
+        if(!cfg_unused_keys.empty()) {
+            std::stringstream st;
+            st << "Unused configuration keys in section " << unique_name << ":";
+            for(auto& key : cfg_unused_keys) {
+                st << std::endl << key;
+            }
+            LOG(WARNING) << st.str();
+        }
+    }
 
     // Find the slowest module, and accumulate the total run-time for all modules
     long double slowest_time = 0, total_module_time = 0;

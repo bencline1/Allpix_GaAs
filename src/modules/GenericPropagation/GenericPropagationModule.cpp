@@ -34,7 +34,7 @@
 
 #include "core/config/Configuration.hpp"
 #include "core/messenger/Messenger.hpp"
-#include "core/utils/file.h"
+#include "core/utils/distributions.h"
 #include "core/utils/log.h"
 #include "core/utils/unit.h"
 #include "tools/ROOT.h"
@@ -67,7 +67,10 @@ GenericPropagationModule::GenericPropagationModule(Configuration& config,
     config_.setDefault<double>("integration_time", Units::get(25, "ns"));
     config_.setDefault<unsigned int>("charge_per_step", 10);
     config_.setDefault<double>("temperature", 293.15);
-    config_.setDefault<double>("auger_coefficient", Units::get(2e-30, "cm*cm*cm*cm*cm*cm*/s"));
+
+    // Models:
+    config_.setDefault<std::string>("mobility_model", "jacoboni");
+    config_.setDefault<std::string>("recombination_model", "none");
 
     config_.setDefault<bool>("output_linegraphs", false);
     config_.setDefault<bool>("output_animations", false);
@@ -108,34 +111,16 @@ GenericPropagationModule::GenericPropagationModule(Configuration& config,
     propagate_electrons_ = config_.get<bool>("propagate_electrons");
     propagate_holes_ = config_.get<bool>("propagate_holes");
     charge_per_step_ = config_.get<unsigned int>("charge_per_step");
-    auger_coeff_ = config_.get<double>("auger_coefficient");
 
-    // Enable parallelization of this module if multithreading is enabled and no per-event output plots are requested:
+    // Enable multithreading of this module if multithreading is enabled and no per-event output plots are requested:
     // FIXME: Review if this is really the case or we can still use multithreading
     if(!(output_animations_ || output_linegraphs_)) {
-        enable_parallelization();
+        allow_multithreading();
     } else {
         LOG(WARNING) << "Per-event line graphs or animations requested, disabling parallel event processing";
     }
 
-    // Parameterization variables from https://doi.org/10.1016/0038-1101(77)90054-5 (section 5.2)
-    electron_Vm_ = Units::get(1.53e9 * std::pow(temperature_, -0.87), "cm/s");
-    electron_Ec_ = Units::get(1.01 * std::pow(temperature_, 1.55), "V/cm");
-    electron_Beta_ = 2.57e-2 * std::pow(temperature_, 0.66);
-
-    hole_Vm_ = Units::get(1.62e8 * std::pow(temperature_, -0.52), "cm/s");
-    hole_Ec_ = Units::get(1.24 * std::pow(temperature_, 1.68), "V/cm");
-    hole_Beta_ = 0.46 * std::pow(temperature_, 0.17);
-
     boltzmann_kT_ = Units::get(8.6173e-5, "eV/K") * temperature_;
-
-    // Reference lifetime and doping concentrations, taken from:
-    // https://doi.org/10.1016/0038-1101(82)90203-9
-    // https://doi.org/10.1016/0038-1101(76)90022-8
-    electron_lifetime_reference_ = Units::get(1e-5, "s");
-    hole_lifetime_reference_ = Units::get(4.0e-4, "s");
-    electron_doping_reference_ = Units::get(1e16, "/cm/cm/cm");
-    hole_doping_reference_ = Units::get(7.1e15, "/cm/cm/cm");
 
     // Parameter for charge transport in magnetic field (approximated from graphs:
     // http://www.ioffe.ru/SVA/NSM/Semicond/Si/electric.html) FIXME
@@ -163,19 +148,19 @@ void GenericPropagationModule::create_output_plots(uint64_t event_num, OutputPlo
     double start_time = std::numeric_limits<double>::max();
     unsigned int total_charge = 0;
     unsigned int max_charge = 0;
-    for(auto& deposit_points : output_plot_points) {
-        for(auto& point : deposit_points.second) {
+    for(auto& [deposit, points] : output_plot_points) {
+        for(auto& point : points) {
             minX = std::min(minX, point.x());
             maxX = std::max(maxX, point.x());
 
             minY = std::min(minY, point.y());
             maxY = std::max(maxY, point.y());
         }
-        start_time = std::min(start_time, deposit_points.first.getGlobalTime());
-        total_charge += deposit_points.first.getCharge();
-        max_charge = std::max(max_charge, deposit_points.first.getCharge());
+        start_time = std::min(start_time, deposit.getGlobalTime());
+        total_charge += deposit.getCharge();
+        max_charge = std::max(max_charge, deposit.getCharge());
 
-        tot_point_cnt += deposit_points.second.size();
+        tot_point_cnt += points.size();
     }
 
     // Compute frame axis sizes if equal scaling is requested
@@ -251,14 +236,14 @@ void GenericPropagationModule::create_output_plots(uint64_t event_num, OutputPlo
     // The vector of unique_pointers is required in order not to delete the objects before the canvas is drawn.
     std::vector<std::unique_ptr<TPolyLine3D>> lines;
     short current_color = 1;
-    for(auto& deposit_points : output_plot_points) {
+    for(auto& [deposit, points] : output_plot_points) {
         auto line = std::make_unique<TPolyLine3D>();
-        for(auto& point : deposit_points.second) {
+        for(auto& point : points) {
             line->SetNextPoint(point.x(), point.y(), point.z());
         }
         // Plot all lines with at least three points with different color
         if(line->GetN() >= 3) {
-            EColor plot_color = (deposit_points.first.getType() == CarrierType::ELECTRON ? EColor::kAzure : EColor::kOrange);
+            EColor plot_color = (deposit.getType() == CarrierType::ELECTRON ? EColor::kAzure : EColor::kOrange);
             current_color = static_cast<short int>(plot_color - 9 + (static_cast<int>(current_color) + 1) % 19);
             line->SetLineColor(current_color);
             line->Draw("same");
@@ -389,11 +374,9 @@ void GenericPropagationModule::create_output_plots(uint64_t event_num, OutputPlo
             text->Draw();
 
             // Plot all the required points
-            for(auto& deposit_points : output_plot_points) {
-                auto points = deposit_points.second;
-
-                auto diff = static_cast<unsigned long>(std::round((deposit_points.first.getGlobalTime() - start_time) /
-                                                                  config_.get<long double>("output_plots_step")));
+            for(auto& [deposit, points] : output_plot_points) {
+                auto diff = static_cast<unsigned long>(
+                    std::round((deposit.getGlobalTime() - start_time) / config_.get<long double>("output_plots_step")));
                 if(static_cast<long>(plot_idx) - static_cast<long>(diff) < 0) {
                     min_idx_diff = std::min(min_idx_diff, diff - plot_idx);
                     continue;
@@ -406,9 +389,9 @@ void GenericPropagationModule::create_output_plots(uint64_t event_num, OutputPlo
 
                 auto marker = std::make_unique<TPolyMarker3D>();
                 marker->SetMarkerStyle(kFullCircle);
-                marker->SetMarkerSize(static_cast<float>(deposit_points.first.getCharge() *
-                                                         config_.get<double>("output_animations_marker_size", 1)) /
-                                      static_cast<float>(max_charge));
+                marker->SetMarkerSize(
+                    static_cast<float>(deposit.getCharge() * config_.get<double>("output_animations_marker_size", 1)) /
+                    static_cast<float>(max_charge));
                 auto initial_z_perc = static_cast<int>(
                     ((points[0].z() + model_->getSensorSize().z() / 2.0) / model_->getSensorSize().z()) * 80);
                 initial_z_perc = std::max(std::min(79, initial_z_perc), 0);
@@ -419,9 +402,9 @@ void GenericPropagationModule::create_output_plots(uint64_t event_num, OutputPlo
                 marker->Draw();
                 markers.push_back(std::move(marker));
 
-                histogram_contour[0]->Fill(points[idx].y(), points[idx].z(), deposit_points.first.getCharge());
-                histogram_contour[1]->Fill(points[idx].x(), points[idx].z(), deposit_points.first.getCharge());
-                histogram_contour[2]->Fill(points[idx].x(), points[idx].y(), deposit_points.first.getCharge());
+                histogram_contour[0]->Fill(points[idx].y(), points[idx].z(), deposit.getCharge());
+                histogram_contour[1]->Fill(points[idx].x(), points[idx].z(), deposit.getCharge());
+                histogram_contour[2]->Fill(points[idx].x(), points[idx].y(), deposit.getCharge());
                 ++point_cnt;
             }
 
@@ -553,10 +536,28 @@ void GenericPropagationModule::initialize() {
                                                   static_cast<int>(charge_per_step_ - 1),
                                                   1,
                                                   static_cast<double>(charge_per_step_));
+
+        recombine_histo_ =
+            CreateHistogram<TH1D>("recombination_histo",
+                                  "Fraction of recombined charge carriers;recombination [N / N_{total}] ;number of events",
+                                  100,
+                                  0,
+                                  1);
     }
 
-    // Check for doping profile
-    has_doping_profile_ = detector->hasDopingProfile();
+    // Prepare mobility model
+    try {
+        mobility_ = Mobility(config_.get<std::string>("mobility_model"), temperature_, detector->hasDopingProfile());
+    } catch(ModelError& e) {
+        throw InvalidValueError(config_, "mobility_model", e.what());
+    }
+
+    // Prepare recombination model
+    try {
+        recombination_ = Recombination(config_.get<std::string>("recombination_model"), detector->hasDopingProfile());
+    } catch(ModelError& e) {
+        throw InvalidValueError(config_, "recombination_model", e.what());
+    }
 }
 
 void GenericPropagationModule::run(Event* event) {
@@ -606,13 +607,13 @@ void GenericPropagationModule::run(Event* event) {
             charges_remaining -= charge_per_step;
 
             // Get position and propagate through sensor
-            auto position = deposit.getLocalPosition();
+            auto initial_position = deposit.getLocalPosition();
 
             // Add point of deposition to the output plots if requested
             if(output_linegraphs_) {
-                auto global_position = detector_->getGlobalPosition(position);
+                auto global_position = detector_->getGlobalPosition(initial_position);
                 std::lock_guard<std::mutex> lock{stats_mutex_};
-                output_plot_points.emplace_back(PropagatedCharge(position,
+                output_plot_points.emplace_back(PropagatedCharge(initial_position,
                                                                  global_position,
                                                                  deposit.getType(),
                                                                  charge_per_step,
@@ -622,28 +623,27 @@ void GenericPropagationModule::run(Event* event) {
             }
 
             // Propagate a single charge deposit
-            auto prop_pair =
-                propagate(position, deposit.getType(), deposit.getLocalTime(), event->getRandomEngine(), output_plot_points);
-            position = prop_pair.first;
+            auto [final_position, time, alive] = propagate(
+                initial_position, deposit.getType(), deposit.getLocalTime(), event->getRandomEngine(), output_plot_points);
 
-            if(prop_pair.second < 0) {
-                LOG(DEBUG) << " Recombined " << charge_per_step << " at " << Units::display(position, {"mm", "um"}) << " in "
-                           << Units::display(-1 * prop_pair.second, "ns") << " time, removing";
+            if(!alive) {
+                LOG(DEBUG) << " Recombined " << charge_per_step << " at " << Units::display(final_position, {"mm", "um"})
+                           << " in " << Units::display(time, "ns") << " time, removing";
                 recombined_charges_count += charge_per_step;
                 continue;
             }
 
-            LOG(DEBUG) << " Propagated " << charge_per_step << " to " << Units::display(position, {"mm", "um"}) << " in "
-                       << Units::display(prop_pair.second, "ns") << " time";
+            LOG(DEBUG) << " Propagated " << charge_per_step << " to " << Units::display(final_position, {"mm", "um"})
+                       << " in " << Units::display(time, "ns") << " time";
 
             // Create a new propagated charge and add it to the list
-            auto global_position = detector_->getGlobalPosition(position);
-            PropagatedCharge propagated_charge(position,
+            auto global_position = detector_->getGlobalPosition(final_position);
+            PropagatedCharge propagated_charge(final_position,
                                                global_position,
                                                deposit.getType(),
                                                charge_per_step,
-                                               deposit.getLocalTime() + prop_pair.second,
-                                               deposit.getGlobalTime() + prop_pair.second,
+                                               deposit.getLocalTime() + time,
+                                               deposit.getGlobalTime() + time,
                                                &deposit);
 
             propagated_charges.push_back(std::move(propagated_charge));
@@ -651,9 +651,9 @@ void GenericPropagationModule::run(Event* event) {
             // Update statistical information
             ++step_count;
             propagated_charges_count += charge_per_step;
-            total_time += charge_per_step * prop_pair.second;
+            total_time += charge_per_step * time;
             if(output_plots_) {
-                drift_time_histo_->Fill(static_cast<double>(Units::convert(prop_pair.second, "ns")), charge_per_step);
+                drift_time_histo_->Fill(static_cast<double>(Units::convert(time, "ns")), charge_per_step);
                 group_size_histo_->Fill(charge_per_step);
             }
         }
@@ -673,6 +673,11 @@ void GenericPropagationModule::run(Event* event) {
     total_steps_ += step_count;
     total_time_picoseconds_ += static_cast<long unsigned int>(total_time * 1e3);
 
+    if(output_plots_) {
+        recombine_histo_->Fill(static_cast<double>(recombined_charges_count) /
+                               (propagated_charges_count + recombined_charges_count));
+    }
+
     // Create a new message with propagated charges
     auto propagated_charge_message = std::make_shared<PropagatedChargeMessage>(std::move(propagated_charges), detector_);
 
@@ -685,33 +690,22 @@ void GenericPropagationModule::run(Event* event) {
  * velocity at every point with help of the electric field map of the detector. An Runge-Kutta integration is applied in
  * multiple steps, adding a random diffusion to the propagating charge every step.
  */
-std::pair<ROOT::Math::XYZPoint, double> GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
-                                                                            const CarrierType& type,
-                                                                            const double initial_time,
-                                                                            RandomNumberGenerator& random_generator,
-                                                                            OutputPlotPoints& output_plot_points) const {
+std::tuple<ROOT::Math::XYZPoint, double, bool>
+GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
+                                    const CarrierType& type,
+                                    const double initial_time,
+                                    RandomNumberGenerator& random_generator,
+                                    OutputPlotPoints& output_plot_points) const {
     // Create a runge kutta solver using the electric field as step function
     Eigen::Vector3d position(pos.x(), pos.y(), pos.z());
 
-    // Define a lambda function to compute the carrier mobility
-    // NOTE This function is typically the most frequently executed part of the framework and therefore the bottleneck
-    auto carrier_mobility = [&](double efield_mag) {
-        // Compute carrier mobility from constants and electric field magnitude
-        if(type == CarrierType::ELECTRON) {
-            return electron_Vm_ / electron_Ec_ /
-                   std::pow(1. + std::pow(efield_mag / electron_Ec_, electron_Beta_), 1.0 / electron_Beta_);
-        } else {
-            return hole_Vm_ / hole_Ec_ / std::pow(1. + std::pow(efield_mag / hole_Ec_, hole_Beta_), 1.0 / hole_Beta_);
-        }
-    };
-
     // Define a function to compute the diffusion
-    auto carrier_diffusion = [&](double efield_mag, double timestep) -> Eigen::Vector3d {
-        double diffusion_constant = boltzmann_kT_ * carrier_mobility(efield_mag);
+    auto carrier_diffusion = [&](double efield_mag, double doping_concentration, double timestep) -> Eigen::Vector3d {
+        double diffusion_constant = boltzmann_kT_ * mobility_(type, efield_mag, doping_concentration);
         double diffusion_std_dev = std::sqrt(2. * diffusion_constant * timestep);
 
         // Compute the independent diffusion in three
-        std::normal_distribution<double> gauss_distribution(0, diffusion_std_dev);
+        allpix::normal_distribution<double> gauss_distribution(0, diffusion_std_dev);
         Eigen::Vector3d diffusion;
         for(int i = 0; i < 3; ++i) {
             diffusion[i] = gauss_distribution(random_generator);
@@ -719,36 +713,17 @@ std::pair<ROOT::Math::XYZPoint, double> GenericPropagationModule::propagate(cons
         return diffusion;
     };
 
-    // Survival probability of this charge carrier package, evaluated once
+    // Survival probability of this charge carrier package, evaluated at every step
     std::uniform_real_distribution<double> survival(0, 1);
-    auto survival_probability = survival(random_generator);
-
-    auto carrier_alive = [&](double doping_concentration, double time) -> bool {
-        auto lifetime_srh = (type == CarrierType::ELECTRON ? electron_lifetime_reference_ : hole_lifetime_reference_) /
-                            (1 + std::fabs(doping_concentration) /
-                                     (type == CarrierType::ELECTRON ? electron_doping_reference_ : hole_doping_reference_));
-
-        // auger lifetime model
-        auto lifetime_auger = 1.0 / (auger_coeff_ * doping_concentration * doping_concentration);
-
-        auto minorityType = (doping_concentration > 0 ? CarrierType::HOLE : CarrierType::ELECTRON);
-
-        // combine the two
-        auto lifetime = lifetime_srh;
-        if(minorityType == type) {
-            lifetime = (lifetime_srh * lifetime_auger) / (lifetime_srh + lifetime_auger);
-        }
-
-        return survival_probability > (1 - std::exp(-1 * time / lifetime));
-    };
 
     // Define lambda functions to compute the charge carrier velocity with or without magnetic field
     std::function<Eigen::Vector3d(double, const Eigen::Vector3d&)> carrier_velocity_noB =
         [&](double, const Eigen::Vector3d& cur_pos) -> Eigen::Vector3d {
         auto raw_field = detector_->getElectricField(static_cast<ROOT::Math::XYZPoint>(cur_pos));
         Eigen::Vector3d efield(raw_field.x(), raw_field.y(), raw_field.z());
+        auto doping = detector_->getDopingConcentration(static_cast<ROOT::Math::XYZPoint>(cur_pos));
 
-        return static_cast<int>(type) * carrier_mobility(efield.norm()) * efield;
+        return static_cast<int>(type) * mobility_(type, efield.norm(), doping) * efield;
     };
 
     std::function<Eigen::Vector3d(double, const Eigen::Vector3d&)> carrier_velocity_withB =
@@ -759,7 +734,9 @@ std::pair<ROOT::Math::XYZPoint, double> GenericPropagationModule::propagate(cons
         Eigen::Vector3d velocity;
         Eigen::Vector3d bfield(magnetic_field_.x(), magnetic_field_.y(), magnetic_field_.z());
 
-        auto mob = carrier_mobility(efield.norm());
+        auto doping = detector_->getDopingConcentration(static_cast<ROOT::Math::XYZPoint>(cur_pos));
+
+        auto mob = mobility_(type, efield.norm(), doping);
         auto exb = efield.cross(bfield);
 
         Eigen::Vector3d term1;
@@ -782,7 +759,7 @@ std::pair<ROOT::Math::XYZPoint, double> GenericPropagationModule::propagate(cons
     double last_time = 0;
     size_t next_idx = 0;
     bool is_alive = true;
-    while(detector_->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(position)) &&
+    while(detector_->getModel()->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(position)) &&
           (initial_time + runge_kutta.getTime()) < integration_time_ && is_alive) {
         // Update output plots if necessary (depending on the plot step)
         if(output_linegraphs_) {
@@ -806,18 +783,23 @@ std::pair<ROOT::Math::XYZPoint, double> GenericPropagationModule::propagate(cons
 
         // Get electric field at current position and fall back to empty field if it does not exist
         auto efield = detector_->getElectricField(static_cast<ROOT::Math::XYZPoint>(position));
+        auto doping = detector_->getDopingConcentration(static_cast<ROOT::Math::XYZPoint>(position));
 
         // Apply diffusion step
-        auto diffusion = carrier_diffusion(std::sqrt(efield.Mag2()), timestep);
+        auto diffusion = carrier_diffusion(std::sqrt(efield.Mag2()), doping, timestep);
         position += diffusion;
         runge_kutta.setValue(position);
 
         // Check if charge carrier is still alive:
-        if(has_doping_profile_) {
-            is_alive = carrier_alive(detector_->getDopingConcentration(static_cast<ROOT::Math::XYZPoint>(position)),
-                                     runge_kutta.getTime());
-        }
+        is_alive = !recombination_(type,
+                                   detector_->getDopingConcentration(static_cast<ROOT::Math::XYZPoint>(position)),
+                                   survival(random_generator),
+                                   timestep);
 
+        LOG(TRACE) << "Step from " << Units::display(static_cast<ROOT::Math::XYZPoint>(last_position), {"um", "mm"})
+                   << " to " << Units::display(static_cast<ROOT::Math::XYZPoint>(position), {"um", "mm"}) << " at "
+                   << Units::display(initial_time + runge_kutta.getTime(), {"ps", "ns", "us"})
+                   << (is_alive ? "" : ", recombined");
         // Adapt step size to match target precision
         double uncertainty = step.error.norm();
 
@@ -848,10 +830,10 @@ std::pair<ROOT::Math::XYZPoint, double> GenericPropagationModule::propagate(cons
 
     // Find proper final position in the sensor
     auto time = runge_kutta.getTime();
-    if(!detector_->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(position))) {
+    if(!detector_->getModel()->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(position))) {
         auto check_position = position;
         check_position.z() = last_position.z();
-        if(position.z() > 0 && detector_->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(check_position))) {
+        if(position.z() > 0 && detector_->getModel()->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(check_position))) {
             // Carrier left sensor on the side of the pixel grid, interpolate end point on surface
             auto z_cur_border = std::fabs(position.z() - model_->getSensorSize().z() / 2.0);
             auto z_last_border = std::fabs(model_->getSensorSize().z() / 2.0 - last_position.z());
@@ -875,12 +857,10 @@ std::pair<ROOT::Math::XYZPoint, double> GenericPropagationModule::propagate(cons
 
     if(!is_alive) {
         LOG(DEBUG) << "Charge carrier recombined after " << Units::display(last_time, {"ns"});
-        // FIXME
-        time = -last_time;
     }
 
     // Return the final position of the propagated charge
-    return std::make_pair(static_cast<ROOT::Math::XYZPoint>(position), initial_time + time);
+    return std::make_tuple(static_cast<ROOT::Math::XYZPoint>(position), initial_time + time, is_alive);
 }
 
 void GenericPropagationModule::finalize() {
@@ -889,6 +869,7 @@ void GenericPropagationModule::finalize() {
         drift_time_histo_->Write();
         uncertainty_histo_->Write();
         group_size_histo_->Write();
+        recombine_histo_->Write();
     }
 
     long double average_time = static_cast<long double>(total_time_picoseconds_) / 1e3 /

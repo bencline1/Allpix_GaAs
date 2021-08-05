@@ -10,6 +10,7 @@
 
 #include <chrono>
 #include <climits>
+#include <filesystem>
 #include <fstream>
 #include <memory>
 #include <stdexcept>
@@ -22,7 +23,6 @@
 #include <TSystem.h>
 
 #include "core/config/exceptions.h"
-#include "core/utils/file.h"
 #include "core/utils/log.h"
 #include "core/utils/unit.h"
 
@@ -112,7 +112,7 @@ void Allpix::load() {
 
     // Put welcome message and set version
     LOG(STATUS) << "Welcome to Allpix^2 " << ALLPIX_PROJECT_VERSION;
-    global_config.set<std::string>("version", ALLPIX_PROJECT_VERSION);
+    global_config.set<std::string>("version", ALLPIX_PROJECT_VERSION, true);
 
     uint64_t seed = 0;
     if(global_config.has("random_seed")) {
@@ -132,7 +132,7 @@ void Allpix::load() {
         seed = (clock_seed ^ mem_seed ^ thread_seed);
         seeder_modules_.seed(seed);
         LOG(STATUS) << "Initialized PRNG with system entropy seed " << seed;
-        global_config.set<uint64_t>("random_seed", seed);
+        global_config.set<uint64_t>("random_seed", seed, true);
     }
 
     if(global_config.has("random_seed_core")) {
@@ -143,7 +143,7 @@ void Allpix::load() {
     } else {
         // Use module seeder + 1
         seeder_core_.seed(seed + 1);
-        global_config.set<uint64_t>("random_seed_core", seed + 1);
+        global_config.set<uint64_t>("random_seed_core", seed + 1, true);
     }
 
     // Get output directory
@@ -156,10 +156,10 @@ void Allpix::load() {
 
     // Use existing output directory if it exists
     bool create_output_dir = true;
-    if(allpix::path_is_directory(directory)) {
+    if(std::filesystem::is_directory(directory)) {
         if(global_config.get<bool>("purge_output_directory", false)) {
             LOG(DEBUG) << "Deleting previous output directory " << directory;
-            allpix::remove_path(directory);
+            std::filesystem::remove_all(directory);
         } else {
             LOG(DEBUG) << "Output directory " << directory << " already exists";
             create_output_dir = false;
@@ -169,7 +169,7 @@ void Allpix::load() {
     try {
         if(create_output_dir) {
             LOG(DEBUG) << "Creating output directory " << directory;
-            allpix::create_directories(directory);
+            std::filesystem::create_directories(directory);
         }
         // Change to the new/existing output directory
         gSystem->ChangeDirectory(directory.c_str());

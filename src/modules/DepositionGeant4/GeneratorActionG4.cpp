@@ -89,9 +89,9 @@ GeneratorActionG4::GeneratorActionG4(const Configuration& config)
     particle_source_->SetVerbosity(0);
 
     // Get source specific parameters
-    auto source_type = config_.get<std::string>("source_type");
+    auto source_type = config_.get<SourceType>("source_type");
 
-    if(source_type == "macro") {
+    if(source_type == SourceType::MACRO) {
         LOG(INFO) << "Using user macro for particle source.";
 
         // Get the macro file and apply its commands
@@ -105,15 +105,7 @@ GeneratorActionG4::GeneratorActionG4(const Configuration& config)
         single_source->GetPosDist()->SetCentreCoords(config_.get<G4ThreeVector>("source_position"));
 
         // Set position and direction parameters according to shape
-        if(source_type == "beam") {
-
-            // Set position parameters
-            single_source->GetPosDist()->SetPosDisType("Beam");
-            single_source->GetPosDist()->SetBeamSigmaInR(config_.get<double>("beam_size", 0));
-
-            // Set angle distribution parameters
-            // NOTE beam2d will always fire in the -z direction of the system
-            single_source->GetAngDist()->SetAngDistType("beam2d");
+        if(source_type == SourceType::BEAM) {
 
             // Align the -z axis of the system with the direction vector
             auto direction = config_.get<G4ThreeVector>("beam_direction");
@@ -131,13 +123,28 @@ GeneratorActionG4::GeneratorActionG4(const Configuration& config)
             }
             G4ThreeVector angref2 = angref1.cross(direction);
 
+            // Set position parameters
+            single_source->GetPosDist()->SetPosDisType("Beam");
+            auto beam_size = config.get<double>("beam_size", 0);
+            if(config.get<bool>("flat_beam", false) == true) {
+                single_source->GetPosDist()->SetPosDisShape("Circle");
+                single_source->GetPosDist()->SetRadius(beam_size);
+            } else {
+                single_source->GetPosDist()->SetBeamSigmaInR(beam_size);
+            }
+            single_source->GetPosDist()->SetPosRot1(angref1);
+            single_source->GetPosDist()->SetPosRot2(angref2);
+
+            // Set angle distribution parameters
+            // NOTE beam2d will always fire in the -z direction of the system
+            single_source->GetAngDist()->SetAngDistType("beam2d");
             single_source->GetAngDist()->DefineAngRefAxes("angref1", angref1);
             single_source->GetAngDist()->DefineAngRefAxes("angref2", angref2);
             auto divergence = config_.get<G4TwoVector>("beam_divergence", G4TwoVector(0., 0.));
             single_source->GetAngDist()->SetBeamSigmaInAngX(divergence.x());
             single_source->GetAngDist()->SetBeamSigmaInAngY(divergence.y());
 
-        } else if(source_type == "sphere") {
+        } else if(source_type == SourceType::SPHERE) {
 
             // Set position parameters
             single_source->GetPosDist()->SetPosDisType("Surface");
@@ -153,7 +160,7 @@ GeneratorActionG4::GeneratorActionG4(const Configuration& config)
                 single_source->GetAngDist()->SetAngDistType("cos");
             }
 
-        } else if(source_type == "square") {
+        } else if(source_type == SourceType::SQUARE) {
 
             // Set position parameters
             single_source->GetPosDist()->SetPosDisType("Plane");
@@ -165,17 +172,13 @@ GeneratorActionG4::GeneratorActionG4(const Configuration& config)
             single_source->GetAngDist()->SetAngDistType("iso");
             single_source->GetAngDist()->SetMaxTheta(config_.get<double>("square_angle", ROOT::Math::Pi()) / 2);
 
-        } else if(source_type == "point") {
+        } else if(source_type == SourceType::POINT) {
 
             // Set position parameters
             single_source->GetPosDist()->SetPosDisType("Point");
 
             // Set angle distribution parameters
             single_source->GetAngDist()->SetAngDistType("iso");
-
-        } else {
-
-            throw InvalidValueError(config_, "source_type", "");
         }
 
         // Find Geant4 particle
@@ -215,9 +218,8 @@ GeneratorActionG4::GeneratorActionG4(const Configuration& config)
             }
         }
 
-        LOG(DEBUG) << "Using particle " << particle->GetParticleName() << " (ID " << particle->GetPDGEncoding() << ").";
-
         if(particle != nullptr) {
+            LOG(DEBUG) << "Using particle " << particle->GetParticleName() << " (ID " << particle->GetPDGEncoding() << ").";
             // Set global parameters of the source
             single_source->SetNumberOfParticles(1);
             single_source->SetParticleDefinition(particle);

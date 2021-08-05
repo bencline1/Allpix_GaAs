@@ -30,18 +30,18 @@ using namespace allpix;
 
 MagneticFieldReaderModule::MagneticFieldReaderModule(Configuration& config, Messenger*, GeometryManager* geoManager)
     : Module(config), geometryManager_(geoManager) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    // Enable multithreading of this module if multithreading is enabled
+    allow_multithreading();
 }
 
 void MagneticFieldReaderModule::initialize() {
     MagneticFieldType type = MagneticFieldType::NONE;
 
     // Check field strength
-    auto field_model = config_.get<std::string>("model");
+    auto field_model = config_.get<MagneticField>("model");
 
     // Calculate the field depending on the configuration
-    if(field_model == "constant") {
+    if(field_model == MagneticField::CONSTANT) {
         LOG(TRACE) << "Adding constant magnetic field";
         type = MagneticFieldType::CONSTANT;
 
@@ -60,7 +60,5 @@ void MagneticFieldReaderModule::initialize() {
                        << Units::display(detector->getMagneticField(), {"T", "mT"});
         }
         LOG(INFO) << "Set constant magnetic field: " << Units::display(b_field, {"T", "mT"});
-    } else {
-        throw InvalidValueError(config_, "model", "model can currently only be 'constant'");
     }
 }

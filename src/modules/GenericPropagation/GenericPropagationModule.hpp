@@ -26,6 +26,9 @@
 #include "objects/DepositedCharge.hpp"
 #include "objects/PropagatedCharge.hpp"
 
+#include "physics/Mobility.hpp"
+#include "physics/Recombination.hpp"
+
 #include "tools/ROOT.h"
 
 namespace allpix {
@@ -34,7 +37,7 @@ namespace allpix {
     /**
      * @ingroup Modules
      * @brief Generic module for Runge-Kutta propagation of charge deposits in the sensitive device
-     * @note This module supports parallelization
+     * @note This module supports multithreading
      *
      * Splits the sets of deposited charge in several sets which are propagated individually. The propagation consist of a
      * combination of drift from a charge mobility parameterization and diffusion using a Gaussian random walk process.
@@ -85,13 +88,14 @@ namespace allpix {
          * @param initial_time Initial time passed before propagation starts in local time coordinates
          * @param random_generator Reference to the random number engine to be used
          * @param output_plot_points Reference to vector to hold points for line graph output plots
-         * @return Pair of the point where the deposit ended after propagation and the time the propagation took
+         * @return Tuple with the point where the deposit ended after propagation, the time the propagation took and a flag
+         * whether it has recombined
          */
-        std::pair<ROOT::Math::XYZPoint, double> propagate(const ROOT::Math::XYZPoint& pos,
-                                                          const CarrierType& type,
-                                                          const double initial_time,
-                                                          RandomNumberGenerator& random_generator,
-                                                          OutputPlotPoints& output_plot_points) const;
+        std::tuple<ROOT::Math::XYZPoint, double, bool> propagate(const ROOT::Math::XYZPoint& pos,
+                                                                 const CarrierType& type,
+                                                                 const double initial_time,
+                                                                 RandomNumberGenerator& random_generator,
+                                                                 OutputPlotPoints& output_plot_points) const;
 
         // Local copies of configuration parameters to avoid costly lookup:
         double temperature_{}, timestep_min_{}, timestep_max_{}, timestep_start_{}, integration_time_{},
@@ -100,23 +104,12 @@ namespace allpix {
         bool propagate_electrons_{}, propagate_holes_{};
         unsigned int charge_per_step_{};
 
-        // Precalculated values for electron and hole mobility
-        double electron_Vm_;
-        double electron_Ec_;
-        double electron_Beta_;
-        double hole_Vm_;
-        double hole_Ec_;
-        double hole_Beta_;
+        // Models for electron and hole mobility and lifetime
+        Mobility mobility_;
+        Recombination recombination_;
 
         // Precalculated value for Boltzmann constant:
         double boltzmann_kT_;
-
-        // Predefined values for reference charge carrier lifetime and doping concentration
-        double electron_lifetime_reference_;
-        double hole_lifetime_reference_;
-        double electron_doping_reference_;
-        double hole_doping_reference_;
-        double auger_coeff_;
 
         // Predefined values for electron/hole velocity calculation in magnetic fields
         double electron_Hall_;
@@ -126,9 +119,6 @@ namespace allpix {
         bool has_magnetic_field_;
         ROOT::Math::XYZVector magnetic_field_;
 
-        // Doping profile available?
-        bool has_doping_profile_;
-
         // Statistical information
         std::atomic<unsigned int> total_propagated_charges_{};
         std::atomic<unsigned int> total_steps_{};
@@ -137,6 +127,7 @@ namespace allpix {
         Histogram<TH1D> drift_time_histo_;
         Histogram<TH1D> uncertainty_histo_;
         Histogram<TH1D> group_size_histo_;
+        Histogram<TH1D> recombine_histo_;
         std::mutex stats_mutex_;
     };
 

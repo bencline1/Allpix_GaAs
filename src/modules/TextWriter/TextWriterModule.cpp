@@ -17,7 +17,6 @@
 #include <TClass.h>
 
 #include "core/config/ConfigReader.hpp"
-#include "core/utils/file.h"
 #include "core/utils/log.h"
 #include "core/utils/type.h"
 
@@ -28,8 +27,8 @@ using namespace allpix;
 
 TextWriterModule::TextWriterModule(Configuration& config, Messenger* messenger, GeometryManager*)
     : SequentialModule(config), messenger_(messenger) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    // Enable multithreading of this module if multithreading is enabled
+    allow_multithreading();
 
     // Bind to all messages with filter
     messenger_->registerFilter(this, &TextWriterModule::filter);
@@ -37,8 +36,7 @@ TextWriterModule::TextWriterModule(Configuration& config, Messenger* messenger, 
 
 void TextWriterModule::initialize() {
     // Create output file
-    output_file_name_ =
-        createOutputFile(allpix::add_file_extension(config_.get<std::string>("file_name", "data"), "txt"), true);
+    output_file_name_ = createOutputFile(config_.get<std::string>("file_name", "data"), "txt", true);
     output_file_ = std::make_unique<std::ofstream>(output_file_name_);
 
     *output_file_ << "# Allpix Squared ASCII data - https://cern.ch/allpix-squared" << std::endl << std::endl;

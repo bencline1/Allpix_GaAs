@@ -18,6 +18,7 @@
 #include <utility>
 
 #include <Math/Vector3D.h>
+#include <TF3.h>
 #include <TH2F.h>
 
 #include "core/config/exceptions.h"
@@ -29,25 +30,18 @@ using namespace allpix;
 
 ElectricFieldReaderModule::ElectricFieldReaderModule(Configuration& config, Messenger*, std::shared_ptr<Detector> detector)
     : Module(config, detector), detector_(std::move(detector)) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    // Enable multithreading of this module if multithreading is enabled
+    allow_multithreading();
 
     // NOTE use voltage as a synonym for bias voltage
     config_.setAlias("bias_voltage", "voltage");
-
-    // NOTE Backwards-compatibility: interpret both "init" and "apf" as "mesh":
-    auto model = config_.get<std::string>("model");
-    if(model == "init" || model == "apf") {
-        config_.set("model", "mesh");
-    }
 }
 
 void ElectricFieldReaderModule::initialize() {
-    FieldType type = FieldType::GRID;
 
     // Check field strength
-    auto field_model = config_.get<std::string>("model");
-    if((field_model == "constant" || field_model == "linear") &&
+    auto field_model = config_.get<ElectricField>("model");
+    if((field_model == ElectricField::CONSTANT || field_model == ElectricField::LINEAR) &&
        config_.get<double>("bias_voltage") > Units::get(5.0, "kV")) {
         LOG(WARNING) << "Very high bias voltage of " << Units::display(config_.get<double>("bias_voltage"), "kV")
                      << " set, this is most likely not desired.";
@@ -71,12 +65,12 @@ void ElectricFieldReaderModule::initialize() {
     auto thickness_domain = std::make_pair(sensor_max_z - depletion_depth, sensor_max_z);
 
     // Calculate the field depending on the configuration
-    if(field_model == "mesh") {
+    if(field_model == ElectricField::MESH) {
         // Read the field scales from the configuration, defaulting to 1.0x1.0 pixel cell:
         auto scales = config_.get<ROOT::Math::XYVector>("field_scale", {1.0, 1.0});
         // FIXME Add sanity checks for scales here
         LOG(DEBUG) << "Electric field will be scaled with factors " << scales;
-        std::array<double, 2> field_scale{{model->getPixelSize().x() * scales.x(), model->getPixelSize().y() * scales.y()}};
+        std::array<double, 2> field_scale{{scales.x(), scales.y()}};
 
         // Get the field offset in fractions of the pixel pitch, default is 0.0x0.0, i.e. starting at pixel boundary:
         auto offset = config_.get<ROOT::Math::XYVector>("field_offset", {0.0, 0.0});
@@ -94,29 +88,36 @@ void ElectricFieldReaderModule::initialize() {
 
         detector_->setElectricFieldGrid(
             field_data.getData(), field_data.getDimensions(), field_scale, field_offset, thickness_domain);
-    } else if(field_model == "constant") {
+    } else if(field_model == ElectricField::CONSTANT) {
         LOG(TRACE) << "Adding constant electric field";
-        type = FieldType::CONSTANT;
-
         auto field_z = config_.get<double>("bias_voltage") / getDetector()->getModel()->getSensorSize().z();
         LOG(INFO) << "Set constant electric field with magnitude " << Units::display(field_z, {"V/um", "V/mm"});
         FieldFunction<ROOT::Math::XYZVector> function = [field_z](const ROOT::Math::XYZPoint&) {
             return ROOT::Math::XYZVector(0, 0, -field_z);
         };
-        detector_->setElectricFieldFunction(function, thickness_domain, type);
-    } else if(field_model == "linear") {
+        detector_->setElectricFieldFunction(function, thickness_domain, FieldType::CONSTANT);
+    } else if(field_model == ElectricField::LINEAR) {
         LOG(TRACE) << "Adding linear electric field";
-        type = FieldType::LINEAR;
 
         // Get depletion voltage, defaults to bias voltage:
         auto depletion_voltage = config_.get<double>("depletion_voltage", config_.get<double>("bias_voltage"));
 
         LOG(INFO) << "Setting linear electric field from " << Units::display(config_.get<double>("bias_voltage"), "V")
                   << " bias voltage and " << Units::display(depletion_voltage, "V") << " depletion voltage";
-        FieldFunction<ROOT::Math::XYZVector> function = get_linear_field_function(depletion_voltage, thickness_domain);
-        detector_->setElectricFieldFunction(function, thickness_domain, type);
-    } else {
-        throw InvalidValueError(config_, "model", "model should be 'linear', 'constant' or 'init'");
+        detector_->setElectricFieldFunction(
+            get_linear_field_function(depletion_voltage, thickness_domain), thickness_domain, FieldType::LINEAR);
+    } else if(field_model == ElectricField::PARABOLIC) {
+        LOG(TRACE) << "Adding parabolic electric field";
+        LOG(INFO) << "Setting parabolic electric field with minimum field "
+                  << Units::display(config_.get<double>("minimum_field"), "V/cm") << " at position "
+                  << Units::display(config_.get<double>("minimum_position"), {"um", "mm"}) << " and maximum field "
+                  << Units::display(config_.get<double>("maximum_field"), "V/cm") << " at electrode";
+        detector_->setElectricFieldFunction(
+            get_parabolic_field_function(thickness_domain), thickness_domain, FieldType::CUSTOM);
+    } else if(field_model == ElectricField::CUSTOM) {
+        LOG(TRACE) << "Adding custom electric field";
+        detector_->setElectricFieldFunction(
+            get_custom_field_function(thickness_domain), thickness_domain, FieldType::CUSTOM);
     }
 
     // Produce histograms if needed
@@ -153,6 +154,137 @@ ElectricFieldReaderModule::get_linear_field_function(double depletion_voltage, s
     };
 }
 
+FieldFunction<ROOT::Math::XYZVector>
+ElectricFieldReaderModule::get_parabolic_field_function(std::pair<double, double> thickness_domain) {
+    LOG(TRACE) << "Calculating function for the parabolic electric field.";
+
+    auto z_min = config_.get<double>("minimum_position");
+    auto e_max = config_.get<double>("maximum_field");
+    double eff_thickness = thickness_domain.second - thickness_domain.first;
+
+    if(z_min <= thickness_domain.first || z_min >= thickness_domain.second) {
+        throw InvalidValueError(config_,
+                                "minimum_position",
+                                "Minimum field position must be within defined region of the electric field (" +
+                                    Units::display(thickness_domain.first, "um") + "," +
+                                    Units::display(thickness_domain.second, "um") + ")");
+    }
+
+    auto a = (e_max - config_.get<double>("minimum_field")) /
+             (z_min * z_min + thickness_domain.second * thickness_domain.second - eff_thickness * z_min);
+    auto b = -2 * a * z_min;
+    auto c = e_max - a * (thickness_domain.second * thickness_domain.second - eff_thickness * z_min);
+
+    return [a, b, c](const ROOT::Math::XYZPoint& pos) {
+        double field_z = a * pos.z() * pos.z() + b * pos.z() + c;
+        return ROOT::Math::XYZVector(0, 0, field_z);
+    };
+}
+
+FieldFunction<ROOT::Math::XYZVector>
+ElectricFieldReaderModule::get_custom_field_function(std::pair<double, double> thickness_domain) {
+
+    auto field_functions = config_.getArray<std::string>("field_function");
+    auto field_parameters = config_.getArray<double>("field_parameters");
+
+    // Derive field extent from pixel boundaries:
+    auto model = detector_->getModel();
+    auto min = -0.5 * model->getPixelSize();
+    auto max = 0.5 * model->getPixelSize();
+
+    // 1D field, interpret as field along z-axis:
+    if(field_functions.size() == 1) {
+        LOG(DEBUG) << "Found definition of 1D custom field, applying to z axis";
+        auto z = std::make_shared<TF3>("z",
+                                       field_functions.front().c_str(),
+                                       min.x(),
+                                       max.x(),
+                                       min.y(),
+                                       max.y(),
+                                       thickness_domain.first,
+                                       thickness_domain.second);
+
+        // Check if number of parameters match up
+        if(static_cast<size_t>(z->GetNumberFreeParameters()) != field_parameters.size()) {
+            throw InvalidValueError(
+                config_,
+                "field_parameters",
+                "The number of function parameters does not line up with the amount of parameters in the function.");
+        }
+
+        // Apply parameters to the function
+        for(size_t n = 0; n < field_parameters.size(); ++n) {
+            z->SetParameter(static_cast<int>(n), field_parameters.at(n));
+        }
+
+        LOG(DEBUG) << "Value of custom field at pixel center: " << Units::display(z->Eval(0., 0., 0.), "V/cm");
+        return [z = std::move(z)](const ROOT::Math::XYZPoint& pos) {
+            return ROOT::Math::XYZVector(0, 0, z->Eval(pos.x(), pos.y(), pos.z()));
+        };
+    } else if(field_functions.size() == 3) {
+        LOG(DEBUG) << "Found definition of 3D custom field, applying to three Cartesian axes";
+        auto x = std::make_shared<TF3>("x",
+                                       field_functions.at(0).c_str(),
+                                       min.x(),
+                                       max.x(),
+                                       min.y(),
+                                       max.y(),
+                                       thickness_domain.first,
+                                       thickness_domain.second);
+        auto y = std::make_shared<TF3>("y",
+                                       field_functions.at(1).c_str(),
+                                       min.x(),
+                                       max.x(),
+                                       min.y(),
+                                       max.y(),
+                                       thickness_domain.first,
+                                       thickness_domain.second);
+        auto z = std::make_shared<TF3>("z",
+                                       field_functions.at(2).c_str(),
+                                       min.x(),
+                                       max.x(),
+                                       min.y(),
+                                       max.y(),
+                                       thickness_domain.first,
+                                       thickness_domain.second);
+
+        // Check if number of parameters match up
+        if(static_cast<size_t>(x->GetNumberFreeParameters() + y->GetNumberFreeParameters() + z->GetNumberFreeParameters()) !=
+           field_parameters.size()) {
+            throw InvalidValueError(
+                config_,
+                "field_parameters",
+                "The number of function parameters does not line up with the sum of parameters in all functions.");
+        }
+
+        // Apply parameters to the functions
+        for(auto n = 0; n < x->GetNumberFreeParameters(); ++n) {
+            x->SetParameter(n, field_parameters.at(static_cast<size_t>(n)));
+        }
+        for(auto n = 0; n < y->GetNumberFreeParameters(); ++n) {
+            y->SetParameter(n, field_parameters.at(static_cast<size_t>(n + x->GetNumberFreeParameters())));
+        }
+        for(auto n = 0; n < z->GetNumberFreeParameters(); ++n) {
+            z->SetParameter(
+                n,
+                field_parameters.at(static_cast<size_t>(n + x->GetNumberFreeParameters() + y->GetNumberFreeParameters())));
+        }
+
+        LOG(DEBUG) << "Value of custom field at pixel center: "
+                   << Units::display(ROOT::Math::XYZVector(x->Eval(0., 0., 0.), y->Eval(0., 0., 0.), z->Eval(0., 0., 0.)),
+                                     {"V/cm"});
+        return [x = std::move(x), y = std::move(y), z = std::move(z)](const ROOT::Math::XYZPoint& pos) {
+            return ROOT::Math::XYZVector(
+                x->Eval(pos.x(), pos.y(), pos.z()), y->Eval(pos.x(), pos.y(), pos.z()), z->Eval(pos.x(), pos.y(), pos.z()));
+        };
+    } else {
+        throw InvalidValueError(config_,
+                                "field_function",
+                                "field function either needs one component (z) or three components (x,y,z) but " +
+                                    std::to_string(field_functions.size()) + " were given");
+    }
+}
+
 /**
  * The field data read from files are shared between module instantiations using the static
  * FieldParser's getByFileName method.
@@ -169,6 +301,13 @@ FieldData<double> ElectricFieldReaderModule::read_field(std::pair<double, double
 
         // Check if electric field matches chip
         check_detector_match(field_data.getSize(), thickness_domain, field_scale);
+
+        // Warn at field values larger than 1MV/cm / 10 MV/mm. Simple lookup per vector component, not total field magnitude
+        auto max_field = *std::max_element(std::begin(*field_data.getData()), std::end(*field_data.getData()));
+        if(max_field > 10) {
+            LOG(WARNING) << "Very high electric field of " << Units::display(max_field, "kV/cm")
+                         << ", this is most likely not desired.";
+        }
 
         LOG(INFO) << "Set electric field with " << field_data.getDimensions().at(0) << "x"
                   << field_data.getDimensions().at(1) << "x" << field_data.getDimensions().at(2) << " cells";
@@ -267,6 +406,11 @@ void ElectricFieldReaderModule::create_output_plots() {
         z = z_min + config_.get<double>("output_plots_projection_percentage", 0.5) * (z_max - z_min);
     }
 
+    // set z axis tile
+    histogram->GetZaxis()->SetTitle("field strength (V/cm)");
+    histogram_x->GetZaxis()->SetTitle("field (V/cm)");
+    histogram_y->GetZaxis()->SetTitle("field (V/cm)");
+    histogram_z->GetZaxis()->SetTitle("field (V/cm)");
     // Find the electric field at every index
     for(size_t j = 0; j < steps; ++j) {
         if(project == 'x') {
@@ -313,30 +457,32 @@ void ElectricFieldReaderModule::create_output_plots() {
                 histogram_z->GetYaxis()->SetTitle("y (mm)");
             }
 
-            // Get field strength from detector
+            // Get field strength from detector - directly convert to double to fill root histograms
             auto field = detector_->getElectricField(ROOT::Math::XYZPoint(x, y, z));
-            auto field_strength = Units::convert(std::sqrt(field.Mag2()), "V/cm");
-            auto field_z_strength = Units::convert(field.z(), "V/cm");
+            auto field_strength = static_cast<double>(Units::convert(std::sqrt(field.Mag2()), "V/cm"));
+            auto field_x_strength = static_cast<double>(Units::convert(field.x(), "V/cm"));
+            auto field_y_strength = static_cast<double>(Units::convert(field.y(), "V/cm"));
+            auto field_z_strength = static_cast<double>(Units::convert(field.z(), "V/cm"));
             // Fill the main histogram
             if(project == 'x') {
-                histogram->Fill(y, z, static_cast<double>(field_strength));
-                histogram_x->Fill(y, z, field.x());
-                histogram_y->Fill(y, z, field.y());
-                histogram_z->Fill(y, z, field.z());
+                histogram->Fill(y, z, field_strength);
+                histogram_x->Fill(y, z, field_x_strength);
+                histogram_y->Fill(y, z, field_y_strength);
+                histogram_z->Fill(y, z, field_z_strength);
             } else if(project == 'y') {
-                histogram->Fill(x, z, static_cast<double>(field_strength));
-                histogram_x->Fill(x, z, field.x());
-                histogram_y->Fill(x, z, field.y());
-                histogram_z->Fill(x, z, field.z());
+                histogram->Fill(x, z, field_strength);
+                histogram_x->Fill(x, z, field_x_strength);
+                histogram_y->Fill(x, z, field_y_strength);
+                histogram_z->Fill(x, z, field_z_strength);
             } else {
-                histogram->Fill(x, y, static_cast<double>(field_strength));
-                histogram_x->Fill(x, y, field.x());
-                histogram_y->Fill(x, y, field.y());
-                histogram_z->Fill(x, y, field.z());
+                histogram->Fill(x, y, field_strength);
+                histogram_x->Fill(x, y, field_x_strength);
+                histogram_y->Fill(x, y, field_y_strength);
+                histogram_z->Fill(x, y, field_z_strength);
             }
             // Fill the 1d histogram
             if(j == steps / 2) {
-                histogram1D->Fill(z, static_cast<double>(field_z_strength));
+                histogram1D->Fill(z, field_z_strength);
             }
         }
     }
@@ -370,13 +516,14 @@ void ElectricFieldReaderModule::check_detector_match(std::array<double, 3> dimen
         }
 
         // Check the field extent along the pixel pitch in x and y:
-        if(std::fabs(xpixsz - field_scale[0]) > std::numeric_limits<double>::epsilon() ||
-           std::fabs(ypixsz - field_scale[1]) > std::numeric_limits<double>::epsilon()) {
+        auto pitch = model->getPixelSize();
+        if(std::fabs(xpixsz - field_scale[0] * pitch.x()) > std::numeric_limits<double>::epsilon() ||
+           std::fabs(ypixsz - field_scale[1] * pitch.y()) > std::numeric_limits<double>::epsilon()) {
             LOG(WARNING) << "Electric field size is (" << Units::display(xpixsz, {"um", "mm"}) << ","
                          << Units::display(ypixsz, {"um", "mm"})
                          << ") but current configuration results in an field area of ("
-                         << Units::display(field_scale[0], {"um", "mm"}) << ","
-                         << Units::display(field_scale[1], {"um", "mm"}) << ")" << std::endl
+                         << Units::display(field_scale[0] * pitch.x(), {"um", "mm"}) << ","
+                         << Units::display(field_scale[1] * pitch.y(), {"um", "mm"}) << ")" << std::endl
                          << "The size of the area to which the electric field is applied can be changes using the "
                             "field_scale parameter.";
         }

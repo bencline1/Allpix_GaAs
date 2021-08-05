@@ -56,8 +56,8 @@ thread_local std::vector<SensitiveDetectorActionG4*> DepositionGeant4Module::sen
  */
 DepositionGeant4Module::DepositionGeant4Module(Configuration& config, Messenger* messenger, GeometryManager* geo_manager)
     : Module(config), messenger_(messenger), geo_manager_(geo_manager), run_manager_g4_(nullptr) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    // Enable multithreading of this module if multithreading is enabled
+    allow_multithreading();
 
     // Set default physics list
     config_.setDefault("physics_list", "FTFP_BERT_LIV");
@@ -82,7 +82,7 @@ DepositionGeant4Module::DepositionGeant4Module(Configuration& config, Messenger*
     user_limits_world_ = std::make_unique<G4UserLimits>(DBL_MAX, DBL_MAX, config_.get<double>("cutoff_time"));
 
     // If macro, parse for positions of sources and add these as points to the GeoManager to extend the world:
-    if(config.get<std::string>("source_type") == "macro") {
+    if(config.get<GeneratorActionG4::SourceType>("source_type") == GeneratorActionG4::SourceType::MACRO) {
         std::ifstream file(config.getPath("file_name", true));
         std::string line;
         while(std::getline(file, line)) {
@@ -114,7 +114,7 @@ void DepositionGeant4Module::initialize() {
     output_plots_ = config_.get<bool>("output_plots");
 
     // Load the G4 run manager (which is owned by the geometry builder)
-    if(canParallelize()) {
+    if(multithreadingEnabled()) {
         run_manager_g4_ = G4MTRunManager::GetMasterRunManager();
         run_manager_mt = static_cast<MTRunManager*>(run_manager_g4_);
         G4Threading::SetMultithreadedApplication(true);
@@ -134,6 +134,17 @@ void DepositionGeant4Module::initialize() {
         LOG(TRACE) << "Enabling PAI model on all detectors";
         G4EmParameters::Instance();
 
+        auto pai_model = config_.get<std::string>("pai_model");
+        auto lcase_model = pai_model;
+        std::transform(lcase_model.begin(), lcase_model.end(), lcase_model.begin(), ::tolower);
+        if(lcase_model == "pai") {
+            pai_model = "PAI";
+        } else if(lcase_model == "paiphoton") {
+            pai_model = "PAIphoton";
+        } else {
+            throw InvalidValueError(config_, "pai_model", "model has to be either 'pai' or 'paiphoton'");
+        }
+
         for(auto& detector : geo_manager_->getDetectors()) {
             // Get logical volume
             auto logical_volume = geo_manager_->getExternalObject<G4LogicalVolume>(detector->getName(), "sensor_log");
@@ -144,18 +155,7 @@ void DepositionGeant4Module::initialize() {
             auto* region = new G4Region(detector->getName() + "_sensor_region");
             region->AddRootLogicalVolume(logical_volume.get());
 
-            auto pai_model = config_.get<std::string>("pai_model");
-            auto lcase_model = pai_model;
-            std::transform(lcase_model.begin(), lcase_model.end(), lcase_model.begin(), ::tolower);
-            if(lcase_model == "pai") {
-                pai_model = "PAI";
-            } else if(lcase_model == "paiphoton") {
-                pai_model = "PAIphoton";
-            } else {
-                throw InvalidValueError(config_, "pai_model", "model has to be either 'pai' or 'paiphoton'");
-            }
-
-            ui_g4->ApplyCommand("/process/em/AddPAIRegion all " + region->GetName() + " " + pai_model);
+            G4EmParameters::Instance()->AddPAIModel("all", region->GetName(), pai_model);
         }
     }
 
@@ -274,7 +274,7 @@ void DepositionGeant4Module::initializeThread() {
     LOG(DEBUG) << "Initializing run manager";
 
     // Initialize the thread local G4RunManager in case of MT
-    if(canParallelize()) {
+    if(multithreadingEnabled()) {
         auto* run_manager_mt = static_cast<MTRunManager*>(run_manager_g4_);
 
         // In MT-mode the sensitive detectors will be created with the calls to BeamOn. So we construct the
@@ -300,7 +300,7 @@ void DepositionGeant4Module::run(Event* event) {
     auto seed2 = event->getRandomNumber();
     LOG(DEBUG) << "Seeding Geant4 event with seeds " << seed1 << " " << seed2;
 
-    if(canParallelize()) {
+    if(multithreadingEnabled()) {
         auto* run_manager_mt = static_cast<MTRunManager*>(run_manager_g4_);
         run_manager_mt->Run(static_cast<int>(number_of_particles_), seed1, seed2);
     } else {
@@ -338,7 +338,7 @@ void DepositionGeant4Module::finalize() {
     }
 
     // Record the number of sensors and the total charges
-    if(!canParallelize()) {
+    if(!multithreadingEnabled()) {
         record_module_statistics();
     }
 
