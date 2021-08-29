@@ -79,7 +79,7 @@ namespace allpix {
 
         /**
          * @brief Get the field value in the sensor at a position provided in local coordinates
-         * @param pos Position in the local frame
+         * @param local_pos Position in the local frame
          * @param extrapolate_z Extrapolate the field along z when outside the defined region
          * @return Value(s) of the field at the queried point
          */
@@ -87,7 +87,7 @@ namespace allpix {
 
         /**
          * @brief Get the value of the field at a position provided in local coordinates with respect to the reference
-         * @param pos       Position in the local frame
+         * @param local_pos Position in the local frame
          * @param reference Reference position to calculate the field for, x and y coordinate only
          * @param extrapolate_z Extrapolate the field along z when outside the defined region
          * @return Value(s) of the field assigned to the reference pixel at the queried point
@@ -138,7 +138,7 @@ namespace allpix {
         /**
          * @brief Helper function to retrieve the return type from a calculated index of the field data vector
          * @param offset The calculated global index to start from
-         * @param index sequence expanded to the number of elements requested, depending on the template instance
+         * @note The index sequence is expanded to the number of elements requested, depending on the template instance
          */
         template <std::size_t... I> auto get_impl(size_t offset, std::index_sequence<I...>) const;
 
@@ -153,8 +153,10 @@ namespace allpix {
         /**
          * Field properties
          * * Dimensions of the field map (bins in x, y, z)
-         * * Scale of the field in x and y direction, defaults to 1, 1, i.e. to one full pixel cell
+         * * Scale of the field in x and y direction, defaults to 1, 1, i.e. to one full pixel cell, provided in fractions
+         *   of the pixel pitch.
          * * Offset of the field from the pixel edge, e.g. when using fields centered at a pixel corner instead of the center
+         *   Values provided as absolute shifts in um.
          */
         std::array<size_t, 3> dimensions_{};
         std::array<double_t, 2> scales_{{1., 1.}};

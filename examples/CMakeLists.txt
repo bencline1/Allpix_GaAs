@@ -6,8 +6,10 @@
 ADD_TEST(NAME "examples/example"
          COMMAND ${CMAKE_SOURCE_DIR}/etc/unittests/run_directory.sh "test_example"
                  "${CMAKE_INSTALL_PREFIX}/bin/allpix -c ${CMAKE_SOURCE_DIR}/examples/example.conf -o number_of_events=10")
+ADD_DEFAULT_FAIL_CONDITIONS("examples/example")
 ADD_TEST(NAME "examples/manual" COMMAND ${CMAKE_SOURCE_DIR}/etc/unittests/run_directory.sh "test_manual"
                                         "${CMAKE_INSTALL_PREFIX}/bin/allpix -c ${CMAKE_SOURCE_DIR}/etc/manual.conf")
+ADD_DEFAULT_FAIL_CONDITIONS("examples/manual")
 
 IF(TEST_EXAMPLES)
     FILE(
@@ -40,6 +42,7 @@ IF(TEST_EXAMPLES)
                     "${CMAKE_INSTALL_PREFIX}/bin/allpix -c ${CMAKE_SOURCE_DIR}/examples/${test}/${test}.conf -o number_of_events=10 ${ADDITIONAL_CLI_ARGS}"
             )
             SET_TESTS_PROPERTIES(${TEST_NAME} PROPERTIES DEPENDS "${DEPENDENCY}")
+            ADD_DEFAULT_FAIL_CONDITIONS(${TEST_NAME})
         ENDIF()
     ENDFOREACH()
 ELSE()

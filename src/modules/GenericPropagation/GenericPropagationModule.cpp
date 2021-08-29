@@ -112,10 +112,10 @@ GenericPropagationModule::GenericPropagationModule(Configuration& config,
     propagate_holes_ = config_.get<bool>("propagate_holes");
     charge_per_step_ = config_.get<unsigned int>("charge_per_step");
 
-    // Enable parallelization of this module if multithreading is enabled and no per-event output plots are requested:
+    // Enable multithreading of this module if multithreading is enabled and no per-event output plots are requested:
     // FIXME: Review if this is really the case or we can still use multithreading
     if(!(output_animations_ || output_linegraphs_)) {
-        enable_parallelization();
+        allow_multithreading();
     } else {
         LOG(WARNING) << "Per-event line graphs or animations requested, disabling parallel event processing";
     }
@@ -759,7 +759,7 @@ GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
     double last_time = 0;
     size_t next_idx = 0;
     bool is_alive = true;
-    while(detector_->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(position)) &&
+    while(detector_->getModel()->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(position)) &&
           (initial_time + runge_kutta.getTime()) < integration_time_ && is_alive) {
         // Update output plots if necessary (depending on the plot step)
         if(output_linegraphs_) {
@@ -796,6 +796,10 @@ GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
                                    survival(random_generator),
                                    timestep);
 
+        LOG(TRACE) << "Step from " << Units::display(static_cast<ROOT::Math::XYZPoint>(last_position), {"um", "mm"})
+                   << " to " << Units::display(static_cast<ROOT::Math::XYZPoint>(position), {"um", "mm"}) << " at "
+                   << Units::display(initial_time + runge_kutta.getTime(), {"ps", "ns", "us"})
+                   << (is_alive ? "" : ", recombined");
         // Adapt step size to match target precision
         double uncertainty = step.error.norm();
 
@@ -826,10 +830,10 @@ GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
 
     // Find proper final position in the sensor
     auto time = runge_kutta.getTime();
-    if(!detector_->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(position))) {
+    if(!detector_->getModel()->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(position))) {
         auto check_position = position;
         check_position.z() = last_position.z();
-        if(position.z() > 0 && detector_->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(check_position))) {
+        if(position.z() > 0 && detector_->getModel()->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(check_position))) {
             // Carrier left sensor on the side of the pixel grid, interpolate end point on surface
             auto z_cur_border = std::fabs(position.z() - model_->getSensorSize().z() / 2.0);
             auto z_last_border = std::fabs(model_->getSensorSize().z() / 2.0 - last_position.z());

@@ -24,8 +24,8 @@ DefaultDigitizerModule::DefaultDigitizerModule(Configuration& config,
                                                Messenger* messenger,
                                                std::shared_ptr<Detector> detector)
     : Module(config, std::move(detector)), messenger_(messenger) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    // Enable multithreading of this module if multithreading is enabled
+    allow_multithreading();
 
     // Require PixelCharge message for single detector
     messenger_->bindSingle<PixelChargeMessage>(this, MsgFlags::REQUIRED);
@@ -340,7 +340,7 @@ double DefaultDigitizerModule::time_of_arrival(const PixelCharge& pixel_charge, 
         }
         return pulse.getBinning() * static_cast<double>(std::distance(charges.begin(), bin));
     } else {
-        LOG_ONCE(WARNING) << "Simulation chain does not allow for time-of-arrival calculation";
+        LOG_ONCE(INFO) << "Simulation chain does not allow for time-of-arrival calculation";
         return 0;
     }
 }

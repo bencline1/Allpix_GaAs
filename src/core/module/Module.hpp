@@ -130,10 +130,10 @@ namespace allpix {
         ConfigManager* getConfigManager() const;
 
         /**
-         * @brief Returns if parallelization of this module is enabled
-         * @return True if parallelization is enabled, false otherwise (the default)
+         * @brief Returns if multithreading of this module is enabled
+         * @return True if multithreading is enabled, false otherwise (the default)
          */
-        bool canParallelize() const;
+        bool multithreadingEnabled() const;
 
         /**
          * @brief Initialize the module for each thread after the global initialization
@@ -152,7 +152,7 @@ namespace allpix {
 
         /**
          * @brief Execute the function of the module for every event
-         * @param Event Pointer to the event the module is running
+         * @param event Pointer to the event the module is running
          *
          * Does nothing if not overloaded.
          */
@@ -176,9 +176,9 @@ namespace allpix {
 
     protected:
         /**
-         * @brief Enable parallelization for this module
+         * @brief Enable multithreading for this module
          */
-        void enable_parallelization();
+        void allow_multithreading();
 
         /**
          * @brief Get the module configuration for internal use
@@ -209,7 +209,7 @@ namespace allpix {
 
         /**
          * @brief Set the link to the config manager
-         * @param conf_manager ConfigManager holding all relevant configurations
+         * @param config Pointer to the configuration manager holding all relevant configurations
          */
         void set_config_manager(ConfigManager* config);
         ConfigManager* conf_manager_{nullptr};
@@ -230,7 +230,6 @@ namespace allpix {
 
         /**
          * @brief Inform the module that a certain event will be skipped
-         * @param event Number of event skipped
          */
         virtual void skip_event(uint64_t) {}
 
@@ -239,10 +238,10 @@ namespace allpix {
         std::shared_ptr<Detector> detector_;
 
         /**
-         * @brief Sets the parallelize flag
+         * @brief Sets the multithreading flag
          */
-        void set_parallelize(bool parallelize);
-        bool parallelize_{false};
+        void set_multithreading(bool multithreading);
+        bool multithreading_{false};
 
         /**
          * @brief Checks if object is instance of SequentialModule class

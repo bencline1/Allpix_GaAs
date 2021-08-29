@@ -13,7 +13,7 @@ IF(COMMAND CMAKE_POLICY)
 ENDIF(COMMAND CMAKE_POLICY)
 
 # Set default version
-SET(ALLPIX_VERSION "v1.6.0")
+SET(ALLPIX_VERSION "v2.0.0")
 
 # Set default build type
 IF(NOT CMAKE_BUILD_TYPE)
@@ -287,7 +287,18 @@ FILE(
     tools/*.C
     tools/*.[tch]pp
     tools/*.h)
+
 INCLUDE("cmake/clang-cpp-checks.cmake")
+
+FILE(
+    GLOB_RECURSE CHECK_CMAKE_FILES
+    LIST_DIRECTORIES false
+    RELATIVE ${PROJECT_SOURCE_DIR}
+    "cmake/*.cmake" "CMakeLists.txt")
+LIST(REMOVE_ITEM CHECK_CMAKE_FILES "cmake/LATEX.cmake" "cmake/PANDOC.cmake" "cmake/FindPQXX.cmake"
+     "cmake/CodeCoverage.cmake")
+
+INCLUDE("cmake/cmake-checks.cmake")
 
 ###################################
 # Setup tests for allpix          #
@@ -435,6 +446,11 @@ INSTALL(
     DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/tools"
     DESTINATION include
     PATTERN "*.h")
+
+INSTALL(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/magic_enum"
+    DESTINATION include/3rdparty
+PATTERN "*.hpp")
 
 INSTALL(
     EXPORT Allpix

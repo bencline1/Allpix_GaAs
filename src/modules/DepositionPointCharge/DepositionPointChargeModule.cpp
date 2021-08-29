@@ -26,8 +26,8 @@ DepositionPointChargeModule::DepositionPointChargeModule(Configuration& config,
                                                          Messenger* messenger,
                                                          std::shared_ptr<Detector> detector)
     : Module(config, detector), messenger_(messenger), detector_(std::move(detector)) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    // Enable multithreading of this module if multithreading is enabled
+    allow_multithreading();
 
     // Allow to use similar syntax as in DepositionGeant4:
     config_.setAlias("position", "source_position");
@@ -121,7 +121,7 @@ void DepositionPointChargeModule::run(Event* event) {
         auto ref = position_ + model->getGridSize() / 2.0 + voxel_ / 2.0 -
                    ROOT::Math::XYZVector(
                        model->getPixelSize().x() / 2.0, model->getPixelSize().y() / 2.0, model->getSensorSize().z() / 2.0);
-        LOG(DEBUG) << "Reference: " << ref;
+        LOG(DEBUG) << "Reference: " << Units::display(ref, {"um", "mm"});
         position = ROOT::Math::XYZPoint(voxel_.x() * static_cast<double>((event->number - 1) % root_),
                                         voxel_.y() * static_cast<double>(((event->number - 1) / root_) % root_),
                                         voxel_.z() * static_cast<double>(((event->number - 1) / root_ / root_) % root_)) +
@@ -154,7 +154,7 @@ void DepositionPointChargeModule::DepositPoint(Event* event, const ROOT::Math::X
 
     LOG(DEBUG) << "Position (local coordinates): " << Units::display(position, {"um", "mm"});
     // Cross-check calculated position to be within sensor:
-    if(!detector_->isWithinSensor(position)) {
+    if(!detector_->getModel()->isWithinSensor(position)) {
         LOG(DEBUG) << "Requested position is outside active sensor volume.";
         return;
     }
@@ -187,7 +187,7 @@ void DepositionPointChargeModule::DepositLine(Event* event, const ROOT::Math::XY
     std::vector<MCParticle> mcparticles;
 
     // Cross-check calculated position to be within sensor:
-    if(!detector_->isWithinSensor(ROOT::Math::XYZPoint(position.x(), position.y(), 0))) {
+    if(!detector_->getModel()->isWithinSensor(ROOT::Math::XYZPoint(position.x(), position.y(), 0))) {
         LOG(DEBUG) << "Requested position is outside active sensor volume.";
         return;
     }

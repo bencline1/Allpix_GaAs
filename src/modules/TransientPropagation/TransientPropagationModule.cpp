@@ -29,8 +29,8 @@ TransientPropagationModule::TransientPropagationModule(Configuration& config,
                                                        Messenger* messenger,
                                                        std::shared_ptr<Detector> detector)
     : Module(config, detector), messenger_(messenger), detector_(std::move(detector)) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    // Enable multithreading of this module if multithreading is enabled
+    allow_multithreading();
 
     using XYVectorInt = DisplacementVector2D<Cartesian2D<int>>;
 
@@ -346,14 +346,14 @@ TransientPropagationModule::propagate(Event* event,
         }
 
         // Check for overshooting outside the sensor and correct for it:
-        if(!detector_->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(position))) {
+        if(!detector_->getModel()->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(position))) {
             LOG(TRACE) << "Carrier outside sensor: " << Units::display(static_cast<ROOT::Math::XYZPoint>(position), {"nm"});
             // within_sensor = false;
 
             auto check_position = position;
             check_position.z() = last_position.z();
             // Correct for position in z by interpolation to increase precision:
-            if(detector_->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(check_position))) {
+            if(detector_->getModel()->isWithinSensor(static_cast<ROOT::Math::XYZPoint>(check_position))) {
                 // FIXME this currently depends in the direction of the drift
                 if(position.z() > 0 && type == CarrierType::HOLE) {
                     LOG(DEBUG) << "Not stopping carrier " << type << " at "
@@ -377,34 +377,32 @@ TransientPropagationModule::propagate(Event* event,
         }
 
         // Find the nearest pixel - before and after the step
-        auto xpixel = static_cast<int>(std::round(position.x() / model_->getPixelSize().x()));
-        auto ypixel = static_cast<int>(std::round(position.y() / model_->getPixelSize().y()));
+        auto [xpixel, ypixel] = model_->getPixelIndex(static_cast<ROOT::Math::XYZPoint>(position));
+        auto [last_xpixel, last_ypixel] = model_->getPixelIndex(static_cast<ROOT::Math::XYZPoint>(last_position));
+        if(last_xpixel != xpixel || last_ypixel != ypixel) {
+            LOG(TRACE) << "Carrier crossed boundary from pixel "
+                       << Pixel::Index(static_cast<unsigned int>(last_xpixel), static_cast<unsigned int>(last_ypixel))
+                       << " to pixel " << Pixel::Index(static_cast<unsigned int>(xpixel), static_cast<unsigned int>(ypixel));
+        }
         LOG(TRACE) << "Moving carriers below pixel "
                    << Pixel::Index(static_cast<unsigned int>(xpixel), static_cast<unsigned int>(ypixel)) << " from "
                    << Units::display(static_cast<ROOT::Math::XYZPoint>(last_position), {"um", "mm"}) << " to "
                    << Units::display(static_cast<ROOT::Math::XYZPoint>(position), {"um", "mm"}) << ", "
                    << Units::display(initial_time + runge_kutta.getTime(), "ns");
-        auto last_xpixel = static_cast<int>(std::round(last_position.x() / model_->getPixelSize().x()));
-        auto last_ypixel = static_cast<int>(std::round(last_position.y() / model_->getPixelSize().y()));
-        if(last_xpixel != xpixel || last_ypixel != ypixel) {
-            LOG(TRACE) << "Carrier crossed boundary from pixel "
-                       << Pixel::Index(static_cast<unsigned int>(xpixel), static_cast<unsigned int>(ypixel)) << " to pixel "
-                       << Pixel::Index(static_cast<unsigned int>(last_xpixel), static_cast<unsigned int>(last_ypixel));
-        }
 
         // If the charge carrier crossed pixel boundaries, ensure that we always calculate the induced current for both of
         // them by extending the induction matrix temporarily. Otherwise we end up doing "double-counting" because we would
-        // only jump "into" a pixel but never "out" in case of a 1x1 induction matrix.
-        int x_lower = std::min(xpixel - matrix_.x() / 2, last_xpixel);
-        int x_higher = std::max(xpixel + matrix_.x() / 2, last_xpixel);
-        int y_lower = std::min(ypixel - matrix_.y() / 2, last_ypixel);
-        int y_higher = std::max(ypixel + matrix_.y() / 2, last_ypixel);
+        // only jump "into" a pixel but never "out". At the border of the induction matrix, this would create an imbalance.
+        int x_lower = std::min(xpixel, last_xpixel) - matrix_.x() / 2;
+        int x_higher = std::max(xpixel, last_xpixel) + matrix_.x() / 2;
+        int y_lower = std::min(ypixel, last_ypixel) - matrix_.y() / 2;
+        int y_higher = std::max(ypixel, last_ypixel) + matrix_.y() / 2;
 
         // Loop over NxN pixels:
         for(int x = x_lower; x <= x_higher; x++) {
             for(int y = y_lower; y <= y_higher; y++) {
                 // Ignore if out of pixel grid
-                if(!detector_->isWithinPixelGrid(x, y)) {
+                if(!detector_->getModel()->isWithinPixelGrid(x, y)) {
                     LOG(TRACE) << "Pixel (" << x << "," << y << ") skipped, outside the grid";
                     continue;
                 }

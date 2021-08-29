@@ -20,8 +20,8 @@ using namespace allpix;
 
 DepositionReaderModule::DepositionReaderModule(Configuration& config, Messenger* messenger, GeometryManager* geo_manager)
     : SequentialModule(config), geo_manager_(geo_manager), messenger_(messenger) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    // Enable multithreading of this module if multithreading is enabled
+    allow_multithreading();
 
     config_.setDefault<double>("charge_creation_energy", Units::get(3.64, "eV"));
     config_.setDefault<double>("fano_factor", 0.115);
@@ -256,7 +256,7 @@ void DepositionReaderModule::run(Event* event) {
         LOG(DEBUG) << "Found detector \"" << detector->getName() << "\"";
 
         auto local_position = detector->getLocalPosition(global_position);
-        if(!detector->isWithinSensor(local_position)) {
+        if(!detector->getModel()->isWithinSensor(local_position)) {
             LOG(WARNING) << "Found deposition outside sensor at " << Units::display(local_position, {"mm", "um"})
                          << ", global " << Units::display(global_position, {"mm", "um"}) << ". Skipping.";
             continue;
@@ -326,18 +326,22 @@ void DepositionReaderModule::run(Event* event) {
 
             auto pdg_code = mc_particle_code[detector].at(i);
             auto time = mc_particle_time[detector].at(i);
-            auto parent_id = mc_particle_parent[detector].at(i);
 
             mc_particles.emplace_back(
                 start_local, start_global, end_local, end_global, pdg_code, time - time_reference, time);
+        }
 
+        for(size_t i = 0; i < mc_particle_size; i++) {
             // Check if we know the parent - and set it:
+            auto parent_id = mc_particle_parent[detector].at(i);
             auto parent = track_id_to_mcparticle[detector].find(parent_id);
-            if(parent != track_id_to_mcparticle[detector].end()) {
-                LOG(DEBUG) << "Adding parent relation to MCParticle with track id " << parent_id;
-                mc_particles.back().setParent(&mc_particles.at(parent->second));
+            if(parent == track_id_to_mcparticle[detector].end()) {
+                LOG(DEBUG) << "Parent MCParticle is unknown, parent track id " << parent_id;
+            } else if(i == parent->second) {
+                LOG(DEBUG) << "Parent MCParticle is same as current particle, not adding relation";
             } else {
-                LOG(DEBUG) << "Parent MCParticle is unknown, parent id " << parent_id;
+                LOG(DEBUG) << "Adding parent relation to MCParticle with track id " << parent_id;
+                mc_particles.at(i).setParent(&mc_particles.at(parent->second));
             }
         }
 

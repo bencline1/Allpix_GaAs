@@ -41,10 +41,10 @@ PulseTransferModule::PulseTransferModule(Configuration& config,
     max_depth_distance_ = config_.get<double>("max_depth_distance");
     collect_from_implant_ = config_.get<bool>("collect_from_implant");
 
-    // Enable parallelization of this module if multithreading is enabled and no per-event output plots are requested:
+    // Enable multithreading of this module if multithreading is enabled and no per-event output plots are requested:
     // FIXME: Review if this is really the case or we can still use multithreading
     if(!output_pulsegraphs_) {
-        enable_parallelization();
+        allow_multithreading();
     } else {
         LOG(WARNING) << "Per-event pulse graphs requested, disabling parallel event processing";
     }
@@ -116,11 +116,10 @@ void PulseTransferModule::run(Event* event) {
             }
 
             // Find the nearest pixel
-            auto xpixel = static_cast<int>(std::round(position.x() / model->getPixelSize().x()));
-            auto ypixel = static_cast<int>(std::round(position.y() / model->getPixelSize().y()));
+            auto [xpixel, ypixel] = model->getPixelIndex(position);
 
             // Ignore if out of pixel grid
-            if(!detector_->isWithinPixelGrid(xpixel, ypixel)) {
+            if(!detector_->getModel()->isWithinPixelGrid(xpixel, ypixel)) {
                 LOG(TRACE) << "Skipping set of " << propagated_charge.getCharge() << " propagated charges at "
                            << Units::display(propagated_charge.getLocalPosition(), {"mm", "um"})
                            << " because their nearest pixel (" << xpixel << "," << ypixel << ") is outside the grid";
@@ -134,7 +133,7 @@ void PulseTransferModule::run(Event* event) {
                         "Charge collection from implant region should not be used with linear electric fields.");
                 }
 
-                if(!detector_->isWithinImplant(position)) {
+                if(!detector_->getModel()->isWithinImplant(position)) {
                     LOG(TRACE) << "Skipping set of " << propagated_charge.getCharge() << " propagated charges at "
                                << Units::display(propagated_charge.getLocalPosition(), {"mm", "um"})
                                << " because it is outside the pixel implant.";

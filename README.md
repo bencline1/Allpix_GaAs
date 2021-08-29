@@ -80,14 +80,14 @@ The main page of the reference can then be found at `reference/html/index.html` 
 
 ## Development of Allpix<sup>2</sup>
 
-Allpix<sup>2</sup> has been developed and is maintained by
+Allpix<sup>2</sup> is developed and maintained by
 
 * Paul Schütze, DESY, @pschutze
 * Simon Spannagel, DESY, @simonspa
-* Koen Wolters, CERN, @kwolters
+* Koen Wolters, @kwolters
 
-The following authors, in alphabetical order, have contributed to Allpix<sup>2</sup>:
-* Mohamed Moanis Ali, Free University of Bozen-Bolzano, @mmoanis
+The following authors, in alphabetical order, have developed or contributed to Allpix<sup>2</sup>:
+* Mohamed Moanis Ali, GSOC2019 Student, @mmoanis
 * Mathieu Benoit, BNL, @mbenoit
 * Thomas Billoud, Université de Montréal, @tbilloud
 * Tobias Bisanz, CERN, @tbisanz
@@ -105,15 +105,17 @@ The following authors, in alphabetical order, have contributed to Allpix<sup>2</
 * Salman Maqbool, CERN Summer Student, @smaqbool
 * Sebastien Murphy, ETHZ, @smurphy
 * Andreas Matthias Nürnberg, KIT, @nurnberg
+* Stefano Mersi, CERN, @mersi
 * Sebastian Pape, TU Dortmund University, @spape
 * Marko Petric, CERN, @mpetric
+* Radek Privara, Palacky University Olomouc, @rprivara
 * Nashad Rahman, The Ohio State University, @nashadroid
 * Edoardo Rossi, DESY, @edrossi
 * Andre Sailer, CERN, @sailer
 * Enrico Jr. Schioppa, Unisalento and INFN Lecce, @schioppa
 * Sanchit Sharma, Kansas State University, @SanchitKratos
 * Xin Shi, Institute of High Energy Physics Beijing, @xshi
-* Viktor Sonesten, GSOC18 Student, @tmplt
+* Viktor Sonesten, GSOC2018 Student, @tmplt
 * Reem Taibah, Université de Paris, @retaibah
 * Ondrej Theiner, Charles University, @otheiner
 * Annika Vauth, University of Hamburg, @avauth
@@ -137,8 +139,8 @@ A preprint version is available on [arxiv.org](https://arxiv.org/abs/1806.05813)
 
 In addition, the software can be cited using the [versioned Zenodo record](https://doi.org/10.5281/zenodo.3550935) or the current version as:
 
-> S. Spannagel, K. Wolters, D. Hynds. (2019, July 9). Allpix Squared - Generic Pixel Detector Simulation Framework
-> (Version 1.4.0). Zenodo. http://doi.org/10.5281/zenodo.3550971
+> S. Spannagel, K. Wolters, P. Schütze. (2021, June 10). Allpix Squared - Generic Pixel Detector Simulation Framework
+> (Version 2.0.0). Zenodo. http://doi.org/10.5281/zenodo.4924549
 
 
 ## Contributing
