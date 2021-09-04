@@ -118,11 +118,12 @@ Pixel Detector::getPixel(unsigned int x, unsigned int y) const {
  */
 Pixel Detector::getPixel(const Pixel::Index& index) const {
     auto size = model_->getPixelSize();
+    auto type = model_->getPixelType();
 
     auto local_center = model_->getPixelCenter(index.x(), index.y());
     auto global_center = getGlobalPosition(local_center);
 
-    return {index, local_center, global_center, size};
+    return {index, type, local_center, global_center, size};
 }
 
 /**
