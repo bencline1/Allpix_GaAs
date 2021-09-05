@@ -230,8 +230,8 @@ std::pair<int, int> DetectorModel::getPixelIndex(const ROOT::Math::XYZPoint& pos
 std::set<Pixel::Index> DetectorModel::getNeighbors(const Pixel::Index& idx, const size_t distance) const {
     std::set<Pixel::Index> neighbors;
 
-    for(int x = static_cast<int>(idx.x() - distance); x <= static_cast<int>(idx.x() + distance); x++) {
-        for(int y = static_cast<int>(idx.y() - distance); y <= static_cast<int>(idx.y() + distance); y++) {
+    for(int x = idx.x() - static_cast<int>(distance); x <= idx.x() + static_cast<int>(distance); x++) {
+        for(int y = idx.y() - static_cast<int>(distance); y <= idx.y() + static_cast<int>(distance); y++) {
             if(!isWithinPixelGrid(x, y)) {
                 continue;
             }
@@ -246,17 +246,17 @@ std::set<Pixel::Index>
 DetectorModel::getNeighbors(const Pixel::Index& idx, const Pixel::Index& last_idx, const size_t distance) const {
     std::set<Pixel::Index> neighbors;
 
-    auto x_lower = static_cast<int>(std::min(idx.x(), last_idx.x()) - distance);
-    auto x_higher = static_cast<int>(std::max(idx.x(), last_idx.x()) + distance);
-    auto y_lower = static_cast<int>(std::min(idx.y(), last_idx.y()) - distance);
-    auto y_higher = static_cast<int>(std::max(idx.y(), last_idx.y()) + distance);
+    auto x_lower = std::min(idx.x(), last_idx.x()) - static_cast<int>(distance);
+    auto x_higher = std::max(idx.x(), last_idx.x()) + static_cast<int>(distance);
+    auto y_lower = std::min(idx.y(), last_idx.y()) - static_cast<int>(distance);
+    auto y_higher = std::max(idx.y(), last_idx.y()) + static_cast<int>(distance);
 
     for(int x = x_lower; x <= x_higher; x++) {
         for(int y = y_lower; y <= y_higher; y++) {
             if(!isWithinPixelGrid(x, y)) {
                 continue;
             }
-            neighbors.insert({static_cast<unsigned int>(x), static_cast<unsigned int>(y)});
+            neighbors.insert({x, y});
         }
     }
 
@@ -264,6 +264,7 @@ DetectorModel::getNeighbors(const Pixel::Index& idx, const Pixel::Index& last_id
 }
 
 bool DetectorModel::areNeighbors(const Pixel::Index& seed, const Pixel::Index& entrant, const size_t distance) const {
-    auto pixel_distance = [](unsigned int lhs, unsigned int rhs) { return (lhs > rhs ? lhs - rhs : rhs - lhs); };
-    return (pixel_distance(seed.x(), entrant.x()) <= distance && pixel_distance(seed.y(), entrant.y()) <= distance);
+    auto pixel_distance = [](int lhs, int rhs) { return (lhs > rhs ? lhs - rhs : rhs - lhs); };
+    return (pixel_distance(seed.x(), entrant.x()) <= static_cast<int>(distance) &&
+            pixel_distance(seed.y(), entrant.y()) <= static_cast<int>(distance));
 }

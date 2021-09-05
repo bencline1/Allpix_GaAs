@@ -385,8 +385,8 @@ TransientPropagationModule::propagate(Event* event,
         // If the charge carrier crossed pixel boundaries, ensure that we always calculate the induced current for both of
         // them by extending the induction matrix temporarily. Otherwise we end up doing "double-counting" because we would
         // only jump "into" a pixel but never "out". At the border of the induction matrix, this would create an imbalance.
-        auto idx = Pixel::Index(static_cast<unsigned int>(xpixel), static_cast<unsigned int>(ypixel));
-        auto last_idx = Pixel::Index(static_cast<unsigned int>(last_xpixel), static_cast<unsigned int>(last_ypixel));
+        auto idx = Pixel::Index(xpixel, ypixel);
+        auto last_idx = Pixel::Index(last_xpixel, last_ypixel);
 
         for(const auto& pixel_index : model_->getNeighbors(idx, last_idx, distance_)) {
             auto ramo = detector_->getWeightingPotential(static_cast<ROOT::Math::XYZPoint>(position), pixel_index);
