@@ -22,6 +22,7 @@ ADD_LIBRARY(
     geometry/DetectorField.cpp
     geometry/DetectorModel.cpp
     geometry/GeometryManager.cpp
+    geometry/HexagonalPixelDetectorModel.cpp
     Allpix.cpp)
 
 # Link the dependencies
