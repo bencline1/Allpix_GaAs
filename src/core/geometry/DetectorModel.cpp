@@ -235,7 +235,7 @@ std::set<Pixel::Index> DetectorModel::getNeighbors(const Pixel::Index& idx, cons
             if(!isWithinPixelGrid(x, y)) {
                 continue;
             }
-            neighbors.insert({static_cast<unsigned int>(x), static_cast<unsigned int>(y)});
+            neighbors.insert({x, y});
         }
     }
 
