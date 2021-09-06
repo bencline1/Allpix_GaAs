@@ -350,6 +350,59 @@ The height of the cylinder is determined by the \parameter{bump_height} paramete
 The individual bumps are by default positioned at the center of each single pixel in the grid.
 \end{itemize}
 
+\nlparagraph{Hexagonal Pixels}
+
+\begin{figure}[tbp]
+    \centering
+    \begin{subfigure}[b]{0.5\textwidth}
+        \centering
+        \input{tikz/hexagon_pointy}
+        \caption{Hexagon in \emph{pointy} orientation}
+        \label{fig:hexagon:pointy}
+    \end{subfigure}%
+    \begin{subfigure}[b]{0.5\textwidth}
+        \centering
+        \input{tikz/hexagon_flat}
+        \caption{Hexagon in \emph{flat} orientation}
+        \label{fig:hexagon:flat}
+    \end{subfigure}%
+    \caption{Definition of the pitches $p_x$ and $p_y$, and corner positions for the pointy (\subref{fig:hexagon:pointy}) and flat (\subref{fig:hexagon:flat}) hexagon orientation in Cartesian coordinates. The pitches align with the axes of the axial coordinate system of the hexagonal grid.}
+    \label{fig:hexagon}
+\end{figure}
+
+Hexagonal pixel grids in \apsq use an axial coordinate system to describe the relative positions and indices of hexagons on the grid, following largely the definitions provided in~\cite{hexagons}.
+Similar to the Cartesian coordinate system used for regular pixel layouts, the origin is the lower-left corner of the sensor, with the hexagon indices $(0,0)$.
+Owing to the orientation of the grid axes, negative can occur in the top-left region of the sensor.
+
+Two orientations of hexagons are supported, subsequently referred to as \emph{pointy} with sides parallel to the $y$ axis of the Cartesian coordinate system and corners at the top and bottom, and \emph{flat} with sides parallel to the Cartesian $x$ axis and corners to the left and right.
+The pitches $p_x$ and $p_y$ of the hexagon align with the axial coordinate system and are rotated differently with respect to the Cartesian system between the two variants.
+The orientation of the pitches as well as the resulting corner positions in Cartesian coordinates are shown in Figure~\ref{fig:hexagon}.
+
+The additional parameters for the \textbf{hexagonal} model are as follows:
+\begin{itemize}
+\item \parameter{pixel_type}: The shape/orientation of the hexagonal pixels within the grid, either \parameter{hexagon_pointy} or \parameter{hexagon_flat}.
+\end{itemize}
+
+\begin{figure}[tbp]
+    \centering
+    \begin{subfigure}[b]{0.5\textwidth}
+        \centering
+        \input{tikz/hexagon_grid_pointy}
+        \caption{\si{8x4} grid with \emph{pointy} hexagons}
+        \label{fig:hexagongrid:pointy}
+    \end{subfigure}%
+    \begin{subfigure}[b]{0.5\textwidth}
+        \centering
+        \input{tikz/hexagon_grid_flat}
+        \caption{\si{8x4} grid with \emph{flat} hexagons}
+        \label{fig:hexagongrid:flat}
+    \end{subfigure}%
+    \caption{Grid layouts for \emph{pointy} (\subref{fig:hexagongrid:pointy}) and \emph{flat} (\subref{fig:hexagongrid:flat}) hexagons with a size of \si{8x4} pixels.}
+    \label{fig:hexagongrid}
+\end{figure}
+
+The number of pixels in a hexagonal grid are counted along the Cartesian axes, taking the offset pixels into account.
+For example, an \si{8x4} grid comprises \num{32} pixels both for \emph{pointy} and \emph{flat} hexagon orientation, but results in different overall grid dimensions as demonstrated in Figure~\ref{fig:hexagongrid}.
 
 \nlparagraph{Support Layers}
 \label{sec:support_layers}

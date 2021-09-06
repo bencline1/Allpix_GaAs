@@ -160,6 +160,10 @@ IF(LATEX_COMPILER)
                    usermanual/chapters/acknowledgements.tex
                    usermanual/config.tex
                    usermanual/tikz/transformations.tex
+                   usermanual/tikz/hexagon_pointy.tex
+                   usermanual/tikz/hexagon_flat.tex
+                   usermanual/tikz/hexagon_grid_pointy.tex
+                   usermanual/tikz/hexagon_grid_flat.tex
                    usermanual/html/allpix.cfg
                    usermanual/html/tools.sty
                    usermanual/html/js/fw.js
