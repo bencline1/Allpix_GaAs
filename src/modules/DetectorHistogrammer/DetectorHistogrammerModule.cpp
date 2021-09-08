@@ -67,6 +67,16 @@ void DetectorHistogrammerModule::initialize() {
     hit_map =
         CreateHistogram<TH2D>("hit_map", hit_map_title.c_str(), xpixels, -0.5, xpixels - 0.5, ypixels, -0.5, ypixels - 0.5);
 
+    std::string hit_map_local_title = "Hitmap for " + detector_->getName() + " (local coord.);x (mm);y (mm);hits";
+    hit_map_local = CreateHistogram<TH2D>("hit_map_local",
+                                          hit_map_local_title.c_str(),
+                                          static_cast<int>(model->getSensorSize().x() / model->getPixelSize().x()),
+                                          -model->getPixelSize().x() / 2,
+                                          model->getSensorSize().x() - model->getPixelSize().x() / 2,
+                                          static_cast<int>(model->getSensorSize().y() / model->getPixelSize().y()),
+                                          -model->getPixelSize().y() / 2,
+                                          model->getSensorSize().y() - model->getPixelSize().y() / 2);
+
     std::string charge_map_title = "Charge map for " + detector_->getName() + ";x (pixels);y (pixels); charge [ke]";
     charge_map = CreateHistogram<TH2D>(
         "charge_map", charge_map_title.c_str(), xpixels, -0.5, xpixels - 0.5, ypixels, -0.5, ypixels - 0.5);
@@ -316,9 +326,11 @@ void DetectorHistogrammerModule::run(Event* event) {
         // Fill 2D hitmap histogram
         for(const auto& pixel_hit : pixels_message->getData()) {
             auto pixel_idx = pixel_hit.getPixel().getIndex();
+            auto local_pos = pixel_hit.getPixel().getLocalCenter();
 
             // Add pixel
             hit_map->Fill(pixel_idx.x(), pixel_idx.y());
+            hit_map_local->Fill(local_pos.x(), local_pos.y());
             charge_map->Fill(pixel_idx.x(), pixel_idx.y(), static_cast<double>(Units::convert(pixel_hit.getSignal(), "ke")));
             pixel_charge->Fill(static_cast<double>(Units::convert(pixel_hit.getSignal(), "ke")));
 
@@ -462,6 +474,7 @@ void DetectorHistogrammerModule::finalize() {
 
     // Merge histograms that were possibly filled in parallel in order to change drawing options on the final object
     auto hit_map_histogram = hit_map->Merge();
+    auto hit_map_local_histogram = hit_map_local->Merge();
     auto charge_map_histogram = charge_map->Merge();
     auto cluster_map_histogram = cluster_map->Merge();
     auto cluster_size_map_histogram = cluster_size_map->Merge();
@@ -543,6 +556,7 @@ void DetectorHistogrammerModule::finalize() {
 
     // Set default drawing option histogram for hitmap
     hit_map_histogram->SetOption("colz");
+    hit_map_local_histogram->SetOption("colz");
     // Set hit_map axis spacing
     if(static_cast<int>(hit_map_histogram->GetXaxis()->GetXmax()) < 10) {
         hit_map_histogram->GetXaxis()->SetNdivisions(
@@ -578,6 +592,7 @@ void DetectorHistogrammerModule::finalize() {
     // Write histograms
     LOG(TRACE) << "Writing histograms to file";
     hit_map_histogram->Write();
+    hit_map_local_histogram->Write();
     charge_map_histogram->Write();
     cluster_map_histogram->Write();
     cluster_size_map_histogram->Write();
