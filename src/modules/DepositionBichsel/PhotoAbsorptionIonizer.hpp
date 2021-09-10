@@ -24,7 +24,7 @@ namespace allpix {
     public:
         /**
          * @brief Constructor of ionizer class, also calculates Auger probability integrals
-         * @param random_engine pseudo-random number generator to be used
+         * @param random_generator pseudo-random number generator to be used
          */
         PhotoAbsorptionIonizer(RandomNumberGenerator& random_generator);
 

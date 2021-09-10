@@ -116,13 +116,14 @@ namespace allpix {
          * Stepping function for individual detector. This function performs all stepping and ionization in the material and
          * dispatches messages for the detector with MCParticles and DepositedCharges.
          *
-         * @param  primary Incoming particle entering the sensor (primary MCParticle), local coordinates
+         * @param  primary              Incoming particle entering the sensor (primary MCParticle), local coordinates
          * @param  detector             Detector to operate on
          * @param  reference_time       Reference time in global coordinates for the detector currently
          * @param mcparticles           Vector of MCParticles in this detector, newly generated particles are added here
          * @param mcparticles_parent_id Vector of MCParticle-to-parent relations
          * @param clusters              Vector of electron-hole pair clusters generated in this detector, newly deposited
          *                              clusters are added to this list.
+         * @param random_generator      Reference to random number generator of the event
          * @return                      List of outgoing particles leaving the sensor, local coordinates
          */
         std::deque<Particle> stepping(Particle primary,
@@ -148,6 +149,7 @@ namespace allpix {
          * activated if the fast_ parameter is set to false.
          *
          * @param energy           Initial eh energy
+         * @param neh              Total number of e/h pairs generated from slow-down process
          * @param eh_pairs         Reference to stack of electron-hole pairs, new ones are added here
          * @param random_generator Reference to random number generator of the event
          */
@@ -178,6 +180,7 @@ namespace allpix {
          * Plotting of event displays
          * @param event_num Event number
          * @param detector  Detector to generate the plot for
+         * @param clusters  Vector of clusters to be plotted
          */
         void create_output_plots(uint64_t event_num,
                                  const std::shared_ptr<const Detector>& detector,

@@ -30,7 +30,8 @@ namespace allpix {
          * @param energy        Kinetic energy of the particle
          * @param pos           Position of generation
          * @param dir           Direction of motion
-         * @param particle_type Type of particle
+         * @param type          Type of particle
+         * @param time          Starting time of this particle
          * @param parent        ID of the parent particle, none (primary) if negative.
          */
         Particle(
