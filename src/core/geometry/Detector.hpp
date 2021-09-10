@@ -129,7 +129,7 @@ namespace allpix {
          */
         void setElectricFieldGrid(const std::shared_ptr<std::vector<double>>& field,
                                   std::array<size_t, 3> dimensions,
-                                  std::array<double, 2> scales,
+                                  FieldScale scale,
                                   std::array<double, 2> offset,
                                   std::pair<double, double> thickness_domain);
         /**
@@ -169,7 +169,7 @@ namespace allpix {
          */
         void setDopingProfileGrid(std::shared_ptr<std::vector<double>> field,
                                   std::array<size_t, 3> dimensions,
-                                  std::array<double, 2> scales,
+                                  FieldScale scale,
                                   std::array<double, 2> offset,
                                   std::pair<double, double> thickness_domain);
         /**
@@ -208,7 +208,7 @@ namespace allpix {
          */
         void setWeightingPotentialGrid(const std::shared_ptr<std::vector<double>>& potential,
                                        std::array<size_t, 3> dimensions,
-                                       std::array<double, 2> scales,
+                                       FieldScale scale,
                                        std::array<double, 2> offset,
                                        std::pair<double, double> thickness_domain);
         /**
