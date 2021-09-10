@@ -2,7 +2,7 @@
  * @file
  * @brief Definition of detector fields
  *
- * @copyright Copyright (c) 2019-2020 CERN and the Allpix Squared authors.
+ * @copyright Copyright (c) 2019-2021 CERN and the Allpix Squared authors.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE.md".
  * In applying this license, CERN does not waive the privileges and immunities granted to it by virtue of its status as an
  * Intergovernmental Organization or submit itself to any jurisdiction.
@@ -38,9 +38,9 @@ namespace allpix {
     };
 
     /**
-     * @brief Scale of field maps
+     * @brief Type of field maps
      */
-    enum class FieldScale {
+    enum class FieldMapping {
         FULL = 0, ///< The field map spans the full volume
         HALF_X,   ///< The field map spans half the volume and should be mirrored along x
         HALF_Y,   ///< The field map spans half the volume and should be mirrored along y
@@ -111,13 +111,13 @@ namespace allpix {
          * @brief Set the field in the detector using a grid
          * @param field Flat array of the field
          * @param dimensions The dimensions of the flat field array
-         * @param scale Indicator of the actual physical extent of the field in each direction
+         * @param mapping Indicator of the actual physical extent of the field in each direction
          * @param offset Offset of the field in x and y, given in physical units
          * @param thickness_domain Domain in local coordinates in the thickness direction where the field holds
          */
         void setGrid(std::shared_ptr<std::vector<double>> field,
                      std::array<size_t, 3> dimensions,
-                     FieldScale scale,
+                     FieldMapping mapping,
                      std::array<double, 2> offset,
                      std::pair<double, double> thickness_domain);
         /**
@@ -160,7 +160,7 @@ namespace allpix {
          *   Values provided as absolute shifts in um.
          */
         std::array<size_t, 3> dimensions_{};
-        FieldScale scale_{FieldScale::FULL};
+        FieldMapping mapping_{FieldMapping::FULL};
         std::array<double_t, 2> offset_{{0., 0.}};
 
         /**

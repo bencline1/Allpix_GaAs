@@ -2,7 +2,7 @@
  * @file
  * @brief Template implementation of detector fields
  *
- * @copyright Copyright (c) 2019-2020 CERN and the Allpix Squared authors.
+ * @copyright Copyright (c) 2019-2021 CERN and the Allpix Squared authors.
  * This software is distributed under the terms of the MIT License, copied verbatim in the file "LICENSE.md".
  * In applying this license, CERN does not waive the privileges and immunities granted to it by virtue of its status as an
  * Intergovernmental Organization or submit itself to any jurisdiction.
@@ -52,12 +52,12 @@ namespace allpix {
 
         auto pitch = model_->getPixelSize();
         // Fold onto available field scale - flip coordinates if necessary
-        double x =
-            (scale_ == FieldScale::HALF_X || scale_ == FieldScale::QUARTER ? 2 * (-std::abs(dist.x()) / pitch.x() + 0.5)
-                                                                           : (dist.x() / pitch.x() + 0.5));
-        double y =
-            (scale_ == FieldScale::HALF_Y || scale_ == FieldScale::QUARTER ? 2 * (-std::abs(dist.y()) / pitch.y() + 0.5)
-                                                                           : (dist.y() / pitch.y() + 0.5));
+        double x = (mapping_ == FieldMapping::HALF_X || mapping_ == FieldMapping::QUARTER
+                        ? 2 * (-std::abs(dist.x()) / pitch.x() + 0.5)
+                        : (dist.x() / pitch.x() + 0.5));
+        double y = (mapping_ == FieldMapping::HALF_Y || mapping_ == FieldMapping::QUARTER
+                        ? 2 * (-std::abs(dist.y()) / pitch.y() + 0.5)
+                        : (dist.y() / pitch.y() + 0.5));
 
         // Compute indices
         // If the number of bins in x or y is 1, the field is assumed to be 2-dimensional and the respective index
@@ -87,8 +87,8 @@ namespace allpix {
         // Retrieve field
         auto field_vector = get_impl(tot_ind, std::make_index_sequence<N>{});
         flip_vector_components(field_vector,
-                               (dist.x() > 0) && (scale_ == FieldScale::HALF_X || scale_ == FieldScale::QUARTER),
-                               (dist.y() > 0) && (scale_ == FieldScale::HALF_Y || scale_ == FieldScale::QUARTER));
+                               (dist.x() > 0) && (mapping_ == FieldMapping::HALF_X || mapping_ == FieldMapping::QUARTER),
+                               (dist.y() > 0) && (mapping_ == FieldMapping::HALF_Y || mapping_ == FieldMapping::QUARTER));
         return field_vector;
     }
 
@@ -149,7 +149,7 @@ namespace allpix {
     template <typename T, size_t N>
     void DetectorField<T, N>::setGrid(std::shared_ptr<std::vector<double>> field, // NOLINT
                                       std::array<size_t, 3> dimensions,
-                                      FieldScale scale,
+                                      FieldMapping mapping,
                                       std::array<double, 2> offset,
                                       std::pair<double, double> thickness_domain) {
         if(model_ == nullptr) {
@@ -168,7 +168,7 @@ namespace allpix {
 
         field_ = std::move(field);
         dimensions_ = dimensions;
-        scale_ = scale;
+        mapping_ = mapping;
         offset_ = offset;
 
         thickness_domain_ = std::move(thickness_domain);
