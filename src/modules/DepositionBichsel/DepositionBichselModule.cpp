@@ -35,8 +35,8 @@ std::map<Particle::Type, double> Particle::masses{{Particle::Type::ELECTRON, 0.5
 
 DepositionBichselModule::DepositionBichselModule(Configuration& config, Messenger* messenger, GeometryManager* geo_manager)
     : Module(config), geo_manager_(geo_manager), messenger_(messenger) {
-    // Enable parallelization of this module if multithreading is enabled
-    enable_parallelization();
+    // Allow multithreading with this module
+    allow_multithreading();
 
     config_.setDefault("source_position", ROOT::Math::XYZPoint(0., 0., 0.));
     config_.setDefault("source_energy_spread", 0.);
@@ -691,7 +691,7 @@ std::deque<Particle> DepositionBichselModule::stepping(Particle primary,
             }
 
             // Check if the particle is still within the sensor volume
-            if(!detector->isWithinSensor(particle.position())) {
+            if(!detector->getModel()->isWithinSensor(particle.position())) {
                 LOG(DEBUG) << "Left the sensor at " << Units::display(particle.position(), {"mm", "um"});
                 outgoing.emplace_back(
                     particle.E(), particle.position(), particle.direction(), particle.type(), particle.time());
