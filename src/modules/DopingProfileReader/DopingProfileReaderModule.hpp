@@ -53,7 +53,7 @@ namespace allpix {
          * @brief Read field in the init format and apply it
          * @param field_scale Scaling parameters for the field size in x and y
          */
-        FieldData<double> read_field(std::array<double, 2> field_scale);
+        FieldData<double> read_field(FieldScale field_scale);
         static FieldParser<double> field_parser_;
 
         /**
@@ -61,6 +61,6 @@ namespace allpix {
          * @param dimensions Dimensions of the field read from file
          * @param field_scale The configured scaling parameters of the electric field in x and y
          */
-        void check_detector_match(std::array<double, 3> dimensions, std::array<double, 2> field_scale);
+        void check_detector_match(std::array<double, 3> dimensions, FieldScale field_scale);
     };
 } // namespace allpix

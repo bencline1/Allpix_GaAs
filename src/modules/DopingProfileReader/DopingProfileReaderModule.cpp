@@ -40,10 +40,7 @@ void DopingProfileReaderModule::initialize() {
     // Calculate the field depending on the configuration
     if(field_model == DopingProfile::MESH) {
         // Read the field scales from the configuration, defaulting to 1.0x1.0 pixel cell:
-        auto scales = config_.get<ROOT::Math::XYVector>("field_scale", {1.0, 1.0});
-        // FIXME Add sanity checks for scales here
-        LOG(DEBUG) << "Doping concentration map will be scaled with factors " << scales;
-        std::array<double, 2> field_scale{{scales.x(), scales.y()}};
+        auto field_scale = config_.get<FieldScale>("field_scale", {FieldScale::FULL});
 
         // Get the field offset in fractions of the pixel pitch, default is 0.0x0.0, i.e. starting at pixel boundary:
         auto offset = config_.get<ROOT::Math::XYVector>("field_offset", {0.0, 0.0});
@@ -105,7 +102,7 @@ void DopingProfileReaderModule::initialize() {
  * The field read from the INIT format are shared between module instantiations using the static FieldParser.
  */
 FieldParser<double> DopingProfileReaderModule::field_parser_(FieldQuantity::SCALAR);
-FieldData<double> DopingProfileReaderModule::read_field(std::array<double, 2> field_scale) {
+FieldData<double> DopingProfileReaderModule::read_field(FieldScale field_scale) {
 
     try {
         LOG(TRACE) << "Fetching doping concentration map from mesh file";
@@ -133,7 +130,7 @@ FieldData<double> DopingProfileReaderModule::read_field(std::array<double, 2> fi
 /**
  * @brief Check if the detector matches the file header
  */
-void DopingProfileReaderModule::check_detector_match(std::array<double, 3> dimensions, std::array<double, 2> field_scale) {
+void DopingProfileReaderModule::check_detector_match(std::array<double, 3> dimensions, FieldScale field_scale) {
     auto xpixsz = dimensions[0];
     auto ypixsz = dimensions[1];
     auto thickness = dimensions[2];
@@ -148,14 +145,25 @@ void DopingProfileReaderModule::check_detector_match(std::array<double, 3> dimen
         }
 
         // Check the field extent along the pixel pitch in x and y:
-        if(std::fabs(xpixsz - model->getPixelSize().x() * field_scale[0]) > std::numeric_limits<double>::epsilon() ||
-           std::fabs(ypixsz - model->getPixelSize().y() * field_scale[1]) > std::numeric_limits<double>::epsilon()) {
-            LOG(WARNING) << "Doping concentration map size is (" << Units::display(xpixsz, {"um", "mm"}) << ","
-                         << Units::display(ypixsz, {"um", "mm"}) << ") but current configuration results in an map area of ("
-                         << Units::display(model->getPixelSize().x() * field_scale[0], {"um", "mm"}) << ","
-                         << Units::display(model->getPixelSize().y() * field_scale[1], {"um", "mm"}) << ")" << std::endl
-                         << "The size of the area to which the doping concentration is applied can be changes using the "
-                            "field_scale parameter.";
+        if(std::fabs(xpixsz - model->getPixelSize().x() *
+                                  (field_scale == FieldScale::HALF_X || field_scale == FieldScale::QUARTER ? 0.5 : 1)) >
+               std::numeric_limits<double>::epsilon() ||
+           std::fabs(ypixsz - model->getPixelSize().y() *
+                                  (field_scale == FieldScale::HALF_Y || field_scale == FieldScale::QUARTER ? 0.5 : 1)) >
+               std::numeric_limits<double>::epsilon()) {
+            LOG(WARNING)
+                << "Doping concentration map size is (" << Units::display(xpixsz, {"um", "mm"}) << ","
+                << Units::display(ypixsz, {"um", "mm"}) << ") but current configuration results in an map area of ("
+                << Units::display(model->getPixelSize().x() *
+                                      (field_scale == FieldScale::HALF_X || field_scale == FieldScale::QUARTER ? 0.5 : 1),
+                                  {"um", "mm"})
+                << ","
+                << Units::display(model->getPixelSize().y() *
+                                      (field_scale == FieldScale::HALF_Y || field_scale == FieldScale::QUARTER ? 0.5 : 1),
+                                  {"um", "mm"})
+                << ")" << std::endl
+                << "The size of the area to which the doping concentration is applied can be changes using the "
+                   "field_scale parameter.";
         }
     }
 }

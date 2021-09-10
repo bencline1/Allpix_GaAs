@@ -66,11 +66,8 @@ void ElectricFieldReaderModule::initialize() {
 
     // Calculate the field depending on the configuration
     if(field_model == ElectricField::MESH) {
-        // Read the field scales from the configuration, defaulting to 1.0x1.0 pixel cell:
-        auto scales = config_.get<ROOT::Math::XYVector>("field_scale", {1.0, 1.0});
-        // FIXME Add sanity checks for scales here
-        LOG(DEBUG) << "Electric field will be scaled with factors " << scales;
-        std::array<double, 2> field_scale{{scales.x(), scales.y()}};
+        // Read the field scales from the configuration, defaulting to the full pixel cell:
+        auto field_scale = config_.get<FieldScale>("field_scale", {FieldScale::FULL});
 
         // Get the field offset in fractions of the pixel pitch, default is 0.0x0.0, i.e. starting at pixel boundary:
         auto offset = config_.get<ROOT::Math::XYVector>("field_offset", {0.0, 0.0});
@@ -290,8 +287,7 @@ ElectricFieldReaderModule::get_custom_field_function(std::pair<double, double> t
  * FieldParser's getByFileName method.
  */
 FieldParser<double> ElectricFieldReaderModule::field_parser_(FieldQuantity::VECTOR);
-FieldData<double> ElectricFieldReaderModule::read_field(std::pair<double, double> thickness_domain,
-                                                        std::array<double, 2> field_scale) {
+FieldData<double> ElectricFieldReaderModule::read_field(std::pair<double, double> thickness_domain, FieldScale field_scale) {
 
     try {
         LOG(TRACE) << "Fetching electric field from mesh file";
@@ -494,7 +490,7 @@ void ElectricFieldReaderModule::create_output_plots() {
  */
 void ElectricFieldReaderModule::check_detector_match(std::array<double, 3> dimensions,
                                                      std::pair<double, double> thickness_domain,
-                                                     std::array<double, 2> field_scale) {
+                                                     FieldScale field_scale) {
     auto xpixsz = dimensions[0];
     auto ypixsz = dimensions[1];
     auto thickness = dimensions[2];
@@ -511,15 +507,23 @@ void ElectricFieldReaderModule::check_detector_match(std::array<double, 3> dimen
 
         // Check the field extent along the pixel pitch in x and y:
         auto pitch = model->getPixelSize();
-        if(std::fabs(xpixsz - field_scale[0] * pitch.x()) > std::numeric_limits<double>::epsilon() ||
-           std::fabs(ypixsz - field_scale[1] * pitch.y()) > std::numeric_limits<double>::epsilon()) {
-            LOG(WARNING) << "Electric field size is (" << Units::display(xpixsz, {"um", "mm"}) << ","
-                         << Units::display(ypixsz, {"um", "mm"})
-                         << ") but current configuration results in an field area of ("
-                         << Units::display(field_scale[0] * pitch.x(), {"um", "mm"}) << ","
-                         << Units::display(field_scale[1] * pitch.y(), {"um", "mm"}) << ")" << std::endl
-                         << "The size of the area to which the electric field is applied can be changes using the "
-                            "field_scale parameter.";
+        if(std::fabs(xpixsz - (field_scale == FieldScale::HALF_X || field_scale == FieldScale::QUARTER ? 0.5 : 1) *
+                                  pitch.x()) > std::numeric_limits<double>::epsilon() ||
+           std::fabs(ypixsz - (field_scale == FieldScale::HALF_Y || field_scale == FieldScale::QUARTER ? 0.5 : 1) *
+                                  pitch.y()) > std::numeric_limits<double>::epsilon()) {
+            LOG(WARNING)
+                << "Electric field size is (" << Units::display(xpixsz, {"um", "mm"}) << ","
+                << Units::display(ypixsz, {"um", "mm"}) << ") but current configuration results in an field area of ("
+                << Units::display((field_scale == FieldScale::HALF_X || field_scale == FieldScale::QUARTER ? 0.5 : 1) *
+                                      pitch.x(),
+                                  {"um", "mm"})
+                << ","
+                << Units::display((field_scale == FieldScale::HALF_Y || field_scale == FieldScale::QUARTER ? 0.5 : 1) *
+                                      pitch.y(),
+                                  {"um", "mm"})
+                << ")" << std::endl
+                << "The size of the area to which the electric field is applied can be changes using the "
+                   "field_scale parameter.";
         }
     }
 }
