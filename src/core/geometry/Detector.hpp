@@ -209,6 +209,7 @@ namespace allpix {
         void setWeightingPotentialGrid(const std::shared_ptr<std::vector<double>>& potential,
                                        std::array<size_t, 3> dimensions,
                                        FieldMapping mapping,
+                                       std::array<double, 2> scales,
                                        std::array<double, 2> offset,
                                        std::pair<double, double> thickness_domain);
         /**
