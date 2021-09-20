@@ -40,7 +40,7 @@ void DopingProfileReaderModule::initialize() {
     // Calculate the field depending on the configuration
     if(field_model == DopingProfile::MESH) {
         // Read the field scales from the configuration, defaulting to 1.0x1.0 pixel cell:
-        auto field_scale = config_.get<FieldMapping>("field_scale", {FieldMapping::FULL});
+        auto field_mapping = config_.get<FieldMapping>("field_mapping", {FieldMapping::FULL});
 
         // Get the field offset in fractions of the pixel pitch, default is 0.0x0.0, i.e. starting at pixel boundary:
         auto offset = config_.get<ROOT::Math::XYVector>("field_offset", {0.0, 0.0});
@@ -53,9 +53,9 @@ void DopingProfileReaderModule::initialize() {
         LOG(DEBUG) << "Doping concentration map starts with offset " << offset << " to pixel boundary";
         std::array<double, 2> field_offset{{offset.x(), offset.y()}};
 
-        auto field_data = read_field(field_scale);
+        auto field_data = read_field(field_mapping);
         detector_->setDopingProfileGrid(
-            field_data.getData(), field_data.getDimensions(), field_scale, field_offset, thickness_domain);
+            field_data.getData(), field_data.getDimensions(), field_mapping, {{1., 1.}}, field_offset, thickness_domain);
 
     } else if(field_model == DopingProfile::CONSTANT) {
         LOG(TRACE) << "Adding constant doping concentration";
