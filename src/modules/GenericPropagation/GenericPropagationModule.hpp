@@ -89,8 +89,8 @@ namespace allpix {
          * @param initial_time Initial time passed before propagation starts in local time coordinates
          * @param random_generator Reference to the random number engine to be used
          * @param output_plot_points Reference to vector to hold points for line graph output plots
-         * @return Tuple with the point where the deposit ended after propagation, the time the propagation took, the gain accumulated, and a flag
-         * whether it has recombined
+         * @return Tuple with the point where the deposit ended after propagation, the time the propagation took, the
+         * cumulative gain and a flag whether it has recombined
          */
         std::tuple<ROOT::Math::XYZPoint, double, double, bool> propagate(const ROOT::Math::XYZPoint& pos,
                                                                  const CarrierType& type,
