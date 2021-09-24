@@ -22,7 +22,6 @@
 #include <G4RadioactiveDecayPhysics.hh>
 #include <G4StepLimiterPhysics.hh>
 #include <G4UImanager.hh>
-#include <G4UserLimits.hh>
 
 #include "G4FieldManager.hh"
 #include "G4TransportationManager.hh"
@@ -244,9 +243,7 @@ void DepositionGeant4Module::initialize() {
     // Build particle generator
     // User hook to store additional information at track initialization and termination as well as custom track ids
     LOG(TRACE) << "Constructing particle source";
-
-    auto* action_initialization = new ActionInitializationG4(config_, this);
-    run_manager_g4_->SetUserInitialization(action_initialization);
+    initialize_g4_action();
 
     // Get the creation energy for charge (default is silicon electron hole pair energy)
     auto charge_creation_energy = config_.get<double>("charge_creation_energy");
@@ -267,6 +264,12 @@ void DepositionGeant4Module::initialize() {
 
     // Flush the Geant4 stream buffer because some elements in the initialization never do:
     G4cout << G4endl;
+}
+
+void DepositionGeant4Module::initialize_g4_action() {
+    auto* action_initialization =
+        new ActionInitializationG4<GeneratorActionG4, GeneratorActionInitializationMaster>(config_, this);
+    run_manager_g4_->SetUserInitialization(action_initialization);
 }
 
 void DepositionGeant4Module::initializeThread() {
