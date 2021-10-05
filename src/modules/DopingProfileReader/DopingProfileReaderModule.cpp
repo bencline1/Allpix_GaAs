@@ -145,24 +145,20 @@ void DopingProfileReaderModule::check_detector_match(std::array<double, 3> dimen
         }
 
         // Check the field extent along the pixel pitch in x and y:
-        if(std::fabs(xpixsz - model->getPixelSize().x() *
-                                  (field_scale == FieldMapping::HALF_X || field_scale == FieldMapping::QUARTER ? 0.5 : 1)) >
-               std::numeric_limits<double>::epsilon() ||
-           std::fabs(ypixsz - model->getPixelSize().y() *
-                                  (field_scale == FieldMapping::HALF_Y || field_scale == FieldMapping::QUARTER ? 0.5 : 1)) >
-               std::numeric_limits<double>::epsilon()) {
+        auto scale_x = (field_scale == FieldMapping::FULL || field_scale == FieldMapping::HALF_TOP ||
+                                field_scale == FieldMapping::HALF_BOTTOM
+                            ? 1.0
+                            : 0.5);
+        auto scale_y = (field_scale == FieldMapping::FULL || field_scale == FieldMapping::HALF_LEFT ||
+                                field_scale == FieldMapping::HALF_RIGHT
+                            ? 1.0
+                            : 0.5);
+        if(std::fabs(xpixsz - model->getPixelSize().x() * scale_x) > std::numeric_limits<double>::epsilon() ||
+           std::fabs(ypixsz - model->getPixelSize().y() * scale_y) > std::numeric_limits<double>::epsilon()) {
             LOG(WARNING) << "Doping concentration map size is (" << Units::display(xpixsz, {"um", "mm"}) << ","
                          << Units::display(ypixsz, {"um", "mm"}) << ") but current configuration results in an map area of ("
-                         << Units::display(
-                                model->getPixelSize().x() *
-                                    (field_scale == FieldMapping::HALF_X || field_scale == FieldMapping::QUARTER ? 0.5 : 1),
-                                {"um", "mm"})
-                         << ","
-                         << Units::display(
-                                model->getPixelSize().y() *
-                                    (field_scale == FieldMapping::HALF_Y || field_scale == FieldMapping::QUARTER ? 0.5 : 1),
-                                {"um", "mm"})
-                         << ")" << std::endl
+                         << Units::display(model->getPixelSize().x() * scale_x, {"um", "mm"}) << ","
+                         << Units::display(model->getPixelSize().y() * scale_y, {"um", "mm"}) << ")" << std::endl
                          << "The size of the area to which the doping concentration is applied can be changes using the "
                             "field_scale parameter.";
         }
