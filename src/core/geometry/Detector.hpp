@@ -123,6 +123,7 @@ namespace allpix {
          * @brief Set the electric field in a single pixel in the detector using a grid
          * @param field Flat array of the field vectors (see detailed description)
          * @param bins The dimensions of the flat electric field array
+         * @param mapping Specification of the mapping of the field onto the pixel plane
          * @param scales Scaling factors for the field size, given in fractions of a pixel unit cell in x and y
          * @param thickness_domain Domain in local coordinates in the thickness direction where the field holds
          */
@@ -162,6 +163,7 @@ namespace allpix {
          * @brief Set the doping profile in a single pixel in the detector using a grid
          * @param field Flat array of the field (see detailed description)
          * @param bins The dimensions of the flat doping profile array
+         * @param mapping Specification of the mapping of the field onto the pixel plane
          * @param scales Scaling factors for the field size, given in fractions of a pixel unit cell in x and y
          * @param thickness_domain Domain in local coordinates in the thickness direction where the profile holds
          */
@@ -200,6 +202,7 @@ namespace allpix {
          * @brief Set the weighting potential in a single pixel in the detector using a grid
          * @param potential Flat array of the potential vectors (see detailed description)
          * @param bins The dimensions of the flat weighting potential array
+         * @param mapping Specification of the mapping of the field onto the pixel plane
          * @param scales Scaling factors for the field size, given in fractions of a pixel unit cell in x and y
          * @param thickness_domain Domain in local coordinates in the thickness direction where the potential holds
          */
