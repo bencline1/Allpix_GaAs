@@ -48,7 +48,7 @@ void DopingProfileReaderModule::initialize() {
         // Read field mapping from configuration
         auto field_mapping = config_.get<FieldMapping>("field_mapping");
         LOG(DEBUG) << "Doping concentration maps to " << magic_enum::enum_name(field_mapping);
-        auto field_data = read_field(field_mapping);
+        auto field_data = read_field(field_mapping, field_scale);
 
         detector_->setDopingProfileGrid(
             field_data.getData(), field_data.getDimensions(), field_mapping, field_scale, thickness_domain);
@@ -97,7 +97,7 @@ void DopingProfileReaderModule::initialize() {
  * The field read from the INIT format are shared between module instantiations using the static FieldParser.
  */
 FieldParser<double> DopingProfileReaderModule::field_parser_(FieldQuantity::SCALAR);
-FieldData<double> DopingProfileReaderModule::read_field(FieldMapping field_scale) {
+FieldData<double> DopingProfileReaderModule::read_field(FieldMapping mapping, std::array<double, 2> scale) {
 
     try {
         LOG(TRACE) << "Fetching doping concentration map from mesh file";
@@ -106,7 +106,7 @@ FieldData<double> DopingProfileReaderModule::read_field(FieldMapping field_scale
         auto field_data = field_parser_.getByFileName(config_.getPath("file_name", true), "/cm/cm/cm");
 
         // Check if electric field matches chip
-        check_detector_match(field_data.getSize(), field_scale);
+        check_detector_match(field_data.getSize(), mapping, scale);
 
         LOG(INFO) << "Set doping concentration map with " << field_data.getDimensions().at(0) << "x"
                   << field_data.getDimensions().at(1) << "x" << field_data.getDimensions().at(2) << " cells";
@@ -125,7 +125,9 @@ FieldData<double> DopingProfileReaderModule::read_field(FieldMapping field_scale
 /**
  * @brief Check if the detector matches the file header
  */
-void DopingProfileReaderModule::check_detector_match(std::array<double, 3> dimensions, FieldMapping field_scale) {
+void DopingProfileReaderModule::check_detector_match(std::array<double, 3> dimensions,
+                                                     FieldMapping mapping,
+                                                     std::array<double, 2> scale) {
     auto xpixsz = dimensions[0];
     auto ypixsz = dimensions[1];
     auto thickness = dimensions[2];
@@ -140,14 +142,14 @@ void DopingProfileReaderModule::check_detector_match(std::array<double, 3> dimen
         }
 
         // Check the field extent along the pixel pitch in x and y:
-        auto scale_x = (field_scale == FieldMapping::FULL || field_scale == FieldMapping::HALF_TOP ||
-                                field_scale == FieldMapping::HALF_BOTTOM
-                            ? 1.0
-                            : 0.5);
-        auto scale_y = (field_scale == FieldMapping::FULL || field_scale == FieldMapping::HALF_LEFT ||
-                                field_scale == FieldMapping::HALF_RIGHT
-                            ? 1.0
-                            : 0.5);
+        auto scale_x = scale[0] * (mapping == FieldMapping::FULL || mapping == FieldMapping::FULL_INVERSE ||
+                                           mapping == FieldMapping::HALF_TOP || mapping == FieldMapping::HALF_BOTTOM
+                                       ? 1.0
+                                       : 0.5);
+        auto scale_y = scale[1] * (mapping == FieldMapping::FULL || mapping == FieldMapping::FULL_INVERSE ||
+                                           mapping == FieldMapping::HALF_LEFT || mapping == FieldMapping::HALF_RIGHT
+                                       ? 1.0
+                                       : 0.5);
         if(std::fabs(xpixsz - model->getPixelSize().x() * scale_x) > std::numeric_limits<double>::epsilon() ||
            std::fabs(ypixsz - model->getPixelSize().y() * scale_y) > std::numeric_limits<double>::epsilon()) {
             LOG(WARNING) << "Doping concentration map size is (" << Units::display(xpixsz, {"um", "mm"}) << ","
@@ -155,7 +157,7 @@ void DopingProfileReaderModule::check_detector_match(std::array<double, 3> dimen
                          << Units::display(model->getPixelSize().x() * scale_x, {"um", "mm"}) << ","
                          << Units::display(model->getPixelSize().y() * scale_y, {"um", "mm"}) << ")" << std::endl
                          << "The size of the area to which the doping concentration is applied can be changes using the "
-                            "field_scale parameter.";
+                            "field_mapping and field_scale parameters.";
         }
     }
 }
