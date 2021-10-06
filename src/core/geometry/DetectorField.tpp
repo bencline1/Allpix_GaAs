@@ -127,26 +127,24 @@ namespace allpix {
             return {};
         }
 
-        // Calculate which pixel we are in and the pixel center:
-        auto [px, py] = model_->getPixelIndex(pos);
-        auto pxpos = model_->getPixelCenter(static_cast<unsigned int>(px), static_cast<unsigned int>(py));
 
-        // Calculate difference, add offset:
-        auto diff = pos - pxpos + ROOT::Math::XYZVector(offset_[0], offset_[1], 0);
+        // Calculate which current pixel index and distance to its center:
+        auto [px, py] = model_->getPixelIndex(pos);
+        auto distance = pos - model_->getPixelCenter(static_cast<unsigned int>(px), static_cast<unsigned int>(py));
 
         // Compute using the grid or a function depending on the setting
         if(type_ == FieldType::GRID) {
-            return get_field_from_grid(static_cast<ROOT::Math::XYZPoint>(diff), extrapolate_z);
+            return get_field_from_grid(static_cast<ROOT::Math::XYZPoint>(distance), extrapolate_z);
         } else {
             // Check if we need to extrapolate along the z axis or if is inside thickness domain:
             if(extrapolate_z) {
-                diff.SetZ(std::clamp(diff.z(), thickness_domain_.first, thickness_domain_.second));
-            } else if(diff.z() < thickness_domain_.first || thickness_domain_.second < diff.z()) {
+                distance.SetZ(std::clamp(distance.z(), thickness_domain_.first, thickness_domain_.second));
+            } else if(distance.z() < thickness_domain_.first || thickness_domain_.second < distance.z()) {
                 return {};
             }
 
             // Calculate the field from the configured function:
-            return function_(static_cast<ROOT::Math::XYZPoint>(diff));
+            return function_(static_cast<ROOT::Math::XYZPoint>(distance));
         }
     }
 
@@ -174,7 +172,6 @@ namespace allpix {
                                       std::array<size_t, 3> dimensions,
                                       FieldMapping mapping,
                                       std::array<double, 2> scales,
-                                      std::array<double, 2> offset,
                                       std::pair<double, double> thickness_domain) {
         if(model_ == nullptr) {
             throw std::invalid_argument("field not initialized with detector model parameters");
@@ -194,7 +191,6 @@ namespace allpix {
         dimensions_ = dimensions;
         mapping_ = mapping;
         scales_ = scales;
-        offset_ = offset;
 
         thickness_domain_ = std::move(thickness_domain);
         type_ = FieldType::GRID;

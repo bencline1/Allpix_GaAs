@@ -124,14 +124,12 @@ namespace allpix {
          * @param field Flat array of the field vectors (see detailed description)
          * @param dimensions The dimensions of the flat electric field array
          * @param scales Scaling factors for the field size, given in fractions of a pixel unit cell in x and y
-         * @param offset Offset of the field from the pixel border
          * @param thickness_domain Domain in local coordinates in the thickness direction where the field holds
          */
         void setElectricFieldGrid(const std::shared_ptr<std::vector<double>>& field,
                                   std::array<size_t, 3> dimensions,
                                   FieldMapping mapping,
                                   std::array<double, 2> scales,
-                                  std::array<double, 2> offset,
                                   std::pair<double, double> thickness_domain);
         /**
          * @brief Set the electric field in a single pixel using a function
@@ -165,14 +163,12 @@ namespace allpix {
          * @param field Flat array of the field (see detailed description)
          * @param dimensions The dimensions of the flat doping profile array
          * @param scales Scaling factors for the field size, given in fractions of a pixel unit cell in x and y
-         * @param offset Offset of the field from the pixel border
          * @param thickness_domain Domain in local coordinates in the thickness direction where the profile holds
          */
         void setDopingProfileGrid(std::shared_ptr<std::vector<double>> field,
                                   std::array<size_t, 3> dimensions,
                                   FieldMapping mapping,
                                   std::array<double, 2> scales,
-                                  std::array<double, 2> offset,
                                   std::pair<double, double> thickness_domain);
         /**
          * @brief Set the doping profile in a single pixel using a function
@@ -205,14 +201,12 @@ namespace allpix {
          * @param potential Flat array of the potential vectors (see detailed description)
          * @param dimensions The dimensions of the flat weighting potential array
          * @param scales Scaling factors for the field size, given in fractions of a pixel unit cell in x and y
-         * @param offset Offset of the field from the pixel border
          * @param thickness_domain Domain in local coordinates in the thickness direction where the potential holds
          */
         void setWeightingPotentialGrid(const std::shared_ptr<std::vector<double>>& potential,
                                        std::array<size_t, 3> dimensions,
                                        FieldMapping mapping,
                                        std::array<double, 2> scales,
-                                       std::array<double, 2> offset,
                                        std::pair<double, double> thickness_domain);
         /**
          * @brief Set the weighting potential in a single pixel using a function

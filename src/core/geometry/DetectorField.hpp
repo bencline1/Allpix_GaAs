@@ -117,14 +117,12 @@ namespace allpix {
          * @param field Flat array of the field
          * @param dimensions The dimensions of the flat field array
          * @param mapping Indicator of the actual physical extent of the field in each direction
-         * @param offset Offset of the field in x and y, given in physical units
          * @param thickness_domain Domain in local coordinates in the thickness direction where the field holds
          */
         void setGrid(std::shared_ptr<std::vector<double>> field,
                      std::array<size_t, 3> dimensions,
                      FieldMapping mapping,
                      std::array<double, 2> scales,
-                     std::array<double, 2> offset,
                      std::pair<double, double> thickness_domain);
         /**
          * @brief Set the field in the detector using a function
@@ -161,14 +159,12 @@ namespace allpix {
         /**
          * Field properties
          * * Dimensions of the field map (bins in x, y, z)
+         * * Mapping of the field onto the pixel cell
          * * Scale of the field in x and y direction, defaults to one full pixel cell
-         * * Offset of the field from the pixel edge, e.g. when using fields centered at a pixel corner instead of the center
-         *   Values provided as absolute shifts in um.
          */
         std::array<size_t, 3> dimensions_{};
         FieldMapping mapping_{FieldMapping::FULL};
         std::array<double, 2> scales_{{1., 1.}};
-        std::array<double_t, 2> offset_{{0., 0.}};
 
         /**
          * Field definition
