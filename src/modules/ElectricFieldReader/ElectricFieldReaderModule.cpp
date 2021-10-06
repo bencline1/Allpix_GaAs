@@ -75,7 +75,7 @@ void ElectricFieldReaderModule::initialize() {
         // Read field mapping from configuration
         auto field_mapping = config_.get<FieldMapping>("field_mapping");
         LOG(DEBUG) << "Electric field maps to " << magic_enum::enum_name(field_mapping);
-        auto field_data = read_field(thickness_domain, field_mapping);
+        auto field_data = read_field(thickness_domain, field_mapping, field_scale);
 
         detector_->setElectricFieldGrid(
             field_data.getData(), field_data.getDimensions(), field_mapping, field_scale, thickness_domain);
@@ -282,7 +282,8 @@ ElectricFieldReaderModule::get_custom_field_function(std::pair<double, double> t
  */
 FieldParser<double> ElectricFieldReaderModule::field_parser_(FieldQuantity::VECTOR);
 FieldData<double> ElectricFieldReaderModule::read_field(std::pair<double, double> thickness_domain,
-                                                        FieldMapping field_scale) {
+                                                        FieldMapping field_mapping,
+                                                        std::array<double, 2> field_scale) {
 
     try {
         LOG(TRACE) << "Fetching electric field from mesh file";
@@ -291,7 +292,7 @@ FieldData<double> ElectricFieldReaderModule::read_field(std::pair<double, double
         auto field_data = field_parser_.getByFileName(config_.getPath("file_name", true), "V/cm");
 
         // Check if electric field matches chip
-        check_detector_match(field_data.getSize(), thickness_domain, field_scale);
+        check_detector_match(field_data.getSize(), thickness_domain, field_mapping, field_scale);
 
         // Warn at field values larger than 1MV/cm / 10 MV/mm. Simple lookup per vector component, not total field magnitude
         auto max_field = *std::max_element(std::begin(*field_data.getData()), std::end(*field_data.getData()));
@@ -485,7 +486,8 @@ void ElectricFieldReaderModule::create_output_plots() {
  */
 void ElectricFieldReaderModule::check_detector_match(std::array<double, 3> dimensions,
                                                      std::pair<double, double> thickness_domain,
-                                                     FieldMapping field_scale) {
+                                                     FieldMapping mapping,
+                                                     std::array<double, 2> scale) {
     auto xpixsz = dimensions[0];
     auto ypixsz = dimensions[1];
     auto thickness = dimensions[2];
@@ -502,14 +504,14 @@ void ElectricFieldReaderModule::check_detector_match(std::array<double, 3> dimen
 
         // Check the field extent along the pixel pitch in x and y:
         auto pitch = model->getPixelSize();
-        auto scale_x = (field_scale == FieldMapping::FULL || field_scale == FieldMapping::HALF_TOP ||
-                                field_scale == FieldMapping::HALF_BOTTOM
-                            ? 1.0
-                            : 0.5);
-        auto scale_y = (field_scale == FieldMapping::FULL || field_scale == FieldMapping::HALF_LEFT ||
-                                field_scale == FieldMapping::HALF_RIGHT
-                            ? 1.0
-                            : 0.5);
+        auto scale_x = scale[0] * (mapping == FieldMapping::FULL || mapping == FieldMapping::FULL_INVERSE ||
+                                           mapping == FieldMapping::HALF_TOP || mapping == FieldMapping::HALF_BOTTOM
+                                       ? 1.0
+                                       : 0.5);
+        auto scale_y = scale[1] * (mapping == FieldMapping::FULL || mapping == FieldMapping::FULL_INVERSE ||
+                                           mapping == FieldMapping::HALF_LEFT || mapping == FieldMapping::HALF_RIGHT
+                                       ? 1.0
+                                       : 0.5);
         if(std::fabs(xpixsz - scale_x * pitch.x()) > std::numeric_limits<double>::epsilon() ||
            std::fabs(ypixsz - scale_y * pitch.y()) > std::numeric_limits<double>::epsilon()) {
             LOG(WARNING) << "Electric field size is (" << Units::display(xpixsz, {"um", "mm"}) << ","
@@ -518,7 +520,7 @@ void ElectricFieldReaderModule::check_detector_match(std::array<double, 3> dimen
                          << Units::display(scale_x * pitch.x(), {"um", "mm"}) << ","
                          << Units::display(scale_y * pitch.y(), {"um", "mm"}) << ")" << std::endl
                          << "The size of the area to which the electric field is applied can be changes using the "
-                            "field_scale parameter.";
+                            "field_mapping and field_scale parameters.";
         }
     }
 }

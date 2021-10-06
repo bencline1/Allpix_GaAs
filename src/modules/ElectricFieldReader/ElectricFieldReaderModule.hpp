@@ -81,8 +81,10 @@ namespace allpix {
          * @brief Read field from a file in init or apf format and apply it
          * @param thickness_domain Domain of the thickness where the field is defined
          * @param mapping Parameter indicating how the field should be mapped onto the pixel
+         * @param scale Scaling parameters of the field in units of pixel pitches
          */
-        FieldData<double> read_field(std::pair<double, double> thickness_domain, FieldMapping mapping);
+        FieldData<double>
+        read_field(std::pair<double, double> thickness_domain, FieldMapping mapping, std::array<double, 2> scale);
         static FieldParser<double> field_parser_;
 
         /**
@@ -95,9 +97,11 @@ namespace allpix {
          * @param dimensions Dimensions of the field read from file
          * @param thickness_domain Domain of the thickness where the field is defined
          * @param mapping Parameter indicating how the field should be mapped onto the pixel
+         * @param scale Scaling parameters of the field in units of pixel pitches
          */
         void check_detector_match(std::array<double, 3> dimensions,
                                   std::pair<double, double> thickness_domain,
-                                  FieldMapping mapping);
+                                  FieldMapping mapping,
+                                  std::array<double, 2> scale);
     };
 } // namespace allpix
