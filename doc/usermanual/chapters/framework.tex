@@ -420,6 +420,121 @@ If the path is a directory, all files in the directory are added (without recurs
 The \parameter{$XDG_DATA_DIRS} variable defaults to \textit{/usr/local/share/} (thus effectively \textit{/usr/local/share/\project/models}) followed by \textit{/usr/share/} (effectively \textit{/usr/share/\project/models}).
 \end{enumerate}
 
+\section{Field Maps}
+\label{sec:maps}
+
+\apsq allows to load externally generated field maps for various quantities such as the electric field or the doping profile of the sensor.
+These maps have to be provided as regularly-spaced meshes in one of the supported field file formats.
+
+\begin{figure}[t]
+  \centering
+  \centering
+ \begin{subfigure}[t]{0.12\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_example_q1}%
+         \caption{Quarter pixel}
+         \label{fig:maps:q1}
+ \end{subfigure}
+ \begin{subfigure}[t]{0.24\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_example_ht}%
+         \caption{Half pixel}
+         \label{fig:maps:ht}
+ \end{subfigure}
+ \begin{subfigure}[t]{0.24\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_example_f}%
+         \caption{Full pixel}
+         \label{fig:maps:f}
+ \end{subfigure}
+ \begin{subfigure}[t]{0.24\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_example_fi}%
+         \caption{Four quarter pixels}
+         \label{fig:maps:fi}
+ \end{subfigure}%
+  \caption{Examples for pixel geometries in field maps. The dark spot represents the pixel center, the red extend the electric field. Pixel boundaries are indicated with a dotted line where applicable.}
+  \label{fig:maps}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \centering
+ \begin{subfigure}[t]{0.25\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_q1}%
+         \caption{Quadrant I}
+         \label{fig:maps:quadrants:i}
+ \end{subfigure}%
+ \begin{subfigure}[t]{0.25\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_q2}%
+         \caption{Quadrant II}
+         \label{fig:maps:quadrants:ii}
+ \end{subfigure}%
+ \begin{subfigure}[t]{0.25\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_q3}%
+         \caption{Quadrant III}
+         \label{fig:maps:quadrants:iii}
+ \end{subfigure}%
+ \begin{subfigure}[t]{0.25\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_q4}%
+         \caption{Quadrant IV}
+         \label{fig:maps:quadrants:iv}
+ \end{subfigure}%
+  \caption{Location and orientation of the field map with respect to the pixel center when providing one quadrant in the pixel plane. Here, $(0,0)$ denotes the pixel center, the red field portion is read from the field map and the green ones are replicated through mirroring.}
+  \label{fig:maps:quadrants}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \centering
+ \begin{subfigure}[t]{0.25\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_hl}%
+         \caption{Left Half}
+         \label{fig:maps:halves:left}
+ \end{subfigure}%
+ \begin{subfigure}[t]{0.25\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_hr}%
+         \caption{Right Half}
+         \label{fig:maps:halves:right}
+ \end{subfigure}%
+ \begin{subfigure}[t]{0.25\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_ht}%
+         \caption{Top Half}
+         \label{fig:maps:halves:top}
+ \end{subfigure}%
+ \begin{subfigure}[t]{0.25\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_hb}%
+         \caption{Bottom Half}
+         \label{fig:maps:halves:bottom}
+ \end{subfigure}%
+  \caption{Location and orientation of the field map with respect to the pixel center when providing a half of the pixel plane. Here, $(0,0)$ denotes the pixel center, the red field portion is read from the field map and the green ones are replicated through mirroring.}
+  \label{fig:maps:halves}
+\end{figure}
+
+
+Different geometries of field maps can be provided, depending on the symmetries within the pixel cell.
+The parameter \parameter{field_mapping} defines how the map read from the mesh file should be applied to the cell, and the following possibilities are available:
+\begin{itemize}
+\item \parameter{FULL}
+\item \parameter{FULL_INVERSE}
+\item \parameter{HALF_RIGHT}
+\item \parameter{HALF_LEFT}
+\item \parameter{HALF_BOTTOM}
+\item \parameter{HALF_TOP}
+\item \parameter{QUADRANT_I}
+\item \parameter{QUADRANT_II}
+\item \parameter{QUADRANT_III}
+\item \parameter{QUADRANT_IV}
+\end{itemize}
+
 \section{Passing Objects using Messages}
 \label{sec:objects_messages}
 Communication between modules is performed by the exchange of messages.
