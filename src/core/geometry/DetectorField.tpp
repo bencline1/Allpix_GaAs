@@ -61,26 +61,24 @@ namespace allpix {
                                         mapping_ == FieldMapping::HALF_TOP));
 
 
-        auto pitch = model_->getPixelSize();
-
         // Fold onto available field scale in the range [0 , 1] - flip coordinates if necessary
         double x, y;
         if(mapping_ == FieldMapping::QUADRANT_II || mapping_ == FieldMapping::QUADRANT_III ||
            mapping_ == FieldMapping::HALF_LEFT) {
-            x = (flip_x ? -1.0 : 1.0) * (dist.x() / scales_[0] / pitch.x()) + 1.0;
+            x = (flip_x ? -1.0 : 1.0) * dist.x() * normalization_[0] + 1.0;
         } else if(mapping_ == FieldMapping::FULL) {
-            x = (dist.x() / scales_[1] / pitch.x()) + 0.5;
+            x = dist.x() * normalization_[0] + 0.5;
         } else {
-            x = (flip_x ? -1.0 : 1.0) * (dist.x() / scales_[0] / pitch.x());
+            x = (flip_x ? -1.0 : 1.0) * dist.x() * normalization_[0];
         }
 
         if(mapping_ == FieldMapping::QUADRANT_III || mapping_ == FieldMapping::QUADRANT_IV ||
            mapping_ == FieldMapping::HALF_BOTTOM) {
-            y = (flip_y ? -1.0 : 1.0) * (dist.y() / scales_[1] / pitch.y()) + 1.0;
+            y = (flip_y ? -1.0 : 1.0) * dist.y() * normalization_[1] + 1.0;
         } else if(mapping_ == FieldMapping::FULL) {
-            y = (dist.y() / scales_[1] / pitch.y()) + 0.5;
+            y = dist.y() * normalization_[1] + 0.5;
         } else {
-            y = (flip_y ? -1.0 : 1.0) * (dist.y() / scales_[1] / pitch.y());
+            y = (flip_y ? -1.0 : 1.0) * dist.y() * normalization_[1];
         }
 
         // Compute indices
@@ -190,7 +188,11 @@ namespace allpix {
         field_ = std::move(field);
         bins_ = bins;
         mapping_ = mapping;
-        scales_ = scales;
+
+        // Calculate normalization of field sizes from pitch and scales:
+        auto pitch = model_->getPixelSize();
+        normalization_[0] = 1.0 / scales[0] / pitch.x();
+        normalization_[1] = 1.0 / scales[1] / pitch.y();
 
         thickness_domain_ = std::move(thickness_domain);
         type_ = FieldType::GRID;
