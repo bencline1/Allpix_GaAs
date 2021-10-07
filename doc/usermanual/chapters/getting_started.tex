@@ -473,7 +473,7 @@ depletion_voltage = -10V
 In order to speed up the lookup of the electric field values at different positions in the sensor, the adaptive TCAD mesh has to be interpolated and transformed into a regular grid with configurable feature size before use.
 \apsq comes with a converter tool which reads TCAD DF-ISE files from the sensor simulation, interpolates the field, and writes this out in an appropriate format.
 A more detailed description of the tool can be found in Section~\ref{sec:tcad_electric_field_converter}.
-An example electric field (with the file name used in the example below) can be found in the \textit{etc} directory of the \apsq repository.
+An example electric field (with the file name used in the example below) can be found in the \textit{etc} directory of the \apsq repository, a detailed description of supported field geometries and their mapping onto the sensor plane is provided in Section~\ref{sec:maps}.
 
 Electric fields can be attached to a specific detector using the standard syntax for detector binding.
 A possible configuration would be:
