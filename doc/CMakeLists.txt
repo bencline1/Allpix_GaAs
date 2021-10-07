@@ -142,11 +142,24 @@ IF(LATEX_COMPILER)
             usermanual/allpix-manual.tex
             BIBFILES usermanual/references.bib
             USE_BIBLATEX
-            IMAGES logo.png cc-by.png usermanual/figures/telescope.png usermanual/figures/passive_materials.png
-                   usermanual/figures/ci.png usermanual/figures/linegraph_hrcmos_collected.png
-                   usermanual/figures/fieldmapping_q1.png usermanual/figures/fieldmapping_q2.png usermanual/figures/fieldmapping_q3.png usermanual/figures/fieldmapping_q4.png
-                   usermanual/figures/fieldmapping_hl.png usermanual/figures/fieldmapping_hr.png usermanual/figures/fieldmapping_ht.png usermanual/figures/fieldmapping_hb.png
-                   usermanual/figures/fieldmapping_example_q1.png usermanual/figures/fieldmapping_example_ht.png usermanual/figures/fieldmapping_example_f.png usermanual/figures/fieldmapping_example_fi.png
+            IMAGES logo.png
+                   cc-by.png
+                   usermanual/figures/telescope.png
+                   usermanual/figures/passive_materials.png
+                   usermanual/figures/ci.png
+                   usermanual/figures/linegraph_hrcmos_collected.png
+                   usermanual/figures/fieldmapping_q1.png
+                   usermanual/figures/fieldmapping_q2.png
+                   usermanual/figures/fieldmapping_q3.png
+                   usermanual/figures/fieldmapping_q4.png
+                   usermanual/figures/fieldmapping_hl.png
+                   usermanual/figures/fieldmapping_hr.png
+                   usermanual/figures/fieldmapping_ht.png
+                   usermanual/figures/fieldmapping_hb.png
+                   usermanual/figures/fieldmapping_example_q1.png
+                   usermanual/figures/fieldmapping_example_ht.png
+                   usermanual/figures/fieldmapping_example_f.png
+                   usermanual/figures/fieldmapping_example_fi.png
             INPUTS usermanual/chapters/introduction.tex
                    usermanual/chapters/quick_start.tex
                    usermanual/chapters/installation.tex
