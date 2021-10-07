@@ -457,36 +457,14 @@ These maps have to be provided as regularly-spaced meshes in one of the supporte
   \label{fig:maps}
 \end{figure}
 
-\begin{figure}[t]
-  \centering
-  \centering
- \begin{subfigure}[t]{0.25\textwidth}
-         \centering
-         \includegraphics[width=\textwidth]{fieldmapping_q1}%
-         \caption{Quadrant I}
-         \label{fig:maps:quadrants:i}
- \end{subfigure}%
- \begin{subfigure}[t]{0.25\textwidth}
-         \centering
-         \includegraphics[width=\textwidth]{fieldmapping_q2}%
-         \caption{Quadrant II}
-         \label{fig:maps:quadrants:ii}
- \end{subfigure}%
- \begin{subfigure}[t]{0.25\textwidth}
-         \centering
-         \includegraphics[width=\textwidth]{fieldmapping_q3}%
-         \caption{Quadrant III}
-         \label{fig:maps:quadrants:iii}
- \end{subfigure}%
- \begin{subfigure}[t]{0.25\textwidth}
-         \centering
-         \includegraphics[width=\textwidth]{fieldmapping_q4}%
-         \caption{Quadrant IV}
-         \label{fig:maps:quadrants:iv}
- \end{subfigure}%
-  \caption{Location and orientation of the field map with respect to the pixel center when providing one quadrant in the pixel plane. Here, $(0,0)$ denotes the pixel center, the red field portion is read from the field map and the green ones are replicated through mirroring.}
-  \label{fig:maps:quadrants}
-\end{figure}
+Fields are always expected to be provided as rectangular maps, irrespective of the actual pixel shape.
+Maps are loaded once and assigned on a per-pixel basis.
+Depending on the symmetries of the pixel unit cell and the pixel grid, different geometries are supported as indicated in Figure~\ref{fig:maps}.
+The field for a quarter of the pixel plane (Figure~\subref{fig:maps:q1}), for half planes (Figure~\subref{fig:maps:ht}) as well as for full planes (Figure~\subref{fig:maps:f}).
+The size of the field is not limited to a single pixel cell, however, for some quantities such as the electric field only the volume within the pixel cell is used and periodic boundary conditions are assumed and expected.
+Larger fields are for example useful for the weighting potential, where also potential differences to neighboring pixels are of interest.
+
+A special case is the field presented in Figure~\subref{fig:maps:fi}. Here, the field is not centered at the pixel unit cell center, but at the corner of four adjacent rectangular pixels.
 
 \begin{figure}[t]
   \centering
@@ -519,21 +497,54 @@ These maps have to be provided as regularly-spaced meshes in one of the supporte
   \label{fig:maps:halves}
 \end{figure}
 
+\begin{figure}[t]
+  \centering
+  \centering
+ \begin{subfigure}[t]{0.25\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_q1}%
+         \caption{Quadrant I}
+         \label{fig:maps:quadrants:i}
+ \end{subfigure}%
+ \begin{subfigure}[t]{0.25\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_q2}%
+         \caption{Quadrant II}
+         \label{fig:maps:quadrants:ii}
+ \end{subfigure}%
+ \begin{subfigure}[t]{0.25\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_q3}%
+         \caption{Quadrant III}
+         \label{fig:maps:quadrants:iii}
+ \end{subfigure}%
+ \begin{subfigure}[t]{0.25\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{fieldmapping_q4}%
+         \caption{Quadrant IV}
+         \label{fig:maps:quadrants:iv}
+ \end{subfigure}%
+  \caption{Location and orientation of the field map with respect to the pixel center when providing one quadrant in the pixel plane. Here, $(0,0)$ denotes the pixel center, the red field portion is read from the field map and the green ones are replicated through mirroring.}
+  \label{fig:maps:quadrants}
+\end{figure}
 
-Different geometries of field maps can be provided, depending on the symmetries within the pixel cell.
-The parameter \parameter{field_mapping} defines how the map read from the mesh file should be applied to the cell, and the following possibilities are available:
+
+The parameter \parameter{field_mapping} of the respective module defines how the map read from the mesh file should be interpreted and applied to the cell, and the following possibilities are available:
 \begin{itemize}
-\item \parameter{FULL}
-\item \parameter{FULL_INVERSE}
-\item \parameter{HALF_RIGHT}
-\item \parameter{HALF_LEFT}
-\item \parameter{HALF_BOTTOM}
-\item \parameter{HALF_TOP}
-\item \parameter{QUADRANT_I}
-\item \parameter{QUADRANT_II}
-\item \parameter{QUADRANT_III}
-\item \parameter{QUADRANT_IV}
+\item \parameter{FULL} - the map is interpreted as field spanning the full Euclidean angle and aligned on the center of the pixel unit cell. No transformation is performed, but field values are obtained from the map with respect to the pixel center.
+\item \parameter{FULL_INVERSE} - the map is interpreted as full field, but with inverse alignment on the pixel corners as shown in Figure~\subref{fig:maps:fi}. Consequently, the field value lookup from the four quadrants take into account their offset.
+\item \parameter{HALF_LEFT} - the map represents the left Euclidean half-plane, aligned at the $y$ axis through the center of the pixel unit cell. Field values in the other half-plane are obtained by mirroring at the $y$ axis as indicated in Figure~\subref{fig:maps:halves:left}.
+\item \parameter{HALF_RIGHT} - the map represents the right Euclidean half-plane, aligned at the $y$ axis through the center of the pixel unit cell. Field values in the other half-plane are obtained by mirroring at the $y$ axis as indicated in Figure~\subref{fig:maps:halves:right}.
+\item \parameter{HALF_TOP} - the map represents the top Euclidean half-plane, aligned at the $x$ axis through the center of the pixel unit cell. Field values in the other half-plane are obtained by mirroring at the $x$ axis as indicated in Figure~\subref{fig:maps:halves:top}.
+\item \parameter{HALF_BOTTOM} - the map represents the bottom Euclidean half-plane, aligned at the $x$ axis through the center of the pixel unit cell. Field values in the other half-plane are obtained by mirroring at the $x$ axis as indicated in Figure~\subref{fig:maps:halves:bottom}.
+\item \parameter{QUADRANT_I} - the map represents the quadrant of the plane where both vector components have a positive sign. Field values in the other three quadrants are obtained by mirroring at the axes of the coordinate system as show in Figure~\subref{fig:maps:quadrants:i}.
+\item \parameter{QUADRANT_II} - the map represents the quadrant of the plane where the vector component $x$ has a negative and $y$ a positive sign. Field values in the other three quadrants are obtained by mirroring at the axes of the coordinate system as show in Figure~\subref{fig:maps:quadrants:ii}.
+\item \parameter{QUADRANT_III} - the map represents the quadrant of the plane where both vector components have a negative sign. Field values in the other three quadrants are obtained by mirroring at the axes of the coordinate system as show in Figure~\subref{fig:maps:quadrants:iii}.
+\item \parameter{QUADRANT_IV} - the map represents the quadrant of the plane where the vector component $x$ has a positive and $y$ a negative sign. Field values in the other three quadrants are obtained by mirroring at the axes of the coordinate system as show in Figure~\subref{fig:maps:quadrants:iv}.
 \end{itemize}
+
+All axes mentioned here are Cartesian axes aligning with the local coordinate system of the sensor, described in Section~\ref{sec:coordinate_systems}, and passing through the center of the pixel unit cell regarded.
+It should be noted that some of these mappings are equivalent to rotating or mirroring the field before loading it in \apsq, and are only provided for convenience.
 
 \section{Passing Objects using Messages}
 \label{sec:objects_messages}
