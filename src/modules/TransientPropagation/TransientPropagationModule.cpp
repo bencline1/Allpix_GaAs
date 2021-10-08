@@ -55,7 +55,7 @@ TransientPropagationModule::TransientPropagationModule(Configuration& config,
     config_.setDefault<bool>("ignore_magnetic_field", false);
 
     // Set defaults for charge carrier multiplication
-    config_.setDefault<double>("charge_multiplication_threshold", 1e-2);
+    config_.setDefault<double>("multiplication_threshold", 1e-2);
     config_.setDefault<std::string>("multiplication_model", "none");
 
     // Copy some variables from configuration to avoid lookups:
@@ -64,7 +64,7 @@ TransientPropagationModule::TransientPropagationModule(Configuration& config,
     integration_time_ = config_.get<double>("integration_time");
     matrix_ = config_.get<XYVectorInt>("induction_matrix");
     charge_per_step_ = config_.get<unsigned int>("charge_per_step");
-    threshold_field_ = config_.get<double>("charge_multiplication_threshold");
+    threshold_field_ = config_.get<double>("multiplication_threshold");
 
     if(matrix_.x() % 2 == 0 || matrix_.y() % 2 == 0) {
         throw InvalidValueError(config_, "induction_matrix", "Odd number of pixels in x and y required.");
