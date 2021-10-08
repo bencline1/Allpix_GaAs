@@ -888,7 +888,7 @@ GenericPropagationModule::propagate(const ROOT::Math::XYZPoint& pos,
     }
 
     // Return the final position of the propagated charge
-    return std::make_tuple(static_cast<ROOT::Math::XYZPoint>(position), initial_time + time, std::floor(gain), is_alive);
+    return std::make_tuple(static_cast<ROOT::Math::XYZPoint>(position), initial_time + time, gain, is_alive);
 }
 
 void GenericPropagationModule::finalize() {
@@ -897,6 +897,7 @@ void GenericPropagationModule::finalize() {
         drift_time_histo_->Write();
         uncertainty_histo_->Write();
         group_size_histo_->Write();
+        recombine_histo_->Write();
         gain_histo_->Write();
     }
 

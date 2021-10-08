@@ -23,21 +23,6 @@ The charge carrier lifetime can be simulated using the doping concentration of t
 In each step, the doping-dependent charge carrier lifetime is determined, from which a survival probability is calculated.
 The survival probability is calculated at each step of the propagation by drawing a random number from an uniform distribution with $`0 \leq r \leq 1`$ and comparing it to the expression $`dt/\tau`$, where $`dt`$ is the time step of the last charge carrier movement.
 
-$`\tau_{srh} = \frac{\tau_0}{1 + \frac{N_d}{N_{d0}}}`$
-
-where $`\tau_0`$ and $`N_{d0}`$ are reference life time and doping concentration taken from literature [@fossum].
-In addition, the charge carrier life time $`\tau_{a}`$ according to the Auger recombination model is calculated [@haug]
-
-$`\tau_{a} = \frac{1}{C_{a}N_{d}}`$
-
-where $`C_{a}`$ is the Auger coefficient.
-The effective life time is then given by
-
-$`\tau^{-1} = \tau_{srh}^{-1} + \tau_{a}^{-1}`$.
-
-In each step, the doping-dependent charge carrier life time is determined, from which a survival probability is calculated.
-The survival probability is calculated at each step of the propagation by drawing a random number from an uniform distribution with $`0 \leq r \leq 1`$ and comparing it to the expression $`t/\tau`$, where $`t`$ is the time since the creation of the charge carrier.
-
 The propagation module also produces a variety of output plots. These include a 3D line plot of the path of all separately propagated charge carrier sets from their point of deposition to the end of their drift, with nearby paths having different colors. In this coloring scheme, electrons are marked in blue colors, while holes are presented in different shades of orange.
 In addition, a 3D GIF animation for the drift of all individual sets of charges (with the size of the point proportional to the number of charges in the set) can be produced. Finally, the module produces 2D contour animations in all the planes normal to the X, Y and Z axis, showing the concentration flow in the sensor.
 It should be noted that generating the animations is very time-consuming and should be switched off even when investigating drift behavior.
@@ -59,9 +44,8 @@ This module requires an installation of Eigen3.
 * `propagate_electrons` : Select whether electron-type charge carriers should be propagated to the electrodes. Defaults to true.
 * `propagate_holes` :  Select whether hole-type charge carriers should be propagated to the electrodes. Defaults to false.
 * `ignore_magnetic_field`: The magnetic field, if present, is ignored for this module. Defaults to false.
-* `enable_charge_multiplication`: Enables charge multiplication. Defaults to false.
-* `charge_multiplication_threshold`: Threshold field below which charge multiplication is ignored to speed up the propagation. Defaults to 1e-2 MV mm^-1 (corresponds to 100 kV cm^-1).
-* `charge_multiplication_model`: Model used to calculate impact ionisation parameters. Possible values are 'massey' and 'overstraeten'. Defaults to 'massey'.
+* `multiplication_model`: Model used to calculate impact ionisation parameters. Possible values are `massey` and `overstraeten`. Defaults to `none`.
+* `charge_multiplication_threshold`: Threshold field below which charge multiplication is ignored to speed up the propagation. Defaults to `100kV/cm`.
 
 ### Plotting parameters
 * `output_plots` : Determines if simple output plots should be generated for a monitoring of the simulation flow. Disabled by default.

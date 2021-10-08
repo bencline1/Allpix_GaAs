@@ -93,10 +93,10 @@ namespace allpix {
          * cumulative gain and a flag whether it has recombined
          */
         std::tuple<ROOT::Math::XYZPoint, double, double, bool> propagate(const ROOT::Math::XYZPoint& pos,
-                                                                 const CarrierType& type,
-                                                                 const double initial_time,
-                                                                 RandomNumberGenerator& random_generator,
-                                                                 OutputPlotPoints& output_plot_points) const;
+                                                                         const CarrierType& type,
+                                                                         const double initial_time,
+                                                                         RandomNumberGenerator& random_generator,
+                                                                         OutputPlotPoints& output_plot_points) const;
 
         // Local copies of configuration parameters to avoid costly lookup:
         double temperature_{}, timestep_min_{}, timestep_max_{}, timestep_start_{}, integration_time_{},

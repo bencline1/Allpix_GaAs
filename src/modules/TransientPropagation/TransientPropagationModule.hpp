@@ -80,15 +80,15 @@ namespace allpix {
          * @param initial_time Initial timestamp referring to the start of the event
          * @param pixel_map    Map of surrounding pixels and their induced pulses. Provided as reference to store simulation
          *                  result in
-         * @return          Tuple of the point where the deposit ended after propagation, the time the propagation took and a
-         * flag whether it is still alive or has recombined
+         * @return          Tuple of the point where the deposit ended after propagation, the time the propagation took, the
+         * cumulative gain and a flag whether it is still alive or has recombined
          */
         std::tuple<ROOT::Math::XYZPoint, double, double, bool> propagate(Event* event,
-                                                                 const ROOT::Math::XYZPoint& pos,
-                                                                 const CarrierType& type,
-                                                                 const unsigned int charge,
-                                                                 const double initial_time,
-                                                                 std::map<Pixel::Index, Pulse>& pixel_map);
+                                                                         const ROOT::Math::XYZPoint& pos,
+                                                                         const CarrierType& type,
+                                                                         const unsigned int charge,
+                                                                         const double initial_time,
+                                                                         std::map<Pixel::Index, Pulse>& pixel_map);
 
         // Local copies of configuration parameters to avoid costly lookup:
         double temperature_{}, timestep_{}, integration_time_{}, threshold_field_{};
@@ -98,6 +98,7 @@ namespace allpix {
 
         // Models for electron and hole mobility and lifetime
         Mobility mobility_;
+        Recombination recombination_;
         ImpactIonization multiplication_;
 
         // Precalculated value for Boltzmann constant:
@@ -106,7 +107,6 @@ namespace allpix {
         // Predefined values for electron/hole velocity calculation in magnetic fields
         double electron_Hall_;
         double hole_Hall_;
-
 
         // Magnetic field
         bool has_magnetic_field_{};

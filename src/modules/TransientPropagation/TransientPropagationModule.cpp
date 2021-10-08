@@ -53,7 +53,7 @@ TransientPropagationModule::TransientPropagationModule(Configuration& config,
     config_.setDefault<bool>("output_plots", false);
     config_.setDefault<XYVectorInt>("induction_matrix", XYVectorInt(3, 3));
     config_.setDefault<bool>("ignore_magnetic_field", false);
-	
+
     // Set defaults for charge carrier multiplication
     config_.setDefault<double>("charge_multiplication_threshold", 1e-2);
     config_.setDefault<std::string>("multiplication_model", "none");
@@ -64,7 +64,6 @@ TransientPropagationModule::TransientPropagationModule(Configuration& config,
     integration_time_ = config_.get<double>("integration_time");
     matrix_ = config_.get<XYVectorInt>("induction_matrix");
     charge_per_step_ = config_.get<unsigned int>("charge_per_step");
-    auger_coeff_ = config_.get<double>("auger_coefficient");
     threshold_field_ = config_.get<double>("charge_multiplication_threshold");
 
     if(matrix_.x() % 2 == 0 || matrix_.y() % 2 == 0) {
@@ -238,7 +237,8 @@ void TransientPropagationModule::run(Event* event) {
             }
 
             if(output_plots_) {
-                drift_time_histo_->Fill(static_cast<double>(Units::convert(time, "ns")), static_cast<unsigned int>(charge_per_step * gain));
+                drift_time_histo_->Fill(static_cast<double>(Units::convert(time, "ns")),
+                                        static_cast<unsigned int>(charge_per_step * gain));
             }
         }
     }
@@ -459,7 +459,8 @@ TransientPropagationModule::propagate(Event* event,
     }
 
     // Return the final position of the propagated charge
-    return std::make_tuple(static_cast<ROOT::Math::XYZPoint>(position), initial_time + runge_kutta.getTime(), gain, is_alive);
+    return std::make_tuple(
+        static_cast<ROOT::Math::XYZPoint>(position), initial_time + runge_kutta.getTime(), gain, is_alive);
 }
 
 void TransientPropagationModule::finalize() {
